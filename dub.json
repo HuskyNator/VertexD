@@ -7,19 +7,19 @@
 		"bindbc-glfw": "~>0.10.1",
 		"bindbc-opengl": "~>0.13.0"
 	},
+	"description": "Dutch OpenGL passion project",
 	"lflags-windows": [
 		"/SUBSYSTEM:windows",
 		"/ENTRY:mainCRTStartup"
 	],
-	"sourceFiles-windows": [
-		"logo/logo.res"
-	],
-	"description": "Dutch OpenGL passion project",
 	"libs": [
 		"glfw3dll"
 	],
 	"license": "proprietary",
 	"name": "hoekjed",
+	"sourceFiles-windows": [
+		"logo/logo.res"
+	],
 	"versions": [
 		"BindGLFW_Static",
 		"GLFW_33",
