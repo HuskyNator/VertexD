@@ -8,11 +8,8 @@
 		"bindbc-opengl": "~>0.13.0"
 	},
 	"description": "Dutch OpenGL passion project",
-	"lflags-windows": [
-		"/SUBSYSTEM:windows",
-		"/ENTRY:mainCRTStartup"
-	],
 	"libs": [
+		"user32",
 		"glfw3dll"
 	],
 	"license": "proprietary",
