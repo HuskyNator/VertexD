@@ -1,7 +1,14 @@
-import std.stdio;
-import std.conv;
 import bindbc.glfw;
 import core.sys.windows.windows;
+import std.conv;
+import std.datetime.stopwatch;
+import std.parallelism;
+import std.range : iota;
+import std.stdio;
+import wiskunde;
+
+// VOEG TOE: module bestand? + glfw & opengl laden hier mee.
+// Zet hier ook gelijk error callbacks voor glfw & opengl.
 
 extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) nothrow {
 	try {
@@ -32,25 +39,39 @@ void main() {
 		console = GetConsoleWindow();
 		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
 	} else {
-		FreeConsole();
+		// FreeConsole();
 	}
 
 	import bindbc.glfw;
 	import bindbc.opengl;
-	import wiskunde;
 
 	glfwSetErrorCallback(&glfw_foutterugroep);
 	glfwInit();
 
-	GLFWwindow* scherm = glfwCreateWindow(1920 / 2, 1080 / 2, "HoekjeD v0.0.0", null, null);
-	assert(scherm != null, "GLFW kon geen scherm aanmaken.");
-	glfwMakeContextCurrent(scherm);
-	debug glfwSetKeyCallback(scherm, &glfw_toetsterugroep_debug);
+	Mat!(5, 5, int) a = {
+		[
+			[1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5],
+			[1, 2, 3, 4, 5]
+		]
+	};
+	Mat!(5, 5, int) b = {
+		[
+			[0, 1, 0, 1, 2], [0, 1, 0, 1, 2], [0, 1, 0, 1, 2], [0, 1, 0, 1, 2],
+			[0, 1, 0, 1, 2]
+		]
+	};
 
-	GLSupport gl_versie = loadOpenGL();
-	assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
+	a *= 2;
 
-	while (!glfwWindowShouldClose(scherm)) {
-		glfwPollEvents();
-	}
+	// GLFWwindow* scherm = glfwCreateWindow(1920 / 2, 1080 / 2, "HoekjeD v0.0.0", null, null);
+	// assert(scherm != null, "GLFW kon geen scherm aanmaken.");
+	// glfwMakeContextCurrent(scherm);
+	// debug glfwSetKeyCallback(scherm, &glfw_toetsterugroep_debug);
+
+	// GLSupport gl_versie = loadOpenGL();
+	// assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
+
+	// while (!glfwWindowShouldClose(scherm)) {
+	// 	glfwPollEvents();
+	// }
 }
