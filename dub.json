@@ -20,6 +20,7 @@
 	"versions": [
 		"BindGLFW_Static",
 		"GLFW_33",
-		"GL_46"
+		"GL_46",
+		"GL_ARB"
 	]
 }
