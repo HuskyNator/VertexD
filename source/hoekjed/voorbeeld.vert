@@ -1,11 +1,13 @@
 #version 460
 
-in vec3 hplek;
-in vec3 hnormaal;
-in vec2 hbeeldplek;
+layout(location = 0) in vec3 hplek;
+layout(location = 1) in vec3 hnormaal;
+layout(location = 2) in vec2 hbeeldplek;
+layout(location = 3) in int gl_VertexID;
 
-uniform mat4 projectieM
-uniform mat4 zichtM
+uniform mat4 projectieM;
+uniform mat4 zichtM;
+uniform mat4 tekenM;
 
 out vec3 splek;
 out vec3 snormaal;
@@ -18,5 +20,6 @@ void main(){
 	snormaal=hnormaal;
 	sbeeldplek=hbeeldplek;
 	
-	gl_Position=projectieM*zichtM*hplek;
+	gl_Position=projectieM*zichtM*tekenM*vec4(hplek,1);
+	// gl_Position=vec4(hbeeldplek.x,hbeeldplek.y,-.2,0.5);
 }

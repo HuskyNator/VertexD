@@ -5,36 +5,18 @@ import bindbc.opengl;
 import std.conv : to;
 import std.container.rbtree;
 
-private extern (C) void venster_grootte_terugroeper(GLFWwindow* glfw_venster, int breedte,
-		int hoogte) nothrow {
-	Venster venster = Venster.vensters[glfw_venster];
-	venster.breedte = breedte;
-	venster.hoogte = hoogte;
-	venster.hervorm();
-}
-
-private extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster,
-		int toets, int toets_sleutel, int gebeurtenis, int toevoeging) nothrow {
-	Venster venster = Venster.vensters[glfw_venster];
-	ToetsInvoer invoer = ToetsInvoer(venster, toets, toets_sleutel, gebeurtenis, toevoeging);
-	Venster.invoer ~= invoer;
-	foreach (ToetsTerugroeper terugroeper; Venster.toetsTerugroepers[glfw_venster]) {
-		terugroeper(invoer);
-	}
-	if (toets == GLFW_KEY_F4)
-		glfwSetWindowShouldClose(glfw_venster, true);
-}
-
 struct ToetsInvoer {
 	Venster venster;
 	int toets, toets_sleutel, gebeurtenis, toevoeging;
 }
 
 alias ToetsTerugroeper = void delegate(ToetsInvoer invoer) nothrow;
+alias MuisplekTerugroeper = void delegate(double x, double y) nothrow;
 
 class Venster {
 	static package Venster[GLFWwindow* ] vensters;
 	static package ToetsTerugroeper[][GLFWwindow* ] toetsTerugroepers;
+	static package MuisplekTerugroeper[][GLFWwindow* ] muisplekTerugroepers;
 	static package ToetsInvoer[] invoer;
 
 	string naam;
@@ -57,13 +39,23 @@ class Venster {
 		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, doorzichtig);
 	}
 
+	void zetAchtergrondKleur(Vec!(4, float) kleur) {
+		glClearColor(kleur.x, kleur.y, kleur.z, kleur.w);
+	}
+
 	this(string naam = "HoekjeD", int glfw_breedte = 1920 / 2, int glfw_hoogte = 1080 / 2) {
+		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+
 		this.glfw_venster = glfwCreateWindow(glfw_breedte, glfw_hoogte, naam.ptr, null, null);
 		assert(glfw_venster !is null, "GLFW kon geen scherm aanmaken.");
+
 		Venster.vensters[glfw_venster] = this;
+		Venster.toetsTerugroepers[glfw_venster] = [];
+		Venster.muisplekTerugroepers[glfw_venster] = [];
 		glfwMakeContextCurrent(glfw_venster); // PAS OP: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
 
 		glfwSetKeyCallback(glfw_venster, &venster_toets_terugroeper);
+		glfwSetCursorPosCallback(glfw_venster, &venster_muisplek_terugroeper);
 		glfwSetWindowSizeCallback(glfw_venster, &venster_grootte_terugroeper);
 
 		this.naam = naam;
@@ -75,12 +67,17 @@ class Venster {
 
 		GLSupport gl_versie = loadOpenGL();
 		assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
-		// VOEG TOE: opengl foutterugroeper.
+
+		debug {
+			glEnable(GL_DEBUG_OUTPUT);
+			glDebugMessageCallback(&gl_fout_terugroeper, null);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
+					GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
+		}
 	}
 
 	void toon() {
 		glfwShowWindow(glfw_venster);
-		glClearColor(0, 0, 0.5, 0.1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glfwSwapBuffers(glfw_venster);
 	}
@@ -110,6 +107,10 @@ class Venster {
 
 	void voegToetsTerugroeperToe(ToetsTerugroeper toetsTerugroeper) {
 		Venster.toetsTerugroepers[glfw_venster] ~= toetsTerugroeper;
+	}
+
+	void voegMuisplekTerugroeperToe(MuisplekTerugroeper muisplekTerugroeper) {
+		Venster.muisplekTerugroepers[glfw_venster] ~= muisplekTerugroeper;
 	}
 
 	unittest {
@@ -196,5 +197,120 @@ struct Scherm {
 		Vec!(2, int) b = {[1, 2]};
 		s.hervorm(a, b);
 		assert(s.rechtsonder.x == 5 && s.rechtsonder.y == 6);
+	}
+}
+
+extern (C) void venster_grootte_terugroeper(GLFWwindow* glfw_venster, int breedte, int hoogte) nothrow {
+	Venster venster = Venster.vensters[glfw_venster];
+	venster.breedte = breedte;
+	venster.hoogte = hoogte;
+	venster.hervorm();
+}
+
+extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
+		int toets_sleutel, int gebeurtenis, int toevoeging) nothrow {
+	Venster venster = Venster.vensters[glfw_venster];
+	ToetsInvoer invoer = ToetsInvoer(venster, toets, toets_sleutel, gebeurtenis, toevoeging);
+	Venster.invoer ~= invoer;
+	foreach (ToetsTerugroeper terugroeper; Venster.toetsTerugroepers[glfw_venster]) {
+		terugroeper(invoer);
+	}
+	if (toets == GLFW_KEY_F4)
+		glfwSetWindowShouldClose(glfw_venster, true);
+}
+
+extern (C) void venster_muisplek_terugroeper(GLFWwindow* glfw_venster, double x, double y) nothrow {
+	foreach (MuisplekTerugroeper terugroeper; Venster.muisplekTerugroepers[glfw_venster]) {
+		terugroeper(x, y);
+	}
+}
+
+debug {
+	extern (System) void gl_fout_terugroeper(GLenum bron, GLenum soort, GLuint id,
+			GLenum ernstigheid, GLsizei length, const GLchar* message, const void* userParam) nothrow {
+		import std.stdio : write, writeln;
+		import std.conv : to;
+		import bindbc.opengl.bind.types;
+
+		try {
+			writeln("OpenGL Fout #" ~ id.to!string);
+			write("\tBron: ");
+			switch (bron) {
+			case GL_DEBUG_SOURCE_API:
+				writeln("OpenGL API");
+				break;
+			case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+				writeln("Venster Systeem API");
+				break;
+			case GL_DEBUG_SOURCE_SHADER_COMPILER:
+				writeln("Shader Compiler");
+				break;
+			case GL_DEBUG_SOURCE_THIRD_PARTY:
+				writeln("Derde Partij");
+				break;
+			case GL_DEBUG_SOURCE_APPLICATION:
+				writeln("Gebruikerscode");
+				break;
+			case GL_DEBUG_SOURCE_OTHER:
+				writeln("Overig");
+				break;
+			default:
+				assert(false);
+			}
+
+			write("\tSoort: ");
+			switch (soort) {
+			case GL_DEBUG_TYPE_ERROR:
+				writeln("Fout ╮(. ❛ ᴗ ❛.)╭");
+				break;
+			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+				writeln("Verouderd gebruik");
+				break;
+			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+				writeln("Ongedefiniëerd gedrag");
+				break;
+			case GL_DEBUG_TYPE_PORTABILITY:
+				writeln("Systeem overzetbaarheid");
+				break;
+			case GL_DEBUG_TYPE_PERFORMANCE:
+				writeln("Uitvoeringsproblemen");
+				break;
+			case GL_DEBUG_TYPE_MARKER:
+				writeln("\"Command stream annotation\"");
+				break;
+			case GL_DEBUG_TYPE_PUSH_GROUP:
+				writeln("\"Group pushing\"");
+				break;
+			case GL_DEBUG_TYPE_POP_GROUP:
+				writeln("\"foo\"");
+				break;
+			case GL_DEBUG_TYPE_OTHER:
+				writeln("Overig");
+				break;
+			default:
+				assert(false);
+			}
+
+			write("\tErnstigheid: ");
+			switch (ernstigheid) {
+			case GL_DEBUG_SEVERITY_HIGH:
+				writeln("Hoog");
+				break;
+			case GL_DEBUG_SEVERITY_MEDIUM:
+				writeln("Middelmatig");
+				break;
+			case GL_DEBUG_SEVERITY_LOW:
+				writeln("Laag");
+				break;
+			case GL_DEBUG_SEVERITY_NOTIFICATION:
+				writeln("Melding (Overig)");
+				break;
+			default:
+				assert(false);
+			}
+
+			writeln("\tBericht: " ~ message.to!string);
+		} catch (Exception e) {
+		}
 	}
 }

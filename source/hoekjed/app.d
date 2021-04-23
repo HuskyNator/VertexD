@@ -47,22 +47,24 @@ void main() {
 	import hoekjed;
 
 	hdZetOp();
+	// Venster.zetStandaardDoorzichtig(true);
 	Venster venster = new Venster();
+	venster.zetAchtergrondKleur(Vec!(4, float)([0, 0, 0.5, 0.5]));
 	Wereld wereld = new Wereld();
 
 	Vec!(3, nauwkeurigheid)[] plekken = [
-		{[-1, 0, 0]}, {[1, 0, 0]}, {[1, 1, 0]}, {[-1, 1, 0]}
+		{[-0.5f, -0.5f, 0]}, {[0.5f,  - 0.5f , 0]}, {[0, 0.5f, 0]}
 	];
 	Vec!(3, nauwkeurigheid)[] normalen = [
-		{[0, -1, 0]}, {[0, -1, 0]}, {[0, -1, 0]}, {[0, -1, 0]}
+		{[0.0f, -1, 0]}, {[0, -1, 0]}, {[0, -1, 0]}
 	];
 	Vec!(2, nauwkeurigheid)[] beeldplekken = [
-		{[0, 0]}, {[1, 0]}, {[1, 1]}, {[0, 1]}
+		{[-0.5f, -0.5f]}, {[0.5f, -0.5f]}, {[0, 0.5f]}
 	];
-	Vec!(3, uint)[] volgorde = [{[0, 1, 2]}, {[0, 2, 3]}];
+	Vec!(3, uint)[] volgorde = [{[0, 1, 2]}];
 
 	Voorwerp vlak = new DraadVoorwerp(plekken, normalen, beeldplekken, volgorde);
-	vlak.plek = Vec!3([0, 1, 0]);
+	// vlak.plek = Vec!3([0, 1, 0]);
 	wereld.voorwerpen ~= vlak;
 
 	Zicht zicht = new DiepteZicht();
@@ -70,6 +72,37 @@ void main() {
 
 	venster.wereld = wereld;
 	venster.zicht = zicht;
+
+	void verplaats(ToetsInvoer invoer) nothrow {
+		switch (invoer.toets) {
+		case GLFW_KEY_A:
+			zicht.plek = zicht.plek + Vec!(3)([-1, 0, 0]);
+			break;
+		case GLFW_KEY_W:
+			zicht.plek = zicht.plek + Vec!(3)([0, 1, 0]);
+			break;
+		case GLFW_KEY_S:
+			zicht.plek = zicht.plek + Vec!(3)([0, -1, 0]);
+			break;
+		case GLFW_KEY_D:
+			zicht.plek = zicht.plek + Vec!(3)([1, 0, 0]);
+			break;
+		default:
+		}
+	}
+
+	void draai(double x, double y) {
+		// static double beginx = x;
+		// static double beginy = y;
+		// double dx = x - beginx;
+		// double dy = y - beginy;
+		// beginx = x;
+		// beginy = y;
+		zicht.draai = zicht.draai + Vec!(3)([0, y, -x]);
+	}
+
+	venster.voegToetsTerugroeperToe(&verplaats);
+	venster.voegMuisplekTerugroeperToe(&draai);
 
 	lus();
 }

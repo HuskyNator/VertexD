@@ -14,33 +14,33 @@ abstract class Voorwerp { // VOEG TOE: ouders
 	Voorwerp[] kinderen;
 	Mat!4 tekenM;
 	Mat!4 erfM;
-	bool aangepast;
+	bool aangepast = true;
 
 	protected alias houding this;
 
-	@property Vec!3 plek() {
-		return plek;
+	@property Vec!3 plek() nothrow {
+		return _plek;
 	}
 
-	@property Vec!3 draai() {
-		return draai;
+	@property Vec!3 draai() nothrow {
+		return _draai;
 	}
 
-	@property Vec!3 grootte() {
-		return grootte;
+	@property Vec!3 grootte() nothrow {
+		return _grootte;
 	}
 
-	@property void plek(Vec!3 waarde) {
+	@property void plek(Vec!3 waarde) nothrow {
 		_plek = waarde;
 		aangepast = true;
 	}
 
-	@property void draai(Vec!3 waarde) {
+	@property void draai(Vec!3 waarde) nothrow {
 		_draai = waarde;
 		aangepast = true;
 	}
 
-	@property void grootte(Vec!3 waarde) {
+	@property void grootte(Vec!3 waarde) nothrow {
 		_grootte = waarde;
 		aangepast = true;
 	}
@@ -68,6 +68,11 @@ abstract class Voorwerp { // VOEG TOE: ouders
 			tekenM[0][0] = _grootte.x;
 			tekenM[1][1] = _grootte.y;
 			tekenM[2][2] = _grootte.z;
+			Mat!(4) a = Mat!(4).draaiMx(0);
+			a = Mat!(4).draaiMy(0);
+			a = Mat!(4).draaiMz(0);
+			Mat!(4) b = Mat!(4).draaiMz(_draai.z) * tekenM;
+			b = Mat!(4).draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * tekenM;
 			tekenM = Mat!(4).draaiMy(_draai.y) * Mat!(4)
 				.draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * tekenM; // rollen -> stampen -> gieren.
 			tekenM[0][3] = _plek.x;
@@ -85,7 +90,7 @@ abstract class Voorwerp { // VOEG TOE: ouders
 
 }
 
-class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegevens & zo, & losse versies hier van voor plaatsing? Of alternatief.
+final class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegevens & zo, & losse versies hier van voor plaatsing? Of alternatief.
 
 	uint VAO;
 	uint[uint] VBO;
@@ -105,9 +110,10 @@ class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegevens & 
 		this.volgorde = volgorde;
 		this.verver = Verver.voorbeeld;
 		glCreateVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
 		zetInhoud(0, plekken);
-		zetInhoud(1, normalen);
-		zetInhoud(2, beeldplekken);
+		// zetInhoud(1, normalen);
+		// zetInhoud(2, beeldplekken);
 		zetVolgorde(volgorde);
 	}
 
@@ -138,7 +144,7 @@ class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegevens & 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, inhoud.length * V.sizeof, inhoud.ptr, GL_STATIC_DRAW);
 		glBindVertexArray(VAO);
-		glVertexAttribPointer(plek, L, soort, false, 0, null);
+		glVertexAttribPointer(plek, L, soort, false, V.sizeof, null);
 		glEnableVertexAttribArray(plek);
 	}
 
@@ -146,14 +152,15 @@ class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegevens & 
 		glBindVertexArray(VAO);
 		glCreateBuffers(1, &EBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, volgorde.length * 3 * uint.sizeof,
-				volgorde.ptr, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+				this.volgorde.length * 3 * uint.sizeof, this.volgorde.ptr, GL_STATIC_DRAW);
 	}
 
 	override void _teken() {
 		verver.gebruik();
+		verver.zetUniform("tekenM", tekenM);
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, cast(uint) volgorde.length, GL_UNSIGNED_INT, null);
+		glDrawElements(GL_TRIANGLES, cast(uint) (3 * volgorde.length), GL_UNSIGNED_INT, null);
 	}
 
 	override void _denk(Wereld wereld) {

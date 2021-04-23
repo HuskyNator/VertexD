@@ -16,7 +16,9 @@ abstract class Zicht : Voorwerp { // VOEG TOE: zicht als voorwerp in de wereld.
 		werkProjectieMBij();
 	}
 
+	static Zicht huidig; //PAS OP: tijdelijk
 	void teken(Wereld wereld) {
+		Zicht.huidig = this;
 		zetUniform();
 		wereld.teken();
 	}
@@ -33,19 +35,21 @@ abstract class Zicht : Voorwerp { // VOEG TOE: zicht als voorwerp in de wereld.
 
 	void zetUniform() {
 		foreach (Verver verver; Verver.ververs) {
-			verver.zetUniform("projectieM", projectieM);
-			verver.zetUniform("zichtM", zichtM);
+			Mat!(4) a = projectieM.gekantelde();
+			Mat!(4) b = zichtM.gekantelde();
+			verver.zetUniform("projectieM", projectieM.gekantelde());
+			verver.zetUniform("zichtM", zichtM.gekantelde());
 		}
 	}
 }
 
 class DiepteZicht : Zicht {
-	nauwkeurigheid schermverhouding = 1080 / 1920;
-	nauwkeurigheid zichthoek = 90;
-	nauwkeurigheid voorvlak = 0.01;
-	nauwkeurigheid achtervlak = 100;
+	nauwkeurigheid schermverhouding;
+	nauwkeurigheid zichthoek;
+	nauwkeurigheid voorvlak;
+	nauwkeurigheid achtervlak;
 
-	this(nauwkeurigheid schermverhouding = 1080 / 1920, nauwkeurigheid zichthoek = 90,
+	this(nauwkeurigheid schermverhouding = 1080.0 / 1920.0, nauwkeurigheid zichthoek = 90,
 			nauwkeurigheid voorvlak = 0.01, nauwkeurigheid achtervlak = 100,) {
 		this.voorvlak = voorvlak;
 		this.achtervlak = achtervlak;
@@ -56,13 +60,14 @@ class DiepteZicht : Zicht {
 	override void werkProjectieMBij() {
 		import std.math : tan;
 
+		alias A = achtervlak;
+		alias V = voorvlak;
+
 		const nauwkeurigheid a = 1 / tan(zichthoek / 2);
 		projectieM.mat = [
-			[a, 0, 0, 0], [0, a * schermverhouding, 0, 0],
-			[
-				0, 0, (achtervlak + voorvlak) / (achtervlak - voorvlak),
-				(2 * achtervlak * voorvlak) / (achtervlak - voorvlak)
-			], [0, 0, cast(nauwkeurigheid) 1, 0]
+			[a, 0, 0, 0], [0, 0, schermverhouding * a, 0],
+			[0, (A + V) / (A - V), 0, -(2 * A * V) / (A - V)],
+			[0, cast(nauwkeurigheid) 1, 0, 0]
 		];
 	}
 }

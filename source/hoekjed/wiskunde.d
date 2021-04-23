@@ -36,6 +36,31 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 	else
 		alias mat this;
 
+	import std.format : FormatSpec;
+	import std.range : put;
+	import std.conv : to;
+
+	void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {
+		sink.put("[");
+		foreach (i; 0 .. rij_aantal - 1) {
+			sink.put(mat[i].to!string);
+			sink.put(",\n ");
+		}
+		if (rij_aantal > 0)
+			sink.put(mat[rij_aantal - 1].to!string);
+		sink.put("]");
+	}
+
+	static if (rij_aantal == kolom_aantal) {
+		MSoort gekantelde() pure {
+			MSoort resultaat;
+			static foreach (i; 0 .. rij_aantal)
+				static foreach (j; 0 .. kolom_aantal)
+					resultaat.mat[i][j] = mat[j][i];
+			return resultaat;
+		}
+	}
+
 	static immutable MSoort nul = bereken_nul();
 	private static MSoort bereken_nul() pure {
 		MSoort resultaat;
@@ -56,7 +81,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 	}
 
 	static Mat!(4, 4, nauwkeurigheid) draaiMx(nauwkeurigheid hoek) { // stampen
-		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).identiteit;
+		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
 		nauwkeurigheid cos = cos(hoek);
 		nauwkeurigheid sin = sin(hoek);
 		draaiM[0][0] = 1;
@@ -64,11 +89,12 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 		draaiM[1][2] = -sin;
 		draaiM[2][1] = sin;
 		draaiM[2][2] = cos;
+		draaiM[3][3] = 1;
 		return draaiM;
 	}
 
 	static Mat!(4, 4, nauwkeurigheid) draaiMy(nauwkeurigheid hoek) { // gieren
-		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).identiteit;
+		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
 		nauwkeurigheid cos = cos(hoek);
 		nauwkeurigheid sin = sin(hoek);
 		draaiM[0][0] = cos;
@@ -76,18 +102,20 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 		draaiM[1][1] = 1;
 		draaiM[2][0] = -sin;
 		draaiM[2][2] = cos;
+		draaiM[3][3] = 1;
 		return draaiM;
 	}
 
 	static Mat!(4, 4, nauwkeurigheid) draaiMz(nauwkeurigheid hoek) { // rollen
-		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).identiteit;
+		Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
 		nauwkeurigheid cos = cos(hoek);
 		nauwkeurigheid sin = sin(hoek);
 		draaiM[0][0] = cos;
 		draaiM[0][2] = -sin;
-		draaiM[1][0] = cos;
-		draaiM[1][2] = sin;
-		draaiM[2][1] = 1;
+		draaiM[2][1] = sin;
+		draaiM[1][1] = cos;
+		draaiM[2][2] = 1;
+		draaiM[3][3] = 1;
 		return draaiM;
 	}
 
@@ -119,11 +147,12 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 
 	Mat!(rij_aantal, K, Soort) opBinary(string op : "*", M:
 			Mat!(kolom_aantal, K, Soort), int K)(const M rechts) const { // Mat * Mat
-		Mat!(rij_aantal, K, Soort) resultaat = Mat!(rij_aantal, K, Soort).identiteit;
+		Mat!(rij_aantal, K, Soort) resultaat = Mat!(rij_aantal, K, Soort).nul;
 		static foreach (r; 0 .. rij_aantal)
 			static foreach (k; 0 .. K)
-				static foreach (i; 0 .. kolom_aantal)
-					resultaat.vec[r+k*K] += mat[r][i] * rechts.mat[i][k];
+				static foreach (i; 0 .. kolom_aantal) {
+					resultaat.vec[r * K + k] += mat[r][i] * rechts.mat[i][k];
+				}
 		return resultaat;
 	}
 

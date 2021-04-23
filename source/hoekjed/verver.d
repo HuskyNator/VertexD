@@ -14,13 +14,13 @@ class Verver {
 	@property static Verver voorbeeld() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
-			voorbeeld = new Verver(new HoekVerver("source/hoekjed/voorbeeld.vert"),
-					new SnipperVerver("source/hoekjed/voorbeeld.frag"));
+			voorbeeld = new Verver(new HoekVerver("source/hoekjed/voorbeeldpoep.vert"),
+					new SnipperVerver("source/hoekjed/voorbeeldpoep.frag"));
 		return voorbeeld;
 	}
 
+	static Verver huidig = null;
 	final void gebruik() {
-		static Verver huidig;
 		if (huidig is this)
 			return;
 		glUseProgram(verwijzing);
@@ -34,6 +34,21 @@ class Verver {
 		glAttachShader(verwijzing, hoekV.verwijzing);
 		glAttachShader(verwijzing, snipperV.verwijzing);
 		glLinkProgram(verwijzing);
+
+		int volbracht;
+		glGetProgramiv(verwijzing, GL_LINK_STATUS, &volbracht);
+		if (volbracht == 0) {
+			import std.stdio : writeln;
+
+			char[512] melding;
+			glGetProgramInfoLog(verwijzing, 512, null, &melding[0]);
+			writeln("Kon verver niet samenstellen:");
+			writeln("\t" ~ melding.to!string);
+			assert(false);
+		}
+
+		glUseProgram(verwijzing);
+
 		Verver.ververs ~= this;
 	}
 
@@ -60,6 +75,8 @@ class Verver {
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)
 			if (L >= 1 && L <= 4) { // zet Vec
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1)
+			return;
 		enum string waardes = "waarde.x" ~ (L == 1 ? "" : ",waarde.y" ~ (L == 2
 					? "" : ",waarde.z" ~ (L == 3 ? "" : ",waarde.w")));
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
@@ -71,6 +88,8 @@ class Verver {
 	void zetUniform(V : Mat!(L, 1, S)[], uint L, S)(string naam, V waarde)
 			if (L >= 1 && L <= 4) { // zet Vec[]
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1)
+			return;
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
 					? "i" : (is(S == float) ? "f" : (is(S == double) ? "d" : "")));
 		static assert(soort != "", "Soort " ~ S ~ " niet ondersteund voor zetUniform.");
@@ -81,6 +100,16 @@ class Verver {
 	void zetUniform(V : Mat!(R, K, nauwkeurigheid), uint R, uint K)(string naam, V waarde)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Zet Mat
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1) {
+			import std.stdio : writeln;
+
+			char[512] melding;
+			glGetProgramInfoLog(verwijzing, 512, null, &melding[0]);
+			writeln("Kon Uniform niet zetten");
+			writeln(melding.to!string);
+			return;
+		}
+
 		mixin("glUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float) ? "f" : "d") ~ "v(uniformplek, 1, true, waarde[0].ptr);");
 		// mixin("glUniformMatrix" ~ R == K ? K.to!string
@@ -111,12 +140,24 @@ class DeelVerver(uint soort) {
 		this.verwijzing = glCreateShader(soort);
 		string bron = readText(bestand);
 		bron = bron.replace("nauwkeurigheid", nauwkeurigheid.stringof);
-		static if (is(nauwkeurigheid == double)){
+		static if (is(nauwkeurigheid == double)) {
 			bron = bron.replace(" vec", " dvec");
 			bron = bron.replace(" mat", " dmat");
 		}
 		auto p = bron.ptr;
 		glShaderSource(verwijzing, 1, &p, null);
 		glCompileShader(verwijzing);
+
+		int volbracht;
+		glGetShaderiv(verwijzing, GL_COMPILE_STATUS, &volbracht);
+		if (volbracht == 0) {
+			import std.stdio : writeln;
+
+			char[512] melding;
+			glGetShaderInfoLog(verwijzing, 512, null, &melding[0]);
+			writeln("Kon Verver \"" ~ bestand ~ "\" niet bouwen:");
+			writeln("\t" ~ melding.to!string);
+			assert(false);
+		}
 	}
 }

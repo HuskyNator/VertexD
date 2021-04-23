@@ -29,8 +29,8 @@ void stap() {
 			glfwDestroyWindow(glfw_venster);
 			Venster.toetsTerugroepers.remove(glfw_venster);
 			Venster.vensters.remove(glfw_venster);
-		}
-		venster.teken();
+		} else
+			venster.teken();
 	}
 
 	Venster.invoer = [];
