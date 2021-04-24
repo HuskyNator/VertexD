@@ -20,6 +20,6 @@ void main(){
 	snormaal=hnormaal;
 	sbeeldplek=hbeeldplek;
 	
+	// gl_Position=zichtM*tekenM*vec4(hplek,1);
 	gl_Position=projectieM*zichtM*tekenM*vec4(hplek,1);
-	// gl_Position=vec4(hbeeldplek.x,hbeeldplek.y,-.2,0.5);
 }

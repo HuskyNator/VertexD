@@ -36,6 +36,9 @@ abstract class Voorwerp { // VOEG TOE: ouders
 	}
 
 	@property void draai(Vec!3 waarde) nothrow {
+		// import std.math:PI;
+		// static foreach(i;0..waarde.length)
+		// 	if(waarde[i] > )
 		_draai = waarde;
 		aangepast = true;
 	}
@@ -68,11 +71,6 @@ abstract class Voorwerp { // VOEG TOE: ouders
 			tekenM[0][0] = _grootte.x;
 			tekenM[1][1] = _grootte.y;
 			tekenM[2][2] = _grootte.z;
-			Mat!(4) a = Mat!(4).draaiMx(0);
-			a = Mat!(4).draaiMy(0);
-			a = Mat!(4).draaiMz(0);
-			Mat!(4) b = Mat!(4).draaiMz(_draai.z) * tekenM;
-			b = Mat!(4).draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * tekenM;
 			tekenM = Mat!(4).draaiMy(_draai.y) * Mat!(4)
 				.draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * tekenM; // rollen -> stampen -> gieren.
 			tekenM[0][3] = _plek.x;
@@ -112,8 +110,8 @@ final class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegev
 		glCreateVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 		zetInhoud(0, plekken);
-		// zetInhoud(1, normalen);
-		// zetInhoud(2, beeldplekken);
+		zetInhoud(1, normalen);
+		zetInhoud(2, beeldplekken);
 		zetVolgorde(volgorde);
 	}
 
@@ -161,6 +159,19 @@ final class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegev
 		verver.zetUniform("tekenM", tekenM);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, cast(uint) (3 * volgorde.length), GL_UNSIGNED_INT, null);
+		// Zicht z = Zicht.huidig;
+		// import std.stdio;
+
+		// write("Teken");
+		// writeln(this.tekenM);
+		// write("Zicht");
+		// writeln(z.zichtM);
+		// write("Projectie");
+		// writeln(z.projectieM);
+		// writeln(z.projectieM * z.zichtM * this.tekenM);
+		// writeln(z.projectieM * z.zichtM * this.tekenM * Vec!(4)([
+		// 			-0.5, 1, 0, 1.0
+		// 		]));
 	}
 
 	override void _denk(Wereld wereld) {

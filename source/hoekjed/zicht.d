@@ -26,19 +26,17 @@ abstract class Zicht : Voorwerp { // VOEG TOE: zicht als voorwerp in de wereld.
 	abstract void werkProjectieMBij();
 	void werkZichtMBij() {
 		zichtM = Mat!(4).identiteit;
-		zichtM = Mat!(4).draaiMz(-_draai.z) * Mat!(4)
-			.draaiMx(-_draai.x) * Mat!(4).draaiMy(-_draai.y);
 		zichtM[0][3] = -_plek.x;
 		zichtM[1][3] = -_plek.y;
 		zichtM[2][3] = -_plek.z;
+		zichtM = Mat!(4).draaiMy(-_draai.y) * Mat!(4)
+			.draaiMx(-_draai.x) * Mat!(4).draaiMz(-_draai.z) * zichtM;
 	}
 
 	void zetUniform() {
 		foreach (Verver verver; Verver.ververs) {
-			Mat!(4) a = projectieM.gekantelde();
-			Mat!(4) b = zichtM.gekantelde();
-			verver.zetUniform("projectieM", projectieM.gekantelde());
-			verver.zetUniform("zichtM", zichtM.gekantelde());
+			verver.zetUniform("projectieM", projectieM);
+			verver.zetUniform("zichtM", zichtM);
 		}
 	}
 }
@@ -65,7 +63,7 @@ class DiepteZicht : Zicht {
 
 		const nauwkeurigheid a = 1 / tan(zichthoek / 2);
 		projectieM.mat = [
-			[a, 0, 0, 0], [0, 0, schermverhouding * a, 0],
+			[a, 0, 0, 0], [0, 0, 1 / schermverhouding * a, 0],
 			[0, (A + V) / (A - V), 0, -(2 * A * V) / (A - V)],
 			[0, cast(nauwkeurigheid) 1, 0, 0]
 		];

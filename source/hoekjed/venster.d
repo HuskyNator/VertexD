@@ -13,6 +13,12 @@ struct ToetsInvoer {
 alias ToetsTerugroeper = void delegate(ToetsInvoer invoer) nothrow;
 alias MuisplekTerugroeper = void delegate(double x, double y) nothrow;
 
+enum Muissoort {
+	NORMAAL = GLFW_CURSOR_NORMAL,
+	GEVANGEN = GLFW_CURSOR_DISABLED,
+	ONZICHTBAAR = GLFW_CURSOR_HIDDEN
+}
+
 class Venster {
 	static package Venster[GLFWwindow* ] vensters;
 	static package ToetsTerugroeper[][GLFWwindow* ] toetsTerugroepers;
@@ -41,6 +47,10 @@ class Venster {
 
 	void zetAchtergrondKleur(Vec!(4, float) kleur) {
 		glClearColor(kleur.x, kleur.y, kleur.z, kleur.w);
+	}
+
+	void zetMuissoort(Muissoort soort) {
+		glfwSetInputMode(glfw_venster, GLFW_CURSOR, soort);
 	}
 
 	this(string naam = "HoekjeD", int glfw_breedte = 1920 / 2, int glfw_hoogte = 1080 / 2) {

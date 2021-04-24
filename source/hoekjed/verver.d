@@ -14,8 +14,8 @@ class Verver {
 	@property static Verver voorbeeld() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
-			voorbeeld = new Verver(new HoekVerver("source/hoekjed/voorbeeldpoep.vert"),
-					new SnipperVerver("source/hoekjed/voorbeeldpoep.frag"));
+			voorbeeld = new Verver(new HoekVerver("source/hoekjed/voorbeeld.vert"),
+					new SnipperVerver("source/hoekjed/voorbeeld.frag"));
 		return voorbeeld;
 	}
 

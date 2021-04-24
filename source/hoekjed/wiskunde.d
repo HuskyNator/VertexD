@@ -111,8 +111,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 		nauwkeurigheid cos = cos(hoek);
 		nauwkeurigheid sin = sin(hoek);
 		draaiM[0][0] = cos;
-		draaiM[0][2] = -sin;
-		draaiM[2][1] = sin;
+		draaiM[0][1] = -sin;
+		draaiM[1][0] = sin;
 		draaiM[1][1] = cos;
 		draaiM[2][2] = 1;
 		draaiM[3][3] = 1;
@@ -133,7 +133,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 	MSoort opBinary(string op : "*")(const Soort getal) const { // Mat * getal
 		MSoort resultaat;
 		static foreach (i; 0 .. grootte)
-			resultaat.vec[i] *= getal;
+			resultaat.vec[i] = vec[i] * getal;
 		return resultaat;
 	}
 
