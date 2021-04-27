@@ -93,15 +93,14 @@ final class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegev
 	uint VAO;
 	uint[uint] VBO;
 	uint EBO;
-	Vec!(3, nauwkeurigheid)[] plekken;
-	Vec!(3, nauwkeurigheid)[] normalen;
-	Vec!(2, nauwkeurigheid)[] beeldplekken;
+	Vec!3[] plekken;
+	Vec!3[] normalen;
+	Vec!2[] beeldplekken;
 	Vec!(3, uint)[] volgorde;
 	Verver verver; // VERBETER: groepeer voorwerpen met zelfde verver in lijst.
 	invariant(verver !is null);
 
-	this(Vec!(3, nauwkeurigheid)[] plekken, Vec!(3, nauwkeurigheid)[] normalen,
-			Vec!(2, nauwkeurigheid)[] beeldplekken, Vec!(3, uint)[] volgorde) {
+	this(Vec!3[] plekken, Vec!3[] normalen, Vec!2[] beeldplekken, Vec!(3, uint)[] volgorde) {
 		this.plekken = plekken;
 		this.normalen = normalen;
 		this.beeldplekken = beeldplekken;
@@ -158,7 +157,7 @@ final class DraadVoorwerp : Voorwerp { // VERBETER: algemeen voorwerp voor gegev
 		verver.gebruik();
 		verver.zetUniform("tekenM", tekenM);
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, cast(uint) (3 * volgorde.length), GL_UNSIGNED_INT, null);
+		glDrawElements(GL_TRIANGLES, cast(uint)(3 * volgorde.length), GL_UNSIGNED_INT, null);
 		// Zicht z = Zicht.huidig;
 		// import std.stdio;
 

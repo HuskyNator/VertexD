@@ -6,12 +6,25 @@ import std.conv : to;
 import std.container.rbtree;
 
 struct ToetsInvoer {
-	Venster venster;
 	int toets, toets_sleutel, gebeurtenis, toevoeging;
 }
 
+struct MuisknopInvoer {
+	int knop, gebeurtenis, toevoeging;
+}
+
+struct MuisplekInvoer {
+	double x, y;
+}
+
+struct MuiswielInvoer {
+	double x, y;
+}
+
 alias ToetsTerugroeper = void delegate(ToetsInvoer invoer) nothrow;
-alias MuisplekTerugroeper = void delegate(double x, double y) nothrow;
+alias MuisknopTerugroeper = void delegate(MuisknopInvoer invoer) nothrow;
+alias MuisplekTerugroeper = void delegate(MuisplekInvoer invoer) nothrow;
+alias MuiswielTerugroeper = void delegate(MuiswielInvoer invoer) nothrow;
 
 enum Muissoort {
 	NORMAAL = GLFW_CURSOR_NORMAL,
@@ -21,15 +34,22 @@ enum Muissoort {
 
 class Venster {
 	static package Venster[GLFWwindow* ] vensters;
-	static package ToetsTerugroeper[][GLFWwindow* ] toetsTerugroepers;
-	static package MuisplekTerugroeper[][GLFWwindow* ] muisplekTerugroepers;
-	static package ToetsInvoer[] invoer;
-
-	string naam;
-	int breedte;
-	int hoogte;
-	Scherm scherm;
 	package GLFWwindow* glfw_venster;
+
+	// Eigenschappen
+	string naam;
+	int breedte, hoogte;
+	Scherm scherm;
+
+	// Invoer
+	ToetsTerugroeper[] toetsTerugroepers = [];
+	MuisknopTerugroeper[] muisknopTerugroepers = [];
+	MuisplekTerugroeper[] muisplekTerugroepers = [];
+	MuiswielTerugroeper[] muiswielTerugroepers = [];
+	ToetsInvoer[] toetsInvoer = [];
+	MuisplekInvoer[] muisplekInvoer = [];
+	MuisknopInvoer[] muisknopInvoer = [];
+	MuiswielInvoer[] muiswielInvoer = [];
 
 	alias scherm this;
 
@@ -60,20 +80,20 @@ class Venster {
 		assert(glfw_venster !is null, "GLFW kon geen scherm aanmaken.");
 
 		Venster.vensters[glfw_venster] = this;
-		Venster.toetsTerugroepers[glfw_venster] = [];
-		Venster.muisplekTerugroepers[glfw_venster] = [];
 		glfwMakeContextCurrent(glfw_venster); // PAS OP: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
 
 		glfwSetKeyCallback(glfw_venster, &venster_toets_terugroeper);
+		glfwSetMouseButtonCallback(glfw_venster, &venster_muisknop_terugroeper);
 		glfwSetCursorPosCallback(glfw_venster, &venster_muisplek_terugroeper);
-		glfwSetWindowSizeCallback(glfw_venster, &venster_grootte_terugroeper);
+		glfwSetScrollCallback(glfw_venster, &venster_muiswiel_terugroeper);
+		// glfwSetWindowSizeCallback(glfw_venster, &venster_grootte_terugroeper);
+		glfwSetFramebufferSizeCallback(glfw_venster, &venster_grootte_terugroeper);
 
 		this.naam = naam;
 		glfwGetFramebufferSize(glfw_venster, &breedte, &hoogte);
 		this.scherm = Scherm();
 		this.scherm.hervorm(Vec!(2, int)([0, 0]), Vec!(2, int)([breedte, hoogte]));
 
-		glfwSetFramebufferSizeCallback(glfw_venster, &venster_grootte_terugroeper);
 
 		GLSupport gl_versie = loadOpenGL();
 		assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
@@ -96,6 +116,34 @@ class Venster {
 		glfwHideWindow(glfw_venster);
 	}
 
+	void verwerkInvoer() {
+		// Behoudt volgorde van invoer over alle terugroepers.
+		foreach (ToetsInvoer invoer; toetsInvoer)
+			foreach (ToetsTerugroeper terugroeper; toetsTerugroepers)
+				terugroeper(invoer);
+
+		foreach (MuisknopInvoer invoer; muisknopInvoer)
+			foreach (MuisknopTerugroeper terugroeper; muisknopTerugroepers)
+				terugroeper(invoer);
+
+		foreach (MuisplekInvoer invoer; muisplekInvoer)
+			foreach (MuisplekTerugroeper terugroeper; muisplekTerugroepers)
+				terugroeper(invoer);
+
+		foreach (MuiswielInvoer invoer; muiswielInvoer)
+			foreach (MuiswielTerugroeper terugroeper; muiswielTerugroepers)
+				terugroeper(invoer);
+
+		//PAS OP: neemt onafhankelijkheid van muis & toets volgorde aan op korte tijdsverschillen.
+	}
+
+	void leegInvoer() {
+		toetsInvoer = [];
+		muisknopInvoer = [];
+		muisplekInvoer = [];
+		muiswielInvoer = [];
+	}
+
 	void teken() {
 		glViewport(0, 0, breedte, hoogte); // Zet het tekengebied.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Verschoont het scherm.
@@ -113,14 +161,6 @@ class Venster {
 		// Kan net als veel motoren voorwerpen eigenschappen geven opdat het uitschakelen van een
 		// voorwerp bijvoorbeeld eenvoudig door te voeren is naar het verwijderen van zijn denk opdracht(en).
 		glfwSwapBuffers(glfw_venster);
-	}
-
-	void voegToetsTerugroeperToe(ToetsTerugroeper toetsTerugroeper) {
-		Venster.toetsTerugroepers[glfw_venster] ~= toetsTerugroeper;
-	}
-
-	void voegMuisplekTerugroeperToe(MuisplekTerugroeper muisplekTerugroeper) {
-		Venster.muisplekTerugroepers[glfw_venster] ~= muisplekTerugroeper;
 	}
 
 	unittest {
@@ -219,20 +259,40 @@ extern (C) void venster_grootte_terugroeper(GLFWwindow* glfw_venster, int breedt
 
 extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
 		int toets_sleutel, int gebeurtenis, int toevoeging) nothrow {
-	Venster venster = Venster.vensters[glfw_venster];
-	ToetsInvoer invoer = ToetsInvoer(venster, toets, toets_sleutel, gebeurtenis, toevoeging);
-	Venster.invoer ~= invoer;
-	foreach (ToetsTerugroeper terugroeper; Venster.toetsTerugroepers[glfw_venster]) {
-		terugroeper(invoer);
+	debug {
+		import core.sys.windows.windows;
+
+		if (toets == GLFW_KEY_GRAVE_ACCENT) {
+			ShowWindow(console, console_zichtbaar ? SW_HIDE : SW_RESTORE);
+			glfwFocusWindow(glfw_venster);
+			console_zichtbaar = !console_zichtbaar;
+		}
 	}
 	if (toets == GLFW_KEY_F4)
 		glfwSetWindowShouldClose(glfw_venster, true);
+
+	Venster venster = Venster.vensters[glfw_venster];
+	ToetsInvoer invoer = ToetsInvoer(toets, toets_sleutel, gebeurtenis, toevoeging);
+	venster.toetsInvoer ~= invoer;
+}
+
+extern (C) void venster_muisknop_terugroeper(GLFWwindow* glfw_venster, int knop,
+		int gebeurtenis, int toevoeging) nothrow {
+	Venster venster = Venster.vensters[glfw_venster];
+	MuisknopInvoer invoer = MuisknopInvoer(knop, gebeurtenis, toevoeging);
+	venster.muisknopInvoer ~= invoer;
 }
 
 extern (C) void venster_muisplek_terugroeper(GLFWwindow* glfw_venster, double x, double y) nothrow {
-	foreach (MuisplekTerugroeper terugroeper; Venster.muisplekTerugroepers[glfw_venster]) {
-		terugroeper(x, y);
-	}
+	Venster venster = Venster.vensters[glfw_venster];
+	MuisplekInvoer invoer = MuisplekInvoer(x, y);
+	venster.muisplekInvoer ~= invoer;
+}
+
+extern (C) void venster_muiswiel_terugroeper(GLFWwindow* glfw_venster, double x, double y) nothrow {
+	Venster venster = Venster.vensters[glfw_venster];
+	MuiswielInvoer invoer = MuiswielInvoer(x, y);
+	venster.muiswielInvoer ~= invoer;
 }
 
 debug {

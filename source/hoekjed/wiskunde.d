@@ -8,8 +8,9 @@ version (HoekjeD_Double) {
 	alias nauwkeurigheid = float;
 }
 
-alias Vec(uint grootte) = Mat!(grootte, 1);
-alias Vec(uint grootte, Soort) = Mat!(grootte, 1, Soort);
+alias Vec(uint grootte, Soort = nauwkeurigheid) = Mat!(grootte, 1, Soort);
+alias Vec(Soort, uint grootte = 3) = Mat!(grootte, 1, Soort);
+// alias Vec(uint grootte, Soort) = Mat!(grootte, 1, Soort);
 
 // Rij schrijfwijze
 struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurigheid) {
