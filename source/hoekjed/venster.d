@@ -80,7 +80,7 @@ class Venster {
 		assert(glfw_venster !is null, "GLFW kon geen scherm aanmaken.");
 
 		Venster.vensters[glfw_venster] = this;
-		glfwMakeContextCurrent(glfw_venster); // PAS OP: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
+		glfwMakeContextCurrent(glfw_venster); // VOEG TOE: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
 
 		glfwSetKeyCallback(glfw_venster, &venster_toets_terugroeper);
 		glfwSetMouseButtonCallback(glfw_venster, &venster_muisknop_terugroeper);
@@ -150,16 +150,16 @@ class Venster {
 		scherm.teken();
 
 		// VOEG TOE:
-		// Hebben een beter denksysteem nodig. Per voorwerp of/en ook per scherm.
+		// Hebben een beter denksysteem nodig. Per ding of/en ook per scherm.
 		// VOEG TOE: alle denk functies in een globale lijst, voorkomt herhaalde instructies & maakt
 		// het mogelijk de "bijgewerkt" te verwijderen en "werkBij" sneller te maken door veranderde
-		// voorwerpen in een globale set te plaatsen & hun en hun kinderen specifiek bij te werken.
+		// dingen in een globale set te plaatsen & hun en hun kinderen specifiek bij te werken.
 
 		// Mogelijk is het beter dit niet blobaal te doen maar per wereld, met werelden in een
 		// globale lijst, omdat het zo eenvoudiger is een wereld te pauzeren.
 
-		// Kan net als veel motoren voorwerpen eigenschappen geven opdat het uitschakelen van een
-		// voorwerp bijvoorbeeld eenvoudig door te voeren is naar het verwijderen van zijn denk opdracht(en).
+		// Kan net als veel motoren dingen eigenschappen geven opdat het uitschakelen van een
+		// ding bijvoorbeeld eenvoudig door te voeren is naar het verwijderen van zijn denk opdracht(en).
 		glfwSwapBuffers(glfw_venster);
 	}
 

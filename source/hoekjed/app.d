@@ -7,9 +7,9 @@ import std.parallelism;
 import std.range : iota;
 import std.stdio;
 import std.math;
+import hoekjed;
 
 void main() {
-	import hoekjed;
 
 	hdZetOp();
 	// Venster.zetStandaardDoorzichtig(true);
@@ -26,15 +26,15 @@ void main() {
 	Vec!2[] beeldplekken = [{[-0.5f, -0.5f]}, {[0.5f, -0.5f]}, {[0, 0.5f]}];
 	Vec!(3, uint)[] volgorde = [{[0, 1, 2]}];
 
-	Voorwerp vlak = new DraadVoorwerp(plekken, normalen, beeldplekken, volgorde);
+	Ding vlak = new SimpelVoorwerp(plekken, normalen, beeldplekken, volgorde);
 	// vlak.plek = Vec!3([0, 1, 0]);
-	wereld.voorwerpen ~= vlak;
+	wereld.dingen ~= vlak;
 
 	Vec!3[] plekken2 = [
 		{[-0.5f, -0.5, -0.5f]}, {[0.5f, 0.5, -0.5f]}, {[0, -0.5, -0.5f]}
 	];
-	Voorwerp vloer = new DraadVoorwerp(plekken2, normalen, beeldplekken, volgorde);
-	wereld.voorwerpen ~= vloer;
+	Ding vloer = new SimpelVoorwerp(plekken2, normalen, beeldplekken, volgorde);
+	wereld.dingen ~= vloer;
 
 	class Speler : DiepteZicht {
 
@@ -101,7 +101,7 @@ void main() {
 
 	Speler speler = new Speler();
 	speler.koppel(venster);
-	wereld.voorwerpen ~= speler;
+	wereld.dingen ~= speler;
 
 	venster.wereld = wereld;
 	venster.zicht = speler;

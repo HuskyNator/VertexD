@@ -1,7 +1,7 @@
 module hoekjed.zicht;
 import hoekjed;
 
-abstract class Zicht : Voorwerp { // VOEG TOE: zicht als voorwerp in de wereld.
+abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 	Mat!4 projectieM;
 	Mat!4 zichtM;
 
