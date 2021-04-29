@@ -1,0 +1,1 @@
+logo.rc kan tot logo.res verwerkt worden door middel van 'rc.exe' (deel van windows sdk)

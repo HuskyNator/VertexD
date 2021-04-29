@@ -1,4 +1,4 @@
-![](Logo/Logo_Hoofd.png)
+![](logo/logo.ico)
 
 #### _HoekjeD is een grafische motor in aanbouw ter lering en vermaak :)_
 
@@ -15,4 +15,4 @@ Dmd kan ook via [chocolatey](https://chocolatey.org/) geïnstalleerd worden, doo
 **Alle rechten voorbehouden.**<br>
 _Voel je echter vrij in gesprek te gaan, vooral vermeld wegens gebrek aan licentiekeuze._
 
-**\-** &nbsp; 𝐻𝓊𝓈𝓀𝓎𝒩𝒶𝓉𝑜𝓇
+**-** &nbsp; 𝐻𝓊𝓈𝓀𝓎𝒩𝒶𝓉𝑜𝓇

@@ -1,0 +1,22 @@
+Gebruiks voorbeeld;
+
+hdZetOp();
+
+//
+Venster v = maakVenster(); // Of beter, maak scherm & geef scherm prive een venster of zo
+//
+
+Scherm hoofdscherm = new Scherm(1080/2, 1920/2, "Hoofd Scherm");
+DeelScherm deelScherm = new DeelScherm(hoofdscherm, 0, 0, 1, 1);
+
+Wereld wereld = laadWereld("wereld.?");
+Wereld wereld = new Wereld();
+
+Ding ding = laadVoorwerp("ding.?");
+wereld.dingen ~= ding;
+Zicht spelerZicht = new DiepteZicht(zichthoek, voorvlak, achtervlak & instellingen & zo (niet resolutie!) );
+Ding speler = wereld.krijg("speler"); // of [0], return type based overloading?
+speler.kinderen ~= spelerZicht; // zicht als een ding.
+
+hoofdscherm.wereld = wereld;
+hoofdscherm.zicht = spelerZicht; // Komt zo aan resolutie.
