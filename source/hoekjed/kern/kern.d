@@ -1,5 +1,5 @@
-module hoekjed.hoekjed;
-import hoekjed;
+module hoekjed.kern.kern;
+import hoekjed.kern;
 import bindbc.glfw;
 import std.stdio : writefln;
 import std.conv : to;

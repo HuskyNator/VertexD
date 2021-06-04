@@ -1,5 +1,5 @@
-module hoekjed.wereld;
-import hoekjed;
+module hoekjed.kern.wereld;
+import hoekjed.kern;
 
 import bindbc.opengl;
 
@@ -115,7 +115,7 @@ abstract class Ding { // VOEG TOE: ouders
 
 }
 
-class Voorwerp : Ding { // VERBETER: algemeen ding voor gegevens & zo, & losse versies hier van voor plaatsing? Of alternatief.
+abstract class Voorwerp : Ding { // VERBETER: algemeen ding voor gegevens & zo, & losse versies hier van voor plaatsing? Of alternatief.
 	uint VAO;
 	uint EBO;
 	uint grootte;
@@ -165,24 +165,12 @@ class Voorwerp : Ding { // VERBETER: algemeen ding voor gegevens & zo, & losse v
 
 	override void _teken() {
 		verver.gebruik();
-		verver.zetUniform("tekenM", tekenM);
+		// erfM bevat tekenM.
+		verver.zetUniform("tekenM", erfM);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, this.grootte, GL_UNSIGNED_INT, null);
 	}
 
 	override void _denk(Wereld wereld) {
-	}
-}
-
-class SimpelVoorwerp : Voorwerp {
-
-	this(Vec!3[] plekken, Vec!3[] normalen, Vec!2[] beeldplekken, Vec!(3, uint)[] volgorde) {
-		this.verver = Verver.voorbeeld;
-		glCreateVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
-		zetInhoud(0, plekken);
-		zetInhoud(1, normalen);
-		zetInhoud(2, beeldplekken);
-		zetVolgorde(volgorde);
 	}
 }
