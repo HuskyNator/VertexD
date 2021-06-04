@@ -1,5 +1,5 @@
-module hoekjed.verver;
-import hoekjed;
+module hoekjed.kern.verver;
+import hoekjed.kern;
 import bindbc.opengl;
 import std.conv;
 import std.array : replace;
@@ -14,8 +14,8 @@ class Verver {
 	@property static Verver voorbeeld() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
-			voorbeeld = new Verver(new HoekVerver("source/hoekjed/voorbeeld.vert"),
-					new SnipperVerver("source/hoekjed/voorbeeld.frag"));
+			voorbeeld = new Verver(new HoekVerver(plaatsvervanger_hoekverver),
+					new SnipperVerver(plaatsvervanger_snipperverver));
 		return voorbeeld;
 	}
 
@@ -135,10 +135,14 @@ class DeelVerver(uint soort) {
 	protected uint verwijzing;
 
 	this(string bestand) {
-		import std.file : readText;
+		import std.file : readText, exists;
 
 		this.verwijzing = glCreateShader(soort);
-		string bron = readText(bestand);
+		string bron;
+		if (exists(bestand)) // Gegeven bestand is een verwijzing naar een bestand met verfinhoud.
+			bron = readText(bestand);
+		else // Gegeven bestand is verfinhoud.
+			bron = bestand;
 		bron = bron.replace("nauwkeurigheid", nauwkeurigheid.stringof);
 		static if (is(nauwkeurigheid == double)) {
 			bron = bron.replace(" vec", " dvec");
@@ -155,9 +159,38 @@ class DeelVerver(uint soort) {
 
 			char[512] melding;
 			glGetShaderInfoLog(verwijzing, 512, null, &melding[0]);
-			writeln("Kon Verver \"" ~ bestand ~ "\" niet bouwen:");
-			writeln("\t" ~ melding.to!string);
-			assert(false);
+			throw new Exception(
+					"Kon Verver niet bouwen:\n" ~ melding.to!string ~ "\nVerver:\t" ~ bestand);
 		}
 	}
 }
+
+private string plaatsvervanger_hoekverver = `#version 460
+
+layout(location=0)in vec3 h_plek;
+
+uniform mat4 projectieM;
+uniform mat4 zichtM;
+uniform mat4 tekenM;
+
+out vec3 s_plek;
+out vec4 gl_Position;
+
+void main(){
+	s_plek=h_plek;
+	gl_Position=projectieM*zichtM*tekenM*vec4(h_plek,1);
+}`;
+
+private string plaatsvervanger_snipperverver = `#version 460
+
+in vec3 s_plek;
+
+uniform mat4 projectieM;
+uniform mat4 zichtM;
+uniform mat4 tekenM;
+
+out vec4 kleur;
+
+void main(){
+	kleur=vec4(250,176,22,.5)/vec4(255, 255, 255, 1);
+}`;
