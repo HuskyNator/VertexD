@@ -173,6 +173,8 @@ uniform mat4 projectieM;
 uniform mat4 zichtM;
 uniform mat4 tekenM;
 
+uniform vec4 kleur;
+
 out vec3 s_plek;
 out vec4 gl_Position;
 
@@ -189,8 +191,10 @@ uniform mat4 projectieM;
 uniform mat4 zichtM;
 uniform mat4 tekenM;
 
-out vec4 kleur;
+uniform vec4 kleur;
+
+out vec4 u_kleur;
 
 void main(){
-	kleur=vec4(250,176,22,.5)/vec4(255, 255, 255, 1);
+	u_kleur=kleur;
 }`;
