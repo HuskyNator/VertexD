@@ -11,7 +11,7 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 	override void _denk(Wereld wereld) {
 	}
 
-	override void werkBij() {
+	override void werkBij(bool ouderAangepast) {
 		werkZichtMBij();
 		werkProjectieMBij();
 	}
