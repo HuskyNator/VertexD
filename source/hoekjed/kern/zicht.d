@@ -1,5 +1,5 @@
-module hoekjed.zicht;
-import hoekjed;
+module hoekjed.kern.zicht;
+import hoekjed.kern;
 
 abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 	Mat!4 projectieM;

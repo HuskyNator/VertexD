@@ -1,5 +1,5 @@
-module hoekjed.venster;
-import hoekjed;
+module hoekjed.kern.venster;
+import hoekjed.kern;
 import bindbc.glfw;
 import bindbc.opengl;
 import std.conv : to;
@@ -164,7 +164,7 @@ class Venster {
 	}
 
 	unittest {
-		import hoekjed;
+		import hoekjed.kern;
 
 		hdZetOp();
 		Venster.zetStandaardDoorzichtig(true);
@@ -194,7 +194,7 @@ class Venster {
 	}
 
 	unittest {
-		import hoekjed;
+		import hoekjed.kern;
 
 		hdZetOp();
 		Venster.zetStandaardZichtbaar(false);
