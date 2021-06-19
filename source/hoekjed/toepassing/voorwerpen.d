@@ -12,6 +12,12 @@ class Driehoek : SimpelVoorwerp {
 }
 
 class Vierkant : SimpelVoorwerp {
+	this(Vec!3 plek){
+		Vec!3[4] plekken = [Vec!3([-0.5, 0, -0.5]), Vec!3([0.5, 0, -0.5]), Vec!3([0.5, 0, 0.5]), Vec!3([-0.5, 0, 0.5])];
+		Vec!2[4] beeldplekken = cast(Vec!2[4]) (Vec!(8).nul.vec);
+		this(plekken, beeldplekken);
+	}
+
 	this(Vec!3[4] plekken, Vec!2[4] beeldplekken) {
 		Vec!3 normaal = plekken[0].kruis(plekken[1]).normaliseer();
 		Vec!3[4] normalen = [normaal, normaal, normaal, normaal];
@@ -23,6 +29,12 @@ class Vierkant : SimpelVoorwerp {
 }
 
 class SimpelVoorwerp : Voorwerp {
+	Vec!4 kleur = {[250.0/255.0, 176.0/255.0, 22.0/255.0, 1]};
+
+	override void zetUniformen() {
+		super.zetUniformen();
+		verver.zetUniform("kleur", kleur);
+	}
 
 	this(Vec!3[] plekken, Vec!3[] normalen, Vec!2[] beeldplekken, Vec!(3, uint)[] volgorde) {
 		this.verver = Verver.voorbeeld;

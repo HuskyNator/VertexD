@@ -1,6 +1,6 @@
 module hoekjed.kern.wiskunde;
 import std.stdio;
-import std.math : sin, cos, abs, pow;
+import std.math : sin, cos, abs, sqrt;
 
 version (HoekjeD_Double) {
 	alias nauwkeurigheid = double;
@@ -144,9 +144,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 			nauwkeurigheid lengte() {
 				nauwkeurigheid lengte = 0;
 				static foreach (i; 0 .. rij_aantal)
-					lengte += pow(this.vec[i], rij_aantal);
-				lengte = pow!(nauwkeurigheid, nauwkeurigheid)(lengte, 1 / rij_aantal);
-				return lengte;
+					lengte += this.vec[i] * this.vec[i];
+				return sqrt(lengte);
 			}
 
 			MSoort normaliseer() {
@@ -246,10 +245,11 @@ Vec!3 TEMP_draai(Vec!3 oorsprong, Vec!3 doel) {
 
 	//TODO: nulvector
 	Vec!2 oorsprong_proj = (Vec!2([oorsprong.x, oorsprong.y])).normaliseer();
-	real oorsprong_theta = oorsprong_proj.y > 0 ? acos(oorsprong_proj.x) : -acos(oorsprong_proj.x);
+	nauwkeurigheid oorsprong_theta = oorsprong_proj.y > 0
+		? acos(oorsprong_proj.x) : -acos(oorsprong_proj.x);
 	Vec!2 doel_proj = (Vec!2([doel.x, doel.y])).normaliseer();
-	real doel_theta = doel_proj.y > 0 ? acos(doel_proj.x) : -acos(doel_proj.x);
-	real verschil_theta = doel_theta - oorsprong_theta;
+	nauwkeurigheid doel_theta = doel_proj.y > 0 ? acos(doel_proj.x) : -acos(doel_proj.x);
+	nauwkeurigheid verschil_theta = doel_theta - oorsprong_theta;
 
 	while (verschil_theta < 0)
 		verschil_theta += 2 * PI;
