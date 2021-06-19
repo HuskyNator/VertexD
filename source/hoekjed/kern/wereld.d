@@ -1,5 +1,6 @@
 module hoekjed.kern.wereld;
 import hoekjed.kern;
+import std.algorithm;
 
 import bindbc.opengl;
 
@@ -18,7 +19,7 @@ class Wereld {
 		foreach (Ding ding; dingen)
 			ding.denk(this);
 		foreach (Ding ding; dingen)
-			ding.werkBij();
+			ding.werkBij(false);
 	}
 
 	void teken() {
@@ -38,8 +39,8 @@ abstract class Ding { // VOEG TOE: ouders
 	protected alias houding this;
 	Ding ouder;
 	Ding[] kinderen;
-	Mat!4 tekenM;
-	Mat!4 erfM;
+	Mat!4 eigenM = Mat!(4).identiteit;
+	Mat!4 tekenM = Mat!(4).identiteit;
 	bool aangepast = true;
 
 	@property Vec!3 plek() nothrow {
@@ -92,25 +93,45 @@ abstract class Ding { // VOEG TOE: ouders
 		}
 	}
 
-	void werkBij() {
+	void werkBij(bool ouderAangepast) {
+		assert(!ouderAangepast || ouder !is null); // Kan ouder niet aanpassen als deze niet bestaat.
+		immutable bool ruimwegAangepast = aangepast || ouderAangepast;
 		if (aangepast) {
-			tekenM = Mat!(4).identiteit;
-			tekenM[0][0] = _grootte.x;
-			tekenM[1][1] = _grootte.y;
-			tekenM[2][2] = _grootte.z;
-			tekenM = Mat!(4).draaiMy(_draai.y) * Mat!(4)
-				.draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * tekenM; // rollen -> stampen -> gieren.
-			tekenM[0][3] = _plek.x;
-			tekenM[1][3] = _plek.y;
-			tekenM[2][3] = _plek.z;
-			if (ouder !is null)
-				erfM = tekenM * ouder.erfM;
-			else
-				erfM = tekenM;
+			eigenM = Mat!(4).identiteit;
+			eigenM[0][0] = _grootte.x;
+			eigenM[1][1] = _grootte.y;
+			eigenM[2][2] = _grootte.z;
+			eigenM = Mat!(4).draaiMy(_draai.y) * Mat!(4)
+				.draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * eigenM; // rollen -> stampen -> gieren.
+			eigenM[0][3] = _plek.x;
+			eigenM[1][3] = _plek.y;
+			eigenM[2][3] = _plek.z;
 			aangepast = false;
 		}
+
+		if (ruimwegAangepast)
+			tekenM = (ouder is null) ? eigenM : eigenM * ouder.tekenM;
+
 		foreach (Ding kind; kinderen)
-			kind.werkBij();
+			kind.werkBij(ruimwegAangepast);
+	}
+
+	// Handigheden
+
+	auto opOpAssign(string op)(Ding kind) if (op == "+") {
+		assert(kind !is null);
+		if (kind.ouder !is null)
+			kind.ouder -= kind;
+		kinderen ~= kind;
+		kind.ouder = this;
+		return this;
+	}
+
+	auto opOpAssign(string op)(Ding kind) if (op == "-") {
+		long i = countUntil(kinderen, kind);
+		assert(i >= 0, "Kind niet in kinderen.");
+		kinderen = remove(kinderen, i);
+		return this;
 	}
 
 }
@@ -118,7 +139,7 @@ abstract class Ding { // VOEG TOE: ouders
 abstract class Voorwerp : Ding { // VERBETER: algemeen ding voor gegevens & zo, & losse versies hier van voor plaatsing? Of alternatief.
 	uint VAO;
 	uint EBO;
-	uint grootte;
+	uint hoekaantal;
 	uint[uint] VBO;
 	Verver verver; // VERBETER: groepeer dingen met zelfde verver in lijst.
 	invariant(verver !is null);
@@ -155,20 +176,27 @@ abstract class Voorwerp : Ding { // VERBETER: algemeen ding voor gegevens & zo, 
 	}
 
 	void zetVolgorde(Vec!(3, uint)[] volgorde) {
-		this.grootte = 3 * cast(uint) volgorde.length;
+		this.hoekaantal = cast(uint) volgorde.length;
 		glBindVertexArray(VAO);
 		glCreateBuffers(1, &EBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, this.grootte * uint.sizeof,
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * this.hoekaantal * uint.sizeof,
 				volgorde.ptr, GL_STATIC_DRAW);
 	}
 
 	override void _teken() {
 		verver.gebruik();
-		// erfM bevat tekenM.
-		verver.zetUniform("tekenM", erfM);
+		zetUniformen();
+		tekenVAO();
+	}
+
+	void zetUniformen() {
+		verver.zetUniform("tekenM", tekenM);
+	}
+
+	void tekenVAO() {
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, this.grootte, GL_UNSIGNED_INT, null);
+		glDrawElements(GL_TRIANGLES, 3 * this.hoekaantal, GL_UNSIGNED_INT, null);
 	}
 
 	override void _denk(Wereld wereld) {
