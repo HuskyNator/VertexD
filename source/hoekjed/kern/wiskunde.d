@@ -1,6 +1,6 @@
-module hoekjed.wiskunde;
+module hoekjed.kern.wiskunde;
 import std.stdio;
-import std.math : sin, cos;
+import std.math : sin, cos, abs, pow;
 
 version (HoekjeD_Double) {
 	alias nauwkeurigheid = double;
@@ -122,6 +122,40 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 
 	//VOEG TOE: lengte, normaliseren, uitproduct, projectie, getransponeerde (, inverse?)
 
+	static if (kolom_aantal == 1) {
+		static if (rij_aantal == 3) {
+			MSoort kruis(MSoort r) {
+				MSoort n;
+				n.vec[0] = this.vec[1] * r.vec[2] - r.vec[1] * this.vec[2];
+				n.vec[1] = this.vec[2] * r.vec[0] - r.vec[2] * this.vec[0];
+				n.vec[2] = this.vec[0] * r.vec[1] - r.vec[0] * this.vec[1];
+				return n;
+			}
+		}
+
+		nauwkeurigheid som() {
+			nauwkeurigheid s = 0;
+			static foreach (i; 0 .. rij_aantal)
+				s += this.vec[i];
+			return s;
+		}
+
+		static if (is(Soort == float) || is(Soort == double)) {
+			nauwkeurigheid lengte() {
+				nauwkeurigheid lengte = 0;
+				static foreach (i; 0 .. rij_aantal)
+					lengte += pow(this.vec[i], rij_aantal);
+				lengte = pow!(nauwkeurigheid, nauwkeurigheid)(lengte, 1 / rij_aantal);
+				return lengte;
+			}
+
+			MSoort normaliseer() {
+				MSoort n = this;
+				return n * cast(Soort)(1 / lengte());
+			}
+		}
+	}
+
 	// VEC:
 	// .len
 	// .norm
@@ -205,4 +239,20 @@ struct Mat(uint rij_aantal, uint kolom_aantal = rij_aantal, Soort = nauwkeurighe
 					"Operatie " ~ MSoort.stringof ~ " " ~ op ~ "= "
 					~ M.stringof ~ " niet omschreven.");
 	}
+}
+
+Vec!3 TEMP_draai(Vec!3 oorsprong, Vec!3 doel) {
+	import std.math : acos, PI;
+
+	//TODO: nulvector
+	Vec!2 oorsprong_proj = (Vec!2([oorsprong.x, oorsprong.y])).normaliseer();
+	real oorsprong_theta = oorsprong_proj.y > 0 ? acos(oorsprong_proj.x) : -acos(oorsprong_proj.x);
+	Vec!2 doel_proj = (Vec!2([doel.x, doel.y])).normaliseer();
+	real doel_theta = doel_proj.y > 0 ? acos(doel_proj.x) : -acos(doel_proj.x);
+	real verschil_theta = doel_theta - oorsprong_theta;
+
+	while (verschil_theta < 0)
+		verschil_theta += 2 * PI;
+
+	return Vec!3([0, 0, verschil_theta]);
 }
