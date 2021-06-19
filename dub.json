@@ -1,22 +1,23 @@
 {
+	"name": "hoekjed",
 	"authors": [
 		"HuskyNator"
 	],
-	"copyright": "Copyright © 2021, HuskyNator",
-	"dependencies": {
-		"bindbc-glfw": "~>0.10.1",
-		"bindbc-opengl": "~>0.13.0"
-	},
 	"description": "Dutch OpenGL passion project",
+	"license": "proprietary",
+	"copyright": "Copyright © 2021, HuskyNator",
+	"targetType": "dynamicLibrary",
+	"sourceFiles-windows": [
+		"logo/logo.res"
+	],
 	"libs": [
 		"user32",
 		"glfw3dll"
 	],
-	"license": "proprietary",
-	"name": "hoekjed",
-	"sourceFiles-windows": [
-		"logo/logo.res"
-	],
+	"dependencies": {
+		"bindbc-glfw": "~>0.10.1",
+		"bindbc-opengl": "~>0.13.0"
+	},
 	"versions": [
 		"BindGLFW_Static",
 		"GLFW_33",
