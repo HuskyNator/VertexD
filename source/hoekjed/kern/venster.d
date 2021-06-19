@@ -104,6 +104,8 @@ class Venster {
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
 					GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
+
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	void toon() {
