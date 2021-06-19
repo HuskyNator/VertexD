@@ -101,8 +101,10 @@ abstract class Ding { // VOEG TOE: ouders
 			eigenM[0][0] = _grootte.x;
 			eigenM[1][1] = _grootte.y;
 			eigenM[2][2] = _grootte.z;
-			eigenM = Mat!(4).draaiMy(_draai.y) * Mat!(4)
-				.draaiMx(_draai.x) * Mat!(4).draaiMz(_draai.z) * eigenM; // rollen -> stampen -> gieren.
+			eigenM = Mat!(4).draaiMz(_draai.z) * Mat!(4)
+				.draaiMx(_draai.x) * Mat!(4).draaiMy(_draai.y) * eigenM;
+			// rollen -> stampen -> gieren.
+			// [x, y, z] komen dus overeen met een [theta, psi, rho] stelsel.
 			eigenM[0][3] = _plek.x;
 			eigenM[1][3] = _plek.y;
 			eigenM[2][3] = _plek.z;
