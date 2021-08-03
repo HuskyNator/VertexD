@@ -147,35 +147,29 @@ class Verver {
 #version 460
 
 layout(location=0)in vec3 h_plek;
-// layout(location=1)in vec3 h_normaal;
-// layout(location=2)in vec2 h_beeldplek;
+layout(location=1)in vec3 h_normaal;
+layout(location=2)in vec2 h_beeldplek;
 
-// uniform mat4 projectieM;
-// uniform mat4 zichtM;
-// uniform mat4 tekenM;
+uniform mat4 projectieM;
+uniform mat4 zichtM;
+uniform mat4 tekenM;
 
-// uniform vec4 kleur;
-
-// out vec4 gl_Position;
+out vec4 gl_Position;
 
 void main(){
-	gl_Position = vec4(h_plek, 1.0);
+	gl_Position = projectieM * zichtM*tekenM*vec4(h_plek, 1.0);
 }
 `;
 
 	public static string kleur_snipperverver = `
 #version 460
 
-// uniform mat4 projectieM;
-// uniform mat4 zichtM;
-// uniform mat4 tekenM;
-
-// uniform vec4 kleur;
+uniform vec4 kleur;
 
 out vec4 u_kleur;
 
 void main(){
-	u_kleur = vec4(0.5,0,0,1.0);
+	u_kleur = kleur;
 }
 `;
 }

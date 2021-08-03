@@ -421,6 +421,13 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		return resultaat;
 	}
 
+	unittest {
+		Mat!(2, 3, float) a = Mat!(2, 3, float)([1.0f, 2, 3, 4, 5, 6]);
+		Mat!(2, 3, int) b = cast(Mat!(2, 3, int)) a;
+		static foreach (i; 0 .. 6)
+			assert(b.vec[i] == cast(int) a.vec[i]);
+	}
+
 	import std.format : FormatSpec;
 	import std.range : put;
 	import std.conv : to;

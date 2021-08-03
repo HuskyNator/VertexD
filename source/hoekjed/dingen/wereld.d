@@ -40,8 +40,6 @@ class Wereld : Ding {
 		assert(ding._wereld is null);
 		ding._wereld = this;
 		if (Voorwerp voorwerp = cast(Voorwerp) ding) {
-			// if ((voorwerp.verver in this.voorwerpen) is null)
-			// 	voorwerpen[voorwerp.verver] = new Voorwerp[];
 			voorwerpen[voorwerp.verver] ~= voorwerp;
 		} else
 			dingen ~= ding;
