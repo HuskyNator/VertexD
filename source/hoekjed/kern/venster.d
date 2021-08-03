@@ -94,7 +94,6 @@ class Venster {
 		this.scherm = Scherm();
 		this.scherm.hervorm(Vec!(2, int)([0, 0]), Vec!(2, int)([breedte, hoogte]));
 
-
 		GLSupport gl_versie = loadOpenGL();
 		assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
 
@@ -105,7 +104,7 @@ class Venster {
 					GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
-		glEnable(GL_DEPTH_TEST);
+		// glEnable(GL_DEPTH_TEST);
 	}
 
 	void toon() {
@@ -172,19 +171,14 @@ class Venster {
 		Venster.zetStandaardDoorzichtig(true);
 
 		bool called = false;
-		ToetsTerugroeper foo = (Venster venster, int toets, int toets_sleutel,
-				int gebeurtenis, int toevoeging) { called = true; };
+		ToetsTerugroeper foo = (ToetsInvoer invoer) { called = true; };
 		Venster venster = new Venster();
-		venster.voegToetsTerugroeperToe(foo);
+		venster.toetsTerugroepers ~= foo;
 
-		Venster.toetsTerugroepers[venster.glfw_venster][0](venster, 0, 0, 0, 0);
+		venster_toets_terugroeper(venster.glfw_venster, 0, 0, 0, 0);
+		venster.verwerkInvoer();
+
 		assert(called);
-
-		import core.time;
-		import core.thread;
-
-		venster.toon();
-		Thread.sleep(dur!("seconds")(10));
 	}
 
 	// VOEG TOE: glfw mogelijkheden, zoals openen/sluiten/focus/muis/toetsen (toetsen per scherm of venster?)
@@ -198,17 +192,22 @@ class Venster {
 	unittest {
 		import hoekjed.kern;
 
-		hdZetOp();
-		Venster.zetStandaardZichtbaar(false);
-		Venster venster = new Venster();
-		Vec!(2, int) ro = venster.scherm.rechtsonder;
-		venster.breedte *= 2;
-		venster.hervorm();
-		Vec!(2, int) ro2 = venster.scherm.rechtsonder;
-		assert(ro2.x == 2 * ro.x && ro2.y == ro.y,
-				"[2 * " ~ ro.x.to!string ~ ", " ~ ro.y.to!string ~ "] != " ~ ro2.to!string);
+		// TODO:
+		// hdZetOp();
+		// Venster.zetStandaardZichtbaar(false);
+		// Venster venster = new Venster();
+		// Vec!(2, int) ro = venster.scherm.rechtsonder;
+		// venster.breedte *= 2;
+		// venster.hervorm();
+		// Vec!(2, int) ro2 = venster.scherm.rechtsonder;
+		// assert(ro2.x == 2 * ro.x && ro2.y == ro.y,
+		// 		"[2 * " ~ ro.x.to!string ~ ", " ~ ro.y.to!string ~ "] != " ~ ro2.to!string);
 	}
 }
+
+import hoekjed.dingen.zicht;
+
+// VERBETER: Vensters, Schremen & Zichten volledig herwerken.
 
 struct Scherm {
 	Vec!2 linksboven_f = {[0, 0]};
@@ -244,11 +243,12 @@ struct Scherm {
 	}
 
 	unittest {
-		Scherm s = {rechtsonder_f: {[0.25, 0.5]}};
-		Vec!(2, int) a = {[5, 5]};
-		Vec!(2, int) b = {[1, 2]};
-		s.hervorm(a, b);
-		assert(s.rechtsonder.x == 5 && s.rechtsonder.y == 6);
+		// TODO:
+		// Scherm s = {rechtsonder_f: {[0.25, 0.5]}};
+		// Vec!(2, int) a = {[5, 5]};
+		// Vec!(2, int) b = {[1, 2]};
+		// s.hervorm(a, b);
+		// assert(s.rechtsonder.x == 5 && s.rechtsonder.y == 6);
 	}
 }
 
@@ -270,7 +270,7 @@ extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
 			console_zichtbaar = !console_zichtbaar;
 		}
 	}
-	if (toets == GLFW_KEY_F4)
+	if (toets == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(glfw_venster, true);
 
 	Venster venster = Venster.vensters[glfw_venster];
