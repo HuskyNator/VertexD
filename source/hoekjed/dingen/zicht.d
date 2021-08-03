@@ -1,19 +1,20 @@
-module hoekjed.kern.zicht;
+module hoekjed.dingen.zicht;
 import hoekjed.kern;
 
 abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 	Mat!4 projectieM;
 	Mat!4 zichtM;
 
-	override void _teken() {
+	override void teken() {
 	}
 
-	override void _denk(Wereld wereld) {
+	override void denk() {
 	}
 
-	override void werkBij(bool ouderAangepast) {
+	override protected void werkBij(bool ouderAangepast) {
 		werkZichtMBij();
 		werkProjectieMBij();
+		super.werkBij(ouderAangepast);
 	}
 
 	static Zicht huidig; //PAS OP: tijdelijk
@@ -29,11 +30,12 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 		zichtM[0][3] = -_plek.x;
 		zichtM[1][3] = -_plek.y;
 		zichtM[2][3] = -_plek.z;
-		zichtM = Mat!(4).draaiMy(-_draai.y) * Mat!(4)
-			.draaiMx(-_draai.x) * Mat!(4).draaiMz(-_draai.z) * zichtM;
+		zichtM = Mat!(4).draaiMy(-_draai.y).maal(Mat!(4).draaiMz(-_draai.z)
+				.maal(Mat!(4).draaiMx(-_draai.x).maal(zichtM)));
 	}
 
 	void zetUniform() {
+		// TODO: dit is zwaar slecht aangezien het elke verver koppelt.
 		foreach (Verver verver; Verver.ververs) {
 			verver.zetUniform("projectieM", projectieM);
 			verver.zetUniform("zichtM", zichtM);
@@ -47,7 +49,7 @@ class DiepteZicht : Zicht {
 	nauwkeurigheid voorvlak;
 	nauwkeurigheid achtervlak;
 
-	this(nauwkeurigheid schermverhouding = 1080.0 / 1920.0, nauwkeurigheid zichthoek = 90,
+	this(nauwkeurigheid schermverhouding = 1920.0 / 1080.0, nauwkeurigheid zichthoek = 90,
 			nauwkeurigheid voorvlak = 0.01, nauwkeurigheid achtervlak = 100,) {
 		this.voorvlak = voorvlak;
 		this.achtervlak = achtervlak;
@@ -63,7 +65,7 @@ class DiepteZicht : Zicht {
 
 		const nauwkeurigheid a = 1 / tan(zichthoek / 2);
 		projectieM.mat = [
-			[a, 0, 0, 0], [0, 0, 1 / schermverhouding * a, 0],
+			[a, 0, 0, 0], [0, 0, schermverhouding * a, 0],
 			[0, (A + V) / (A - V), 0, -(2 * A * V) / (A - V)],
 			[0, cast(nauwkeurigheid) 1, 0, 0]
 		];
