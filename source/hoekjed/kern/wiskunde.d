@@ -266,8 +266,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			Mat!(2, 3) c;
 			Mat!(3, 2) d;
 			foreach (i; 0 .. c.grootte) {
-				c.vec[i] = i+1;
-				d.vec[i] = i+1;
+				c.vec[i] = i + 1;
+				d.vec[i] = i + 1;
 			}
 			auto c_gevonden = c.maal(c.gekantelde);
 			assert(is(typeof(c_gevonden) == Mat!2));
@@ -412,6 +412,13 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		a = (a + 2) * 3;
 		foreach (i; 0 .. a.grootte)
 			assert(a.vec[i] == 6);
+	}
+
+	M opCast(M : Mat!(rij_aantal, kolom_aantal, T), T)() const {
+		M resultaat;
+		static foreach (i; 0 .. grootte)
+			resultaat.vec[i] = cast(T) this.vec[i];
+		return resultaat;
 	}
 
 	import std.format : FormatSpec;
