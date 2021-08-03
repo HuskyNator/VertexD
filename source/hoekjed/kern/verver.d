@@ -4,18 +4,29 @@ import bindbc.opengl;
 import std.conv;
 import std.array : replace;
 
+class VerverFout : Exception {
+	this(string melding) {
+		super("Fout in Verver:\n" ~ melding);
+	}
+}
+
 class Verver {
-	static package Verver[] ververs;
+	public static Verver[] ververs;
 
 	HoekVerver hoekV;
 	SnipperVerver snipperV;
 	protected uint verwijzing;
 
-	@property static Verver voorbeeld() {
+	public static immutable Vec!4 plaatsvervangerkleur = {
+		[250.0 / 255.0, 176.0 / 255.0, 22.0 / 255.0, 1]
+	};
+
+	@property public static Verver plaatsvervanger() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
-			voorbeeld = new Verver(new HoekVerver(plaatsvervanger_hoekverver),
-					new SnipperVerver(plaatsvervanger_snipperverver));
+			voorbeeld = new Verver(new HoekVerver(kleur_hoekverver),
+					new SnipperVerver(kleur_snipperverver));
+		voorbeeld.zetUniform("kleur", plaatsvervangerkleur);
 		return voorbeeld;
 	}
 
@@ -37,15 +48,9 @@ class Verver {
 
 		int volbracht;
 		glGetProgramiv(verwijzing, GL_LINK_STATUS, &volbracht);
-		if (volbracht == 0) {
-			import std.stdio : writeln;
-
-			char[512] melding;
-			glGetProgramInfoLog(verwijzing, 512, null, &melding[0]);
-			writeln("Kon verver niet samenstellen:");
-			writeln("\t" ~ melding.to!string);
-			assert(false);
-		}
+		if (volbracht == 0)
+			throw new VerverFout(
+					"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
 
 		glUseProgram(verwijzing);
 
@@ -72,11 +77,28 @@ class Verver {
 	// mixin("glUniform1" ~ soort ~ "v(uniformplek, cast(uint) waarde.length, waarde.ptr);");
 	// }
 
+	private string krijg_foutmelding() {
+		int lengte;
+		glGetProgramiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
+		char[] melding = new char[lengte];
+		glGetProgramInfoLog(this.verwijzing, lengte, null, melding.ptr);
+		return cast(string) melding.idup;
+	}
+
+	private void foutmelding_ontbrekende_uniform(string naam) {
+		import std.stdio;
+
+		stderr.writeln(
+				"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
+				~ " niet vinden.\n" ~ krijg_foutmelding());
+	}
+
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)
 			if (L >= 1 && L <= 4) { // zet Vec
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
 		if (uniformplek == -1)
-			return;
+			return foutmelding_ontbrekende_uniform(naam);
+
 		enum string waardes = "waarde.x" ~ (L == 1 ? "" : ",waarde.y" ~ (L == 2
 					? "" : ",waarde.z" ~ (L == 3 ? "" : ",waarde.w")));
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
@@ -89,7 +111,8 @@ class Verver {
 			if (L >= 1 && L <= 4) { // zet Vec[]
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
 		if (uniformplek == -1)
-			return;
+			foutmelding_ontbrekende_uniform(naam);
+
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
 					? "i" : (is(S == float) ? "f" : (is(S == double) ? "d" : "")));
 		static assert(soort != "", "Soort " ~ S ~ " niet ondersteund voor zetUniform.");
@@ -100,32 +123,55 @@ class Verver {
 	void zetUniform(V : Mat!(R, K, nauwkeurigheid), uint R, uint K)(string naam, V waarde)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Zet Mat
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
-		if (uniformplek == -1) {
-			import std.stdio : writeln;
-
-			char[512] melding;
-			glGetProgramInfoLog(verwijzing, 512, null, &melding[0]);
-			writeln("Kon Uniform niet zetten");
-			writeln(melding.to!string);
-			return;
-		}
+		if (uniformplek == -1)
+			return foutmelding_ontbrekende_uniform(naam);
 
 		mixin("glUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float) ? "f" : "d") ~ "v(uniformplek, 1, true, waarde[0].ptr);");
-		// mixin("glUniformMatrix" ~ R == K ? K.to!string
-		// : (K.to!string ~ "x" ~ R.to!string) ~  is(nauwkeurigheid == float)
-		// ? "f" : "d" ~ "v(uniformplek, 1, true, waarde.ptr");
 	}
 
 	void zetUniform(V : Mat!(R, K, nauwkeurigheid)[], uint R, uint K)(string naam, V waarde)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Zet Mat[]
 		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1)
+			return foutmelding_ontbrekende_uniform(naam);
+
 		mixin("glUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float)
 				? "f" : "d") ~ "v(uniformplek, waarde.length, true, waarde.ptr);");
 	}
 
 	// VOEG TOE: uniform buffer object (UBO)
+
+	public static string kleur_hoekverver = `
+#version 460
+
+layout(location=0)in vec3 h_plek;
+layout(location=1)in vec3 h_normaal;
+layout(location=2)in vec2 h_beeldplek;
+
+uniform mat4 projectieM;
+uniform mat4 zichtM;
+uniform mat4 tekenM;
+
+out vec4 gl_Position;
+
+void main(){
+	gl_Position = projectieM * zichtM*tekenM*vec4(h_plek, 1.0);
+}
+`;
+
+	public static string kleur_snipperverver = `
+#version 460
+
+uniform vec4 kleur;
+
+out vec4 u_kleur;
+
+void main(){
+	u_kleur = kleur;
+}
+`;
 }
 
 alias HoekVerver = DeelVerver!GL_VERTEX_SHADER;
@@ -133,6 +179,14 @@ alias SnipperVerver = DeelVerver!GL_FRAGMENT_SHADER;
 
 class DeelVerver(uint soort) {
 	protected uint verwijzing;
+
+	private string krijg_foutmelding() {
+		int lengte;
+		glGetShaderiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
+		char[] melding = new char[lengte];
+		glGetShaderInfoLog(this.verwijzing, lengte, null, &melding[0]);
+		return cast(string) melding.idup;
+	}
 
 	this(string bestand) {
 		import std.file : readText, exists;
@@ -154,47 +208,9 @@ class DeelVerver(uint soort) {
 
 		int volbracht;
 		glGetShaderiv(verwijzing, GL_COMPILE_STATUS, &volbracht);
-		if (volbracht == 0) {
-			import std.stdio : writeln;
+		if (volbracht == 0)
+			throw new VerverFout("Kon DeelVerver " ~ verwijzing.to!string ~ " niet bouwen:\n" ~ cast(
+					string) krijg_foutmelding());
 
-			char[512] melding;
-			glGetShaderInfoLog(verwijzing, 512, null, &melding[0]);
-			throw new Exception(
-					"Kon Verver niet bouwen:\n" ~ melding.to!string ~ "\nVerver:\t" ~ bestand);
-		}
 	}
 }
-
-private string plaatsvervanger_hoekverver = `#version 460
-
-layout(location=0)in vec3 h_plek;
-
-uniform mat4 projectieM;
-uniform mat4 zichtM;
-uniform mat4 tekenM;
-
-uniform vec4 kleur;
-
-out vec3 s_plek;
-out vec4 gl_Position;
-
-void main(){
-	s_plek=h_plek;
-	gl_Position=projectieM*zichtM*tekenM*vec4(h_plek,1);
-}`;
-
-private string plaatsvervanger_snipperverver = `#version 460
-
-in vec3 s_plek;
-
-uniform mat4 projectieM;
-uniform mat4 zichtM;
-uniform mat4 tekenM;
-
-uniform vec4 kleur;
-
-out vec4 u_kleur;
-
-void main(){
-	u_kleur=kleur;
-}`;

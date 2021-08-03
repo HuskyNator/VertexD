@@ -40,6 +40,9 @@ void stap() {
 	foreach (Wereld wereld; Wereld.werelden)
 		wereld.denk();
 
+	foreach (Wereld wereld; Wereld.werelden)
+		wereld.werkBij();
+
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
 		if (glfwWindowShouldClose(venster.glfw_venster)) {
