@@ -30,12 +30,6 @@ class Voorwerp : Ding {
 	override public void teken() {
 		zetUniformen();
 		vao.teken();
-		import std.stdio;
-
-		auto tussen = Zicht.huidig.zichtM.maal(tekenM);
-		auto na = Zicht.huidig.projectieM.maal(tussen);
-		auto midden = na.maal([0, 1, 0, 1]);
-		writeln(midden.toString(true));
 	}
 
 	override public void denk() {
