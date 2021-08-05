@@ -25,11 +25,6 @@ class VAO {
 	public void teken() {
 		this.koppel();
 		glDrawElements(GL_TRIANGLES, this.hoekAantal, GL_UNSIGNED_INT, null);
-		import std.stdio;
-
-		write("VAO ");
-		write(vao);
-		writeln(" is getekend.");
 	}
 
 	public void zetInhoud(M : Mat!(L, 1, S), uint L, S)(uint plek, M[] inhoud)

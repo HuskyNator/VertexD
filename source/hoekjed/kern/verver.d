@@ -157,7 +157,7 @@ uniform mat4 tekenM;
 out vec4 gl_Position;
 
 void main(){
-	gl_Position = projectieM * zichtM*tekenM*vec4(h_plek, 1.0);
+	gl_Position = projectieM * zichtM * tekenM * vec4(h_plek, 1.0);
 }
 `;
 

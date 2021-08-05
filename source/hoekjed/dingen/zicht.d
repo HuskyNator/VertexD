@@ -30,8 +30,8 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 		zichtM[0][3] = -_plek.x;
 		zichtM[1][3] = -_plek.y;
 		zichtM[2][3] = -_plek.z;
-		zichtM = Mat!(4).draaiMy(-_draai.y).maal(Mat!(4).draaiMz(-_draai.z)
-				.maal(Mat!(4).draaiMx(-_draai.x).maal(zichtM)));
+		zichtM = Mat!(4).draaiMy(-_draai.y).maal(Mat!(4).draaiMx(-_draai.x)
+				.maal(Mat!(4).draaiMz(-_draai.z)).maal(zichtM));
 	}
 
 	void zetUniform() {
