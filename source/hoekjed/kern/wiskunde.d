@@ -39,6 +39,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
+	// VOEG TOE: constructer met ... arg lijst
+
 	// this(Soort[][] inhoud) {
 	// 	foreach (i; 0 .. rij_aantal)
 	// 		foreach (j; 0 .. kolom_aantal)
@@ -508,6 +510,35 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(vec == lijst);
 		assert(vec != lijst2);
 	}
+
+	// Krijg de draai nodig om een vector vanaf de y as in een richting te draai.
+	// Hierbij wordt eerst de x draai toegepast gevolgd door de z draai.
+	// Er is dus geen sprake van draai om de y as.
+	// (Denk hierbij dus aan stamping gevolgd door giering, ook wel 'pitch' gevolgd door 'yaw')
+	static Vec!3 krijgDraai(Vec!3 richting) {
+		import std.math : acos, atan, PI_2, signbit;
+
+		if (richting.x == 0 && richting.y == 0) {
+			if (richting.z == 0)
+				return richting; // [0,0,0] -> [0,0,0]
+			return Vec!3([PI_2, 0, 0]); // [0,0,z] -> [PI/2,0,0]
+		}
+		nauwkeurigheid R = Vec!2([richting.x, richting.y]).lengte();
+		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
+		return Vec!3([atan(richting.z / R), 0, -signbit(richting.x) * acos(richting.y / R)]);
+	}
+
+	// VOEG TOE: test
+
+	// Het omgekeerde van krijgDraai.
+	// Draai om de y as wordt aangenomen als 0 aangzien dit geen invloed heeft.
+	static Vec!3 krijgRichting(Vec!3 draai) {
+		import std.math : sin, cos;
+
+		return Vec!3([-sin(draai.z), cos(draai.z), sin(draai.x)]);
+	}
+
+	// VOEG TOE: test
 }
 
 Vec!3 TEMP_draai(Vec!3 oorsprong, Vec!3 doel) {

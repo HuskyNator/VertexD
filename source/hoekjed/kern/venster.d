@@ -104,7 +104,8 @@ class Venster {
 					GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
-		// glEnable(GL_DEPTH_TEST);
+		glfwSetCursorPos(glfw_venster, 0, 0);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	void toon() {
