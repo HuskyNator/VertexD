@@ -1,8 +1,7 @@
 module hoekjed.kern.wiskunde;
-import std.stdio;
-import std.math : sin, cos, abs, sqrt;
-
 import hoekjed.overig;
+import std.math : abs, cos, sin, sqrt;
+import std.stdio;
 
 version (HoekjeD_Double) {
 	alias nauwkeurigheid = double;
@@ -20,7 +19,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	enum bool isMat = !isVec;
 	enum bool isVierkant = kolom_aantal == rij_aantal;
 
-	alias MatSoort = Mat!(rij_aantal, kolom_aantal, nauwkeurigheid);
+	alias MatSoort = Mat!(rij_aantal, kolom_aantal, Soort);
 
 	union {
 		Soort[grootte] vec;
@@ -281,6 +280,29 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			Mat!2 d_verwacht = Mat!2([22, 28, 49, 64]);
 			assert(d_gevonden == d_verwacht);
 		}
+
+		unittest {
+			Mat!(2, 3, int) a;
+			Mat!(3, 5, float) b;
+			foreach (i; 0 .. 6)
+				a.vec[i] = i;
+			foreach (i; 0 .. 15)
+				b.vec[i] = -i;
+			auto c = a.maal(b);
+			scope (failure)
+				writefln("c:\n%l", c);
+
+			assert(is(typeof(c) == Mat!(2, 5, float)));
+			Mat!(2, 5, float) d;
+			foreach (i; 0 .. 5)
+				d.vec[i] = -(25 + 3 * i);
+			foreach (i; 0 .. 5)
+				d.vec[i + 5] = -(70 + 12 * i);
+			scope (failure)
+				writefln("d:\n%l", d);
+
+			assert(c == d);
+		}
 	}
 
 	auto som(T = nauwkeurigheid)() const {
@@ -362,26 +384,21 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	}
 
 	unittest {
-		Mat!(2, 3, int) a;
-		Mat!(3, 5, float) b;
-		foreach (i; 0 .. 6)
-			a.vec[i] = i;
-		foreach (i; 0 .. 15)
-			b.vec[i] = -i;
-		auto c = a.maal(b);
-		scope (failure)
-			writefln("c:\n%l", c);
-
-		assert(is(typeof(c) == Mat!(2, 5, float)));
-		Mat!(2, 5, float) d;
-		foreach (i; 0 .. 5)
-			d.vec[i] = -(25 + 3 * i);
-		foreach (i; 0 .. 5)
-			d.vec[i + 5] = -(70 + 12 * i);
-		scope (failure)
-			writefln("d:\n%l", d);
-
-		assert(c == d);
+		Mat!(3, 3, float) a = Mat!(3, 3, float)([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+		Mat!(3, 3, double) b = Mat!(3, 3, double).identiteit;
+		auto c = a + b;
+		foreach (i; 0 .. 9) {
+			foreach (j; 0 .. 9) {
+				auto e = c[i][j];
+				assert(c[i][j] == i + (i == j));
+			}
+		}
+		auto d = a * b;
+		foreach (i; 0 .. 9) {
+			foreach (j; 0 .. 9) {
+				assert(c[i][j] == i * (i == j));
+			}
+		}
 	}
 
 	static if (isVec) {
@@ -481,6 +498,12 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
+	bool isOngeveer(const MatSoort ander, nauwkeurigheid delta = 1e-5) const {
+		import std.math : abs;
+
+		return (this - ander).elk(&abs!(Soort)).som() < delta;
+	}
+
 	unittest {
 		Mat!(1, 2, float) mat = Mat!(1, 2, float)([1, 2]);
 		Mat!(1, 2, float) mat2 = Mat!(1, 2, float)([1, 2]);
@@ -525,7 +548,10 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 		nauwkeurigheid R = Vec!2([richting.x, richting.y]).lengte();
 		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
-		return Vec!3([atan(richting.z / R), 0, -signbit(richting.x) * acos(richting.y / R)]);
+		return Vec!3([
+				atan(richting.z / R), 0,
+				-signbit(richting.x) * acos(richting.y / R)
+				]);
 	}
 
 	// VOEG TOE: test
@@ -539,21 +565,4 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	}
 
 	// VOEG TOE: test
-}
-
-Vec!3 TEMP_draai(Vec!3 oorsprong, Vec!3 doel) {
-	import std.math : acos, PI;
-
-	//TODO: nulvector
-	Vec!2 oorsprong_proj = (Vec!2([oorsprong.x, oorsprong.y])).normaliseer();
-	nauwkeurigheid oorsprong_theta = oorsprong_proj.y > 0
-		? acos(oorsprong_proj.x) : -acos(oorsprong_proj.x);
-	Vec!2 doel_proj = (Vec!2([doel.x, doel.y])).normaliseer();
-	nauwkeurigheid doel_theta = doel_proj.y > 0 ? acos(doel_proj.x) : -acos(doel_proj.x);
-	nauwkeurigheid verschil_theta = doel_theta - oorsprong_theta;
-
-	while (verschil_theta < 0)
-		verschil_theta += 2 * PI;
-
-	return Vec!3([0, 0, verschil_theta]);
 }

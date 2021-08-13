@@ -17,13 +17,6 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 		super.werkBij(ouderAangepast);
 	}
 
-	static Zicht huidig; //PAS OP: tijdelijk
-	void teken(Wereld wereld) {
-		Zicht.huidig = this;
-		zetUniform();
-		wereld.teken();
-	}
-
 	abstract void werkProjectieMBij();
 	void werkZichtMBij() {
 		zichtM = Mat!(4).identiteit;
@@ -32,14 +25,6 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 		zichtM[2][3] = -_plek.z;
 		zichtM = Mat!(4).draaiMy(-_draai.y).maal(Mat!(4).draaiMx(-_draai.x)
 				.maal(Mat!(4).draaiMz(-_draai.z)).maal(zichtM));
-	}
-
-	void zetUniform() {
-		// TODO: dit is zwaar slecht aangezien het elke verver koppelt.
-		foreach (Verver verver; Verver.ververs) {
-			verver.zetUniform("projectieM", projectieM);
-			verver.zetUniform("zichtM", zichtM);
-		}
 	}
 }
 

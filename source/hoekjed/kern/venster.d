@@ -1,9 +1,9 @@
 module hoekjed.kern.venster;
-import hoekjed.kern;
 import bindbc.glfw;
 import bindbc.opengl;
-import std.conv : to;
+import hoekjed.kern;
 import std.container.rbtree;
+import std.conv : to;
 
 struct ToetsInvoer {
 	int toets, toets_sleutel, gebeurtenis, toevoeging;
@@ -229,7 +229,7 @@ struct Scherm {
 		if (deelschermen.length != 0)
 			glClear(GL_DEPTH_BUFFER_BIT); // Over deelscherm heen tekenen.
 
-		zicht.teken(wereld);
+		wereld.teken(zicht);
 	}
 
 	protected void hervorm(Vec!(2, int) lb, Vec!(2, int) grootte) nothrow {
