@@ -1,7 +1,7 @@
 module hoekjed.dingen.vormen;
-import hoekjed.kern;
 import bindbc.opengl;
-import std.math : sin, cos, PI;
+import hoekjed.kern;
+import std.math : cos, PI, sin;
 
 static class PlatteVorm {
 	static Voorwerp maak(Vec!3 plek, uint hoektal, bool maakNormalen = false,

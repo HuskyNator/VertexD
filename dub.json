@@ -6,7 +6,6 @@
 	"description": "Dutch OpenGL passion project",
 	"license": "proprietary",
 	"copyright": "Copyright © 2021, HuskyNator",
-	"targetType": "dynamicLibrary",
 	"sourceFiles-windows": [
 		"logo/logo.res"
 	],
