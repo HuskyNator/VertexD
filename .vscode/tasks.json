@@ -8,14 +8,14 @@
 			"force": true,
 			"archType": "x86_64",
 			"buildType": "unittest",
-			"configuration": "application",
+			"configuration": "unittest",
 			"_generated": true,
 			"problemMatcher": [
 				"$dmd"
 			],
 			"group": "build",
-			"label": "test-build",
-			"detail": "dub build --force --compiler=dmd -arch=x86_64 --build=unittest"
+			"label": "bouw-test",
+			"detail": "Bouwt een uitvoerbare unittest voor HoekjeD."
 		}
 	]
 }
