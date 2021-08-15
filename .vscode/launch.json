@@ -8,13 +8,13 @@
 			"name": "(Windows) Launch",
 			"type": "cppvsdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/hoekjed-test-library.exe",
+			"program": "${workspaceFolder}/hoekjed-unittests.exe",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
 			"console": "integratedTerminal",
-			"preLaunchTask": "test-build"
+			"preLaunchTask": "bouw-test"
 		}
 	]
 }

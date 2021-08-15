@@ -22,5 +22,20 @@
 		"GLFW_33",
 		"GL_46",
 		"GL_ARB"
+	],
+	"targetType": "executable",
+	"configurations": [
+		{
+			"name": "normaal",
+			"targetType": "autodetect"
+		},
+		{
+			"name": "unittest",
+			"targetType": "executable",
+			"targetName": "hoekjed-unittests",
+			"sourceFiles": [
+				"test/legeMain.d"
+			]
+		}
 	]
 }
