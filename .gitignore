@@ -1,5 +1,5 @@
 .dub
-.vscode
+# .vscode
 docs.json
 __dummy.html
 docs/

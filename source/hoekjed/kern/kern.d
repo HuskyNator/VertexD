@@ -1,9 +1,9 @@
 module hoekjed.kern.kern;
-import hoekjed.kern;
 import bindbc.glfw;
-import std.stdio : writefln;
-import std.conv : to;
 import core.sys.windows.windows;
+import hoekjed.kern;
+import std.conv : to;
+import std.stdio : writefln;
 
 private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) nothrow {
 	try {

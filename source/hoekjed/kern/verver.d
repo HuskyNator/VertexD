@@ -1,8 +1,8 @@
 module hoekjed.kern.verver;
-import hoekjed.kern;
 import bindbc.opengl;
-import std.conv;
+import hoekjed.kern;
 import std.array : replace;
+import std.conv;
 
 class VerverFout : Exception {
 	this(string melding) {
@@ -91,6 +91,11 @@ class Verver {
 		stderr.writeln(
 				"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
 				~ " niet vinden.\n" ~ krijg_foutmelding());
+	}
+
+	void zetUniform(Zicht zicht) {
+		this.zetUniform("projectieM", zicht.projectieM);
+		this.zetUniform("zichtM", zicht.zichtM);
 	}
 
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)
