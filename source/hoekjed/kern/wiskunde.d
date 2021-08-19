@@ -260,7 +260,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 			Mat!4 a = Mat!4.draaiMz(PI_2);
 			Vec!4 resultaat = a.maal([1, 0, 0, 1]);
-			float verschil = (resultaat.elk(&abs!(float)) - [0, 1, 0, 1]).som();
+			int[4] b = [0,1,0,1];
+			float verschil = (resultaat.elk(&abs!(float)) - b).som();
 			float delta = 1e-5;
 			assert(verschil < delta);
 
@@ -374,52 +375,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(b == c);
 	}
 
-	auto opBinary(string op, T)(const T[rij_aantal][kolom_aantal] rechts) const 
-			if (is(Resultaat!(Soort, op, T))) {
-		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, T)) resultaat;
-		static foreach (i; 0 .. rij_aantal)
-			static foreach (j; 0 .. kolom_aantal)
-				mixin("resultaat.mat[i][j] = this.mat[i][j] " ~ op ~ " rechts[i][j];");
-		return resultaat;
-	}
-
-	unittest {
-		Mat!(3, 3, float) a = Mat!(3, 3, float)([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-		Mat!(3, 3, double) b = Mat!(3, 3, double).identiteit;
-		auto c = a + b;
-		foreach (i; 0 .. 9) {
-			foreach (j; 0 .. 9) {
-				auto e = c[i][j];
-				assert(c[i][j] == i + (i == j));
-			}
-		}
-		auto d = a * b;
-		foreach (i; 0 .. 9) {
-			foreach (j; 0 .. 9) {
-				assert(c[i][j] == i * (i == j));
-			}
-		}
-	}
-
-	static if (isVec) {
-		auto opBinary(string op, T)(const T[grootte] rechts) const 
-				if (is(Resultaat!(Soort, op, T))) {
-			Vec!(grootte, Resultaat!(Soort, op, T)) resultaat;
-			static foreach (i; 0 .. grootte)
-				mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts[i];");
-			return resultaat;
-		}
-	}
-
-	unittest {
-		Vec!5 a = Vec!5([1, 2, 3, 4, 5]);
-		a = a - [5, 4, 3, 2, 1];
-		foreach (i; 0 .. 4)
-			assert(a[i] == -4 + 2 * i, to!string(a));
-	}
-
 	auto opBinary(string op, T)(const T rechts) const 
-			if (is(Resultaat!(Soort, op, T))) {
+			if (!isLijst!T) {
 		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, T)) resultaat;
 		static foreach (i; 0 .. grootte)
 			mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts;");
@@ -431,6 +388,59 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		a = (a + 2) * 3;
 		foreach (i; 0 .. a.grootte)
 			assert(a.vec[i] == 6);
+	}
+
+	static if (isVec) {
+		// PAS OP: Wegens onduidelijke reden is gebruik van letterlijke lijsten momenteel niet goed
+		// ondersdoor templates. Zie https://forum.dlang.org/post/sfgv2a$u08$1@digitalmars.com voor meer.
+		auto opBinary(string op, T:U[grootte], U)(const T rechts) const 
+				if (isLijst!T && !isLijst!(T, 2)) {
+			Vec!(grootte, Resultaat!(Soort, op, U)) resultaat;
+			static foreach (i; 0 .. grootte)
+				mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts[i];");
+			return resultaat;
+		}
+	}
+
+	unittest {
+		Vec!5 a = Vec!5([1, 2, 3, 4, 5]);
+		int[5] b = [5,4,3,2,1];
+		a = a - b;
+		foreach (i; 0 .. 4)
+			assert(a[i] == -4 + 2 * i, to!string(a));
+	}
+
+	auto opBinary(string op, T:U[kolom_aantal][rij_aantal], U)(const T rechts) const 
+			if (isLijst!(T, 2)) {
+		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, U)) resultaat;
+		static foreach (i; 0 .. rij_aantal)
+			static foreach (j; 0 .. kolom_aantal)
+				mixin("resultaat.mat[i][j] = this.mat[i][j] " ~ op ~ " rechts[i][j];");
+		return resultaat;
+	}
+
+	unittest {
+		int x = 0; // PAS OP: Wegens onduidelijke redenen vereist voor de leesbaarheid van a.
+		Mat!(3, 3, float) a = Mat!(3, 3, float)([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+		Mat!(3, 3, double) b = Mat!(3, 3, double).identiteit;
+
+		auto c = a + b;
+		assert(c.isSoort!(Mat!(3, 3, double)));
+		foreach (i; 0 .. 9) {
+			auto verwacht = i + 1 + (i % 4 == 0);
+			assert(c.vec[i] == verwacht);
+		}
+
+		auto d = c - a;
+		assert(d.isSoort(c));
+		assert(d == b);
+
+		auto e = a * b;
+		assert(c.isSoort(b));
+		foreach (i; 0 .. 9) {
+			auto verwacht = (i + 1) * (i % 4 == 0);
+			assert(e.vec[i] == verwacht);
+		}
 	}
 
 	M opCast(M : Mat!(rij_aantal, kolom_aantal, T), T)() const {
@@ -498,12 +508,6 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
-	bool isOngeveer(const MatSoort ander, nauwkeurigheid delta = 1e-5) const {
-		import std.math : abs;
-
-		return (this - ander).elk(&abs!(Soort)).som() < delta;
-	}
-
 	unittest {
 		Mat!(1, 2, float) mat = Mat!(1, 2, float)([1, 2]);
 		Mat!(1, 2, float) mat2 = Mat!(1, 2, float)([1, 2]);
@@ -532,6 +536,22 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(vec == vec);
 		assert(vec == lijst);
 		assert(vec != lijst2);
+	}
+
+	static if(is(typeof(abs!Soort))) {
+		bool isOngeveer(const MatSoort ander, nauwkeurigheid delta = 1e-5) const {
+			import std.math : abs;
+			return (this - ander).elk(&abs!Soort).som() < delta;
+		}
+	}
+
+	unittest{
+		float delta = 1e-6;
+		Mat!3 a = Mat!(3).identiteit;
+		float[3][3] verschil = [[delta, -delta, delta], [delta,delta,-delta], [-delta,-delta,delta]];
+		Mat!3 b = a+verschil;
+		assert(a.isOngeveer(b));
+		assert(!a.isOngeveer(b, 8 * delta));
 	}
 
 	// Krijg de draai nodig om een vector vanaf de y as in een richting te draai.
