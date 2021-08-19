@@ -14,7 +14,7 @@ abstract class Ding {
 
 	protected alias houding this;
 
-	private bool aangepast = true; // VERBETER: Maak ook een prive property, waarbij aanpassingen het toevoegen aan de aangepasten voorwerpen in een wereld (zo kunnen enkel deeltakken van de wereldboom bijgewerkt worden).
+	private bool aangepast = true;
 	private bool _ingeschakeld = true; // VERBETER: zoek manier om toe te passen voor elke teken/denk/werkBij stap.
 
 	protected Mat!4 eigenM = Mat!(4).identiteit;
@@ -58,17 +58,21 @@ abstract class Ding {
 		return _ingeschakeld;
 	}
 
-	@property void ingeschakeld(bool waarde) nothrow {
+	@property void ingeschakeld(bool waarde) {
 		_ingeschakeld = waarde;
+		wereld.zetIngeschakeld(this, waarde);
 		foreach (Ding kind; kinderen) {
 			kind.ingeschakeld(waarde);
 		}
 	}
 
-	protected abstract void denk(); // VERBETER: tijdsverschil?
+	protected abstract void denk();
 	protected abstract void teken();
 
 	protected void werkBij(bool ouderAangepast) {
+		if (!ingeschakeld)
+			return;
+
 		assert(!(ouderAangepast && ouder is null)); // Kan ouder niet aanpassen als deze niet bestaat.
 		bool bijgewerkt = aangepast || ouderAangepast;
 

@@ -4,7 +4,7 @@ import hoekjed;
 
 class Voorwerp : Ding {
 	private VAO vao;
-	Verver verver;
+	Verver verver; // TODO: Moet bescherm worden, aangezien Wereld het gebruikt als sleutel.
 
 	invariant(verver !is null);
 
@@ -23,8 +23,7 @@ class Voorwerp : Ding {
 	}
 
 	protected void zetUniformen() {
-		verver.gebruik(); // TODO: voor de zekerheid, kan weg.
-		verver.zetUniform("tekenM", tekenM); // TODO: mogelijk gekantelde
+		verver.zetUniform("tekenM", tekenM);
 	}
 
 	override public void teken() {

@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dub",
+			"run": false,
+			"compiler": "dmd",
+			"force": true,
+			"archType": "x86_64",
+			"buildType": "unittest",
+			"configuration": "unittest",
+			"_generated": true,
+			"problemMatcher": [
+				"$dmd"
+			],
+			"group": "build",
+			"label": "bouw-test",
+			"detail": "Bouwt een uitvoerbare unittest voor HoekjeD."
+		}
+	]
+}
