@@ -23,7 +23,6 @@
 		"GL_46",
 		"GL_ARB"
 	],
-	"targetType": "executable",
 	"configurations": [
 		{
 			"name": "normaal",
