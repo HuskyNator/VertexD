@@ -69,6 +69,20 @@ abstract class Ding {
 	protected abstract void denk();
 	protected abstract void teken();
 
+	public static pure Mat!4 krijgEigenM(Houding houding) {
+		Mat!4 eigenM = Mat!(4).identiteit;
+		eigenM[0][0] = houding._grootte.x;
+		eigenM[1][1] = houding._grootte.y;
+		eigenM[2][2] = houding._grootte.z;
+		eigenM = Mat!(4).draaiMz(houding._draai.z).maal(Mat!(4).draaiMx(houding._draai.x)
+			.maal(Mat!(4).draaiMy(houding._draai.y).maal(eigenM)));
+		// [x, y, z] komen dus overeen met een [theta, psi, rho] stelsel.
+		eigenM[0][3] = houding._plek.x;
+		eigenM[1][3] = houding._plek.y;
+		eigenM[2][3] = houding._plek.z;
+		return eigenM;
+	}
+
 	protected void werkBij(bool ouderAangepast) {
 		if (!ingeschakeld)
 			return;
@@ -77,21 +91,12 @@ abstract class Ding {
 		bool bijgewerkt = aangepast || ouderAangepast;
 
 		if (aangepast) {
-			eigenM = Mat!(4).identiteit;
-			eigenM[0][0] = _grootte.x;
-			eigenM[1][1] = _grootte.y;
-			eigenM[2][2] = _grootte.z;
-			eigenM = Mat!(4).draaiMz(_draai.z).maal(Mat!(4).draaiMx(_draai.x)
-					.maal(Mat!(4).draaiMy(_draai.y).maal(eigenM)));
-			// [x, y, z] komen dus overeen met een [theta, psi, rho] stelsel.
-			eigenM[0][3] = _plek.x;
-			eigenM[1][3] = _plek.y;
-			eigenM[2][3] = _plek.z;
+			eigenM = Ding.krijgEigenM(this.houding);
 			aangepast = false;
 		}
 
 		if (bijgewerkt)
-			tekenM = (ouder is null) ? eigenM : eigenM.maal(ouder.tekenM);
+			tekenM = (ouder is null) ? eigenM : ouder.tekenM.maal(eigenM);
 
 		foreach (Ding kind; kinderen)
 			kind.werkBij(bijgewerkt);

@@ -20,9 +20,11 @@ bool isSoort(A, B)(A a, B b){
 	return is(A == B);
 }
 
-// Geeft aan of T een lijst is, waarbij alles met een index gezien wordt als een lijst.
-// Dit is anders dan traits.isArray, welk een toewijzingstabel als uint[uint] niet ziet als lijst.
-// (Blijkbaar is een associatieve lijst in het duits een Zuordnungstabelle, oftewel een toeördeningstabel).
+/**
+ * Geeft aan of T een lijst is, waarbij alles met een index gezien wordt als een lijst.
+ * Dit is anders dan traits.isArray, welk een toewijzingstabel als uint[uint] niet ziet als lijst.
+ * (Blijkbaar is een associatieve lijst in het duits een Zuordnungstabelle, oftewel een toeördeningstabel).
+*/
 bool isLijst(T, uint n = 1)() if(n>0) {
 	import std.array : replicate;
 	return is(typeof(mixin("T.init"~"[0]".replicate(n))));
