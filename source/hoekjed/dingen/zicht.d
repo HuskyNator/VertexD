@@ -58,3 +58,18 @@ class DiepteZicht : Zicht {
 }
 
 // VOEG TOE: VlakteZicht
+class VlakteZicht : Zicht {
+	nauwkeurigheid schermverhouding;
+	nauwkeurigheid breedte_1;
+	nauwkeurigheid hoogte_1;
+
+	this(nauwkeurigheid schermverhouding = 1920/1080, nauwkeurigheid breedte = 16){
+		this.schermverhouding = schermverhouding;
+		this.breedte_1 = 1/breedte;
+		this.hoogte_1 = breedte/schermverhouding;
+	}
+
+	override void werkProjectieMBij(){
+		projectieM.mat = [[breedte_1, 0, 0, 0],[cast(nauwkeurigheid) 0,0,2,0],[0,hoogte_1,0,0],[cast(nauwkeurigheid)0,0,0,2]];
+	}
+}

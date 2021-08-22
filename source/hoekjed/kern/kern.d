@@ -38,10 +38,10 @@ void stap() {
 		venster.verwerkInvoer();
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.denk();
+		wereld.denkWereld();
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.werkBij();
+		wereld.werkWereldBij();
 
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
