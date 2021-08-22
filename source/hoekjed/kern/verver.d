@@ -86,7 +86,7 @@ class Verver {
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
 					? "i" : (is(S == float) ? "f" : (is(S == double) ? "d" : "")));
 		static assert(soort != "", "Soort " ~ S ~ " niet ondersteund voor zetUniform.");
-		mixin("glUniform" ~ L.to!string ~ soort ~ "(uniformplek, " ~ waardes ~ ");");
+		mixin("glProgramUniform" ~ L.to!string ~ soort ~ "(verwijzing, uniformplek, " ~ waardes ~ ");");
 	}
 
 	void zetUniform(V : Mat!(L, 1, S)[], uint L, S)(string naam, V waarde)
@@ -98,8 +98,8 @@ class Verver {
 		enum string soort = is(S == uint) ? "ui" : (is(S == int)
 					? "i" : (is(S == float) ? "f" : (is(S == double) ? "d" : "")));
 		static assert(soort != "", "Soort " ~ S ~ " niet ondersteund voor zetUniform.");
-		mixin("glUniform" ~ L.to!string ~ soort
-				~ "v(uniformplek, cast(uint) waarde.length, cast(" ~ S.stringof ~ "*) waarde.ptr);");
+		mixin("glProgramUniform" ~ L.to!string ~ soort
+				~ "v(verwijzing, uniformplek, cast(uint) waarde.length, cast(" ~ S.stringof ~ "*) waarde.ptr);");
 	}
 
 	void zetUniform(V : Mat!(R, K, nauwkeurigheid), uint R, uint K)(string naam, V waarde)
@@ -108,8 +108,8 @@ class Verver {
 		if (uniformplek == -1)
 			return foutmelding_ontbrekende_uniform(naam);
 
-		mixin("glUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(nauwkeurigheid == float) ? "f" : "d") ~ "v(uniformplek, 1, true, waarde[0].ptr);");
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+				is(nauwkeurigheid == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, 1, true, waarde[0].ptr);");
 	}
 
 	void zetUniform(V : Mat!(R, K, nauwkeurigheid)[], uint R, uint K)(string naam, V waarde)
@@ -118,9 +118,9 @@ class Verver {
 		if (uniformplek == -1)
 			return foutmelding_ontbrekende_uniform(naam);
 
-		mixin("glUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float)
-				? "f" : "d") ~ "v(uniformplek, waarde.length, true, waarde.ptr);");
+				? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
 	}
 
 	private string krijg_foutmelding() {
