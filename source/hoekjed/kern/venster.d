@@ -229,7 +229,7 @@ struct Scherm {
 		if (deelschermen.length != 0)
 			glClear(GL_DEPTH_BUFFER_BIT); // Over deelscherm heen tekenen.
 
-		wereld.teken(zicht);
+		wereld.tekenWereld(zicht);
 	}
 
 	protected void hervorm(Vec!(2, int) lb, Vec!(2, int) grootte) nothrow {

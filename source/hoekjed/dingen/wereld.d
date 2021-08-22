@@ -13,7 +13,7 @@ class Wereld : Ding {
 		Wereld.werelden ~= this;
 	}
 
-	public void teken(Zicht zicht) {
+	public void tekenWereld(Zicht zicht) {
 		// Poging zo min mogelijk van verver te wisselen.
 		foreach (Verver verver; voorwerpen.byKey()) {
 			verver.gebruik();
@@ -26,10 +26,7 @@ class Wereld : Ding {
 			ding.teken();
 	}
 
-	public override void teken() {
-	}
-
-	public override void denk() {
+	public void denkWereld() {
 		foreach (Voorwerp[] voorwerpen2; voorwerpen.values)
 			foreach (Voorwerp voorwerp; voorwerpen2)
 				voorwerp.denk();
@@ -37,8 +34,14 @@ class Wereld : Ding {
 			ding.denk();
 	}
 
-	public void werkBij() {
+	public void werkWereldBij() {
 		super.werkBij(false); // Werkt alles in de wereldboom bij.
+	}
+
+	public override void teken() {
+	}
+
+	public override void denk() {
 	}
 
 	package void voegDing(Ding ding) {
