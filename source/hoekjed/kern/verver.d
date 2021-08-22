@@ -11,7 +11,12 @@ class VerverFout : Exception {
 }
 
 class Verver {
-	public static Verver[] ververs;
+	public struct BronPaar{
+		string hoekV, snipperV;
+	}
+
+	public static Verver[BronPaar] ververs;
+	static Verver huidig = null;
 
 	HoekVerver hoekV;
 	SnipperVerver snipperV;
@@ -24,13 +29,11 @@ class Verver {
 	@property public static Verver plaatsvervanger() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
-			voorbeeld = new Verver(new HoekVerver(kleur_hoekverver),
-					new SnipperVerver(kleur_snipperverver));
+			voorbeeld = Verver.laad(kleur_hoekverver, kleur_snipperverver);
 		voorbeeld.zetUniform("kleur", plaatsvervangerkleur);
 		return voorbeeld;
 	}
 
-	static Verver huidig = null;
 	final void gebruik() {
 		if (huidig is this)
 			return;
@@ -38,7 +41,9 @@ class Verver {
 		huidig = this;
 	}
 
-	this(HoekVerver hoekV, SnipperVerver snipperV) {
+	private this(){}
+
+	private this(HoekVerver hoekV, SnipperVerver snipperV) {
 		this.hoekV = hoekV;
 		this.snipperV = snipperV;
 		this.verwijzing = glCreateProgram();
@@ -51,46 +56,18 @@ class Verver {
 		if (volbracht == 0)
 			throw new VerverFout(
 					"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
-
-		glUseProgram(verwijzing);
-
-		Verver.ververs ~= this;
 	}
 
-	// PAS OP: alias this zorgt voor functie verwarring. S & S[] tijdelijk onbeschikbaar.
-	// PAS OP: Vec! werkt nog niet agz DIP niet afgewerkt is. :(
-	// void zetUniform(S)(string naam, S waarde) {
-	// pragma(msg, "S -> S = " ~ S.stringof);
-	// const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
-	// enum string soort = is(S == uint) ? "ui" : (is(S == int)
-	// 			? "i" : (is(S == float) ? "f" : (is(S == double) ? "d" : "")));
-	// static assert(soort != "", "Soort " ~ S ~ " niet ondersteund voor zetUniform.");
-	// mixin("glUniform1" ~ soort ~ "(uniformplek, waarde);");
-	// }
-
-	// void zetUniform(S : T[], T)(string naam, S waarde) {
-	// pragma(msg, "S: T[] -> S = " ~ S.stringof ~ " & T = " ~ T.stringof);/
-	// const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
-	// enum string soort = is(T == uint) ? "ui" : (is(T == int)
-	// 			? "i" : (is(T == float) ? "f" : (is(T == double) ? "d" : "")));
-	// static assert(soort != "", "Soort " ~ S.stringof ~ " niet ondersteund voor zetUniform.");
-	// mixin("glUniform1" ~ soort ~ "v(uniformplek, cast(uint) waarde.length, waarde.ptr);");
-	// }
-
-	private string krijg_foutmelding() {
-		int lengte;
-		glGetProgramiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
-		char[] melding = new char[lengte];
-		glGetProgramInfoLog(this.verwijzing, lengte, null, melding.ptr);
-		return cast(string) melding.idup;
-	}
-
-	private void foutmelding_ontbrekende_uniform(string naam) {
-		import std.stdio;
-
-		stderr.writeln(
-				"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
-				~ " niet vinden.\n" ~ krijg_foutmelding());
+	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
+	public static Verver laad(string hoekV, string snipperV){
+		Verver verver = Verver.ververs.get(BronPaar(hoekV, snipperV), null);
+		if(verver is null){
+			HoekVerver hV = HoekVerver.ververs.get(hoekV, new HoekVerver(hoekV));
+			SnipperVerver sV = SnipperVerver.ververs.get(snipperV, new SnipperVerver(snipperV));
+			verver = new Verver(hV, sV);
+			Verver.ververs[BronPaar(hoekV, snipperV)] = verver;
+		}
+		return verver;
 	}
 
 	void zetUniform(Zicht zicht) {
@@ -146,7 +123,21 @@ class Verver {
 				? "f" : "d") ~ "v(uniformplek, waarde.length, true, waarde.ptr);");
 	}
 
-	// VOEG TOE: uniform buffer object (UBO)
+	private string krijg_foutmelding() {
+		int lengte;
+		glGetProgramiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
+		char[] melding = new char[lengte];
+		glGetProgramInfoLog(this.verwijzing, lengte, null, melding.ptr);
+		return cast(string) melding.idup;
+	}
+
+	private void foutmelding_ontbrekende_uniform(string naam) {
+		import std.stdio;
+
+		stderr.writeln(
+				"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
+				~ " niet vinden.\n" ~ krijg_foutmelding());
+	}
 
 	public static string kleur_hoekverver = `
 #version 460
@@ -185,6 +176,8 @@ alias SnipperVerver = DeelVerver!GL_FRAGMENT_SHADER;
 class DeelVerver(uint soort) {
 	protected uint verwijzing;
 
+	static DeelVerver!(soort)[string] ververs;
+
 	private string krijg_foutmelding() {
 		int lengte;
 		glGetShaderiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
@@ -217,5 +210,6 @@ class DeelVerver(uint soort) {
 			throw new VerverFout("Kon DeelVerver " ~ verwijzing.to!string ~ " niet bouwen:\n" ~ cast(
 					string) krijg_foutmelding());
 
+		this.ververs[bestand] = this;
 	}
 }
