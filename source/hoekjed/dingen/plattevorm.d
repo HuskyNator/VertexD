@@ -3,10 +3,26 @@ import bindbc.opengl;
 import hoekjed.kern;
 import std.math : cos, PI, sin;
 
+
 class PlatteVorm : Voorwerp {
+	// PAS OP: Dit kan opruiming van geheugen voorkomen.
+	private static Voorwerp[Oproeping] aangemaakt;
+
+	private struct Oproeping{
+		uint hoektal;
+		Vec!3 plek;
+		bool maakNormalen;
+		bool maakBeeldplekken;
+	}
+
 	this(uint hoektal, Vec!3 plek = Vec!(3).nul, bool maakNormalen = false,
 			bool maakBeeldplekken = false) {
 		assert(hoektal >= 3);
+		Oproeping oproeping = Oproeping(hoektal, plek, maakNormalen, maakBeeldplekken);
+		if(oproeping in aangemaakt) {
+			super(aangemaakt[oproeping]);
+			return;
+		}
 
 		Vec!3[] plekken = new Vec!3[](hoektal);
 		immutable real stap = 2 * PI / hoektal;
@@ -15,6 +31,7 @@ class PlatteVorm : Voorwerp {
 					-0.5*sin(i * stap) + plek.x, 0 + plek.y, 0.5*cos(i * stap) + plek.z
 					]);
 
+		aangemaakt[oproeping] = this;
 		this(plekken, maakNormalen, maakBeeldplekken);
 	}
 
