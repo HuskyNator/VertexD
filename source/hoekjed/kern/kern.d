@@ -4,6 +4,7 @@ import core.sys.windows.windows;
 import hoekjed.kern;
 import std.conv : to;
 import std.stdio : writefln;
+import std.datetime.stopwatch;
 
 private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) nothrow {
 	try {
@@ -28,11 +29,24 @@ void hdZetOp() {
 
 	glfwSetErrorCallback(&glfw_foutterugroep);
 	glfwInit();
+	_hdTijd = StopWatch(AutoStart.yes); // Herstelt naar 0 zodra hdLus op wordt geroepen.
 }
 
-package ulong tijd = 0;
-void stap() {
-	tijd += 1;
+private ulong _hdStaptal = 0;
+private StopWatch _hdTijd;
+
+@property
+public ulong hdStaptal(){
+	return _hdStaptal;
+}
+
+@property
+public Duration hdTijd(){
+	return _hdTijd.peek();
+}
+
+public void hdStap() {
+	_hdStaptal += 1;
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.verwerkInvoer();
@@ -59,7 +73,8 @@ void stap() {
 	glfwPollEvents();
 }
 
-void lus() {
+public void hdLus() {
+	_hdTijd.reset();
 	while (Venster.vensters.length > 0)
-		stap();
+		hdStap();
 }
