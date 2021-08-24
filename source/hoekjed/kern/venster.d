@@ -6,7 +6,7 @@ import std.container.rbtree;
 import std.conv : to;
 
 struct ToetsInvoer {
-	int toets, toets_sleutel, gebeurtenis, toevoeging;
+	int toets, toets_verwijzing, gebeurtenis, toevoeging;
 }
 
 struct MuisknopInvoer {
@@ -33,7 +33,7 @@ enum Muissoort {
 }
 
 class Venster {
-	static package Venster[GLFWwindow* ] vensters;
+	static public Venster[GLFWwindow* ] vensters;
 	package GLFWwindow* glfw_venster;
 
 	// Eigenschappen
@@ -50,6 +50,7 @@ class Venster {
 	MuisplekInvoer[] muisplekInvoer = [];
 	MuisknopInvoer[] muisknopInvoer = [];
 	MuiswielInvoer[] muiswielInvoer = [];
+
 
 	alias scherm this;
 
@@ -137,6 +138,18 @@ class Venster {
 				terugroeper(invoer);
 
 		//PAS OP: neemt onafhankelijkheid van muis & toets volgorde aan op korte tijdsverschillen.
+	}
+
+	// PAS OP: Moet mogelijk testen wat de toevoeging is bij gebrek aan toevoeging of dubbele
+	// toevoegingen. Hier is de documentatie niet duidelijk.
+	public bool krijgToets(int toets, int gebeurtenis = GLFW_PRESS, int toevoeging = 0, bool verwijzing = false){
+		foreach(ToetsInvoer t; this.toetsInvoer){
+			if((verwijzing ? t.toets_verwijzing : t.toets) == toets
+				&& t.gebeurtenis==gebeurtenis
+				&& toevoeging ? t.toevoeging == toevoeging : true)
+					return true;
+		}
+		return false;
 	}
 
 	void leegInvoer() {
