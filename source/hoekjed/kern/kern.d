@@ -14,18 +14,23 @@ private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) 
 }
 
 debug {
-	package HWND console;
-	package bool console_zichtbaar;
+	package HWND console = null;
+	package bool _console_zichtbaar = false;
+}
+
+debug void hdToonConsole(bool zichtbaar) {
+	ShowWindow(console, zichtbaar?SW_SHOW:SW_HIDE);
+	_console_zichtbaar = zichtbaar;
 }
 
 void hdZetOp() {
-	debug {
-		console = GetConsoleWindow();
-		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
-		console_zichtbaar = false;
+	debug{
+	console = GetConsoleWindow();
+	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
 	} else {
 		FreeConsole();
 	}
+
 
 	glfwSetErrorCallback(&glfw_foutterugroep);
 	glfwInit();
@@ -57,6 +62,7 @@ public void hdStap() {
 	foreach (Wereld wereld; Wereld.werelden)
 		wereld.werkWereldBij();
 
+	import std.stdio;
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
 		if (glfwWindowShouldClose(venster.glfw_venster)) {
@@ -66,6 +72,7 @@ public void hdStap() {
 		} else
 			venster.teken();
 	}
+
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.leegInvoer();
