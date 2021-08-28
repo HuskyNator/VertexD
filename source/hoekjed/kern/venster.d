@@ -109,6 +109,10 @@ class Venster {
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	void bekijk() {
+		glfwFocusWindow(glfw_venster);
+	}
+
 	void toon() {
 		glfwShowWindow(glfw_venster);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -143,12 +147,11 @@ class Venster {
 	// PAS OP: Moet mogelijk testen wat de toevoeging is bij gebrek aan toevoeging of dubbele
 	// toevoegingen. Hier is de documentatie niet duidelijk.
 	public bool krijgToets(int toets, int gebeurtenis = GLFW_PRESS, int toevoeging = 0, bool verwijzing = false){
-		foreach(ToetsInvoer t; this.toetsInvoer){
+		foreach(ToetsInvoer t; this.toetsInvoer)
 			if((verwijzing ? t.toets_verwijzing : t.toets) == toets
 				&& t.gebeurtenis==gebeurtenis
-				&& toevoeging ? t.toevoeging == toevoeging : true)
+				&& (toevoeging ? t.toevoeging == toevoeging : true))
 					return true;
-		}
 		return false;
 	}
 
@@ -279,9 +282,9 @@ extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
 		import core.sys.windows.windows;
 
 		if (toets == GLFW_KEY_GRAVE_ACCENT) {
-			ShowWindow(console, console_zichtbaar ? SW_HIDE : SW_RESTORE);
+			ShowWindow(console, _console_zichtbaar ? SW_HIDE : SW_RESTORE);
 			glfwFocusWindow(glfw_venster);
-			console_zichtbaar = !console_zichtbaar;
+			_console_zichtbaar = !_console_zichtbaar;
 		}
 	}
 	if (toets == GLFW_KEY_ESCAPE)
