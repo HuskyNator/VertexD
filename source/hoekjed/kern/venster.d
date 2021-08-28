@@ -146,11 +146,9 @@ class Venster {
 
 	// PAS OP: Moet mogelijk testen wat de toevoeging is bij gebrek aan toevoeging of dubbele
 	// toevoegingen. Hier is de documentatie niet duidelijk.
-	public bool krijgToets(int toets, int gebeurtenis = GLFW_PRESS, int toevoeging = 0, bool verwijzing = false){
+	public bool krijgToets(int toets) {
 		foreach(ToetsInvoer t; this.toetsInvoer)
-			if((verwijzing ? t.toets_verwijzing : t.toets) == toets
-				&& t.gebeurtenis==gebeurtenis
-				&& (toevoeging ? t.toevoeging == toevoeging : true))
+			if( t.toets == toets && (t.gebeurtenis == GLFW_PRESS || t.gebeurtenis == GLFW_REPEAT))
 					return true;
 		return false;
 	}
