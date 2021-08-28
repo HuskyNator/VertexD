@@ -6,4 +6,5 @@ public {
 	import hoekjed.dingen.plattevorm;
 	import hoekjed.dingen.wereld;
 	import hoekjed.dingen.zicht;
+	import hoekjed.dingen.groep;
 }

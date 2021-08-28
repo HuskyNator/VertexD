@@ -15,6 +15,7 @@ class Wereld : Ding {
 
 	public void tekenWereld(Zicht zicht) {
 		// Poging zo min mogelijk van verver te wisselen.
+		this.teken();
 		foreach (Verver verver; voorwerpen.byKey()) {
 			verver.gebruik();
 			verver.zetUniform(zicht);
@@ -27,6 +28,7 @@ class Wereld : Ding {
 	}
 
 	public void denkWereld() {
+		this.denk();
 		foreach (Voorwerp[] voorwerpen2; voorwerpen.values)
 			foreach (Voorwerp voorwerp; voorwerpen2)
 				voorwerp.denk();
