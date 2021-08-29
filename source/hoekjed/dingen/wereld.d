@@ -13,8 +13,9 @@ class Wereld : Ding {
 		Wereld.werelden ~= this;
 	}
 
-	public void teken(Zicht zicht) {
+	public void tekenWereld(Zicht zicht) {
 		// Poging zo min mogelijk van verver te wisselen.
+		this.teken();
 		foreach (Verver verver; voorwerpen.byKey()) {
 			verver.gebruik();
 			verver.zetUniform(zicht);
@@ -26,10 +27,8 @@ class Wereld : Ding {
 			ding.teken();
 	}
 
-	public override void teken() {
-	}
-
-	public override void denk() {
+	public void denkWereld() {
+		this.denk();
 		foreach (Voorwerp[] voorwerpen2; voorwerpen.values)
 			foreach (Voorwerp voorwerp; voorwerpen2)
 				voorwerp.denk();
@@ -37,12 +36,20 @@ class Wereld : Ding {
 			ding.denk();
 	}
 
-	public void werkBij() {
+	public void werkWereldBij() {
 		super.werkBij(false); // Werkt alles in de wereldboom bij.
+	}
+
+	public override void teken() {
+	}
+
+	public override void denk() {
 	}
 
 	package void voegDing(Ding ding) {
 		assert(ding._wereld is null);
+		foreach(Ding kind; ding.kinderen)
+			voegDing(kind);
 		ding._wereld = this;
 		if (Voorwerp voorwerp = cast(Voorwerp) ding) {
 			voorwerpen[voorwerp.verver] ~= voorwerp;
@@ -52,6 +59,8 @@ class Wereld : Ding {
 
 	package void verwijderDing(Ding ding) {
 		assert(ding._wereld is this);
+		foreach(Ding kind; ding.kinderen)
+			verwijderDing(kind);
 		if (Voorwerp voorwerp = cast(Voorwerp) ding)
 			voorwerpen[voorwerp.verver].verwijder(voorwerp);
 		else
