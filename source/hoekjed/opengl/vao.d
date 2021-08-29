@@ -23,26 +23,30 @@ class VAO {
 	}
 
 	public void teken() {
-		this.koppel();
-		glDrawElements(GL_TRIANGLES, this.hoekAantal, GL_UNSIGNED_INT, null);
+		zetVAO();
+		tekenVAO();
 	}
 
 	public void zetInhoud(M : Mat!(L, 1, S), uint L, S)(uint plek, M[] inhoud)
 			if (L > 0 && L <= 4) {
 		assert(plek !in vbos);
-		this.koppel();
+		this.zetVAO();
 		this.vbos[plek] = new VBO(inhoud);
 		glVertexAttribPointer(plek, L, ctGLenum!(S)(), false, M.sizeof, null);
 		glEnableVertexAttribArray(plek);
 	}
 
 	public void zetVolgorde(Vec!(3, uint)[] volgorde) {
-		this.koppel();
+		this.zetVAO();
 		this.ebo = new EBO(volgorde);
 		this.hoekAantal = 3 * cast(uint) volgorde.length;
 	}
 
-	private void koppel() {
+	public void tekenVAO(){
+		glDrawElements(GL_TRIANGLES, this.hoekAantal, GL_UNSIGNED_INT, null);
+	}
+
+	public void zetVAO() {
 		glBindVertexArray(vao);
 	}
 }
