@@ -108,15 +108,16 @@ abstract class Ding {
 		kind.ouder = this;
 		this.kinderen ~= kind;
 
-		assert(this._wereld !is null);
-		this._wereld.voegDing(kind);
+		if (this._wereld !is null)
+			this._wereld.voegDing(kind);
 	}
 
 	public void verwijderKind(Ding kind) {
 		assert(kind !is null);
 		kinderen.verwijder(kind);
 		kind.ouder = null;
-		kind._wereld.verwijderDing(kind);
+		if(kind._wereld !is null)
+			kind._wereld.verwijderDing(kind);
 	}
 
 }
