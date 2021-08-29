@@ -4,6 +4,7 @@ import core.sys.windows.windows;
 import hoekjed.kern;
 import std.conv : to;
 import std.stdio : writefln;
+import std.datetime.stopwatch;
 
 private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) nothrow {
 	try {
@@ -13,36 +14,55 @@ private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) 
 }
 
 debug {
-	package HWND console;
-	package bool console_zichtbaar;
+	package HWND console = null;
+	package bool _console_zichtbaar = false;
+}
+
+debug void hdToonConsole(bool zichtbaar) {
+	ShowWindow(console, zichtbaar?SW_SHOW:SW_HIDE);
+	_console_zichtbaar = zichtbaar;
 }
 
 void hdZetOp() {
-	debug {
-		console = GetConsoleWindow();
-		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
-		console_zichtbaar = false;
+	debug{
+	console = GetConsoleWindow();
+	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
 	} else {
 		FreeConsole();
 	}
 
+
 	glfwSetErrorCallback(&glfw_foutterugroep);
 	glfwInit();
+	_hdTijd = StopWatch(AutoStart.yes); // Herstelt naar 0 zodra hdLus op wordt geroepen.
 }
 
-package ulong tijd = 0;
-void stap() {
-	tijd += 1;
+private ulong _hdStaptal = 0;
+private StopWatch _hdTijd;
+
+@property
+public ulong hdStaptal(){
+	return _hdStaptal;
+}
+
+@property
+public Duration hdTijd(){
+	return _hdTijd.peek();
+}
+
+public void hdStap() {
+	_hdStaptal += 1;
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.verwerkInvoer();
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.denk();
+		wereld.denkWereld();
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.werkBij();
+		wereld.werkWereldBij();
 
+	import std.stdio;
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
 		if (glfwWindowShouldClose(venster.glfw_venster)) {
@@ -53,13 +73,15 @@ void stap() {
 			venster.teken();
 	}
 
+
 	foreach (Venster venster; Venster.vensters.values)
 		venster.leegInvoer();
 
 	glfwPollEvents();
 }
 
-void lus() {
+public void hdLus() {
+	_hdTijd.reset();
 	while (Venster.vensters.length > 0)
-		stap();
+		hdStap();
 }

@@ -6,7 +6,7 @@ import std.container.rbtree;
 import std.conv : to;
 
 struct ToetsInvoer {
-	int toets, toets_sleutel, gebeurtenis, toevoeging;
+	int toets, toets_verwijzing, gebeurtenis, toevoeging;
 }
 
 struct MuisknopInvoer {
@@ -33,7 +33,7 @@ enum Muissoort {
 }
 
 class Venster {
-	static package Venster[GLFWwindow* ] vensters;
+	static public Venster[GLFWwindow* ] vensters;
 	package GLFWwindow* glfw_venster;
 
 	// Eigenschappen
@@ -50,6 +50,7 @@ class Venster {
 	MuisplekInvoer[] muisplekInvoer = [];
 	MuisknopInvoer[] muisknopInvoer = [];
 	MuiswielInvoer[] muiswielInvoer = [];
+
 
 	alias scherm this;
 
@@ -108,6 +109,10 @@ class Venster {
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	void bekijk() {
+		glfwFocusWindow(glfw_venster);
+	}
+
 	void toon() {
 		glfwShowWindow(glfw_venster);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -137,6 +142,15 @@ class Venster {
 				terugroeper(invoer);
 
 		//PAS OP: neemt onafhankelijkheid van muis & toets volgorde aan op korte tijdsverschillen.
+	}
+
+	// PAS OP: Moet mogelijk testen wat de toevoeging is bij gebrek aan toevoeging of dubbele
+	// toevoegingen. Hier is de documentatie niet duidelijk.
+	public bool krijgToets(int toets) {
+		foreach(ToetsInvoer t; this.toetsInvoer)
+			if( t.toets == toets && (t.gebeurtenis == GLFW_PRESS || t.gebeurtenis == GLFW_REPEAT))
+					return true;
+		return false;
 	}
 
 	void leegInvoer() {
@@ -229,7 +243,7 @@ struct Scherm {
 		if (deelschermen.length != 0)
 			glClear(GL_DEPTH_BUFFER_BIT); // Over deelscherm heen tekenen.
 
-		wereld.teken(zicht);
+		wereld.tekenWereld(zicht);
 	}
 
 	protected void hervorm(Vec!(2, int) lb, Vec!(2, int) grootte) nothrow {
@@ -266,9 +280,9 @@ extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
 		import core.sys.windows.windows;
 
 		if (toets == GLFW_KEY_GRAVE_ACCENT) {
-			ShowWindow(console, console_zichtbaar ? SW_HIDE : SW_RESTORE);
+			ShowWindow(console, _console_zichtbaar ? SW_HIDE : SW_RESTORE);
 			glfwFocusWindow(glfw_venster);
-			console_zichtbaar = !console_zichtbaar;
+			_console_zichtbaar = !_console_zichtbaar;
 		}
 	}
 	if (toets == GLFW_KEY_ESCAPE)
