@@ -1,24 +1,41 @@
-module hoekjed.dingen.vormen;
+module hoekjed.dingen.plattevorm;
 import bindbc.opengl;
 import hoekjed.kern;
 import std.math : cos, PI, sin;
 
-static class PlatteVorm {
-	static Voorwerp maak(Vec!3 plek, uint hoektal, bool maakNormalen = false,
+
+class PlatteVorm : Voorwerp {
+	// PAS OP: Dit kan opruiming van geheugen voorkomen.
+	private static Voorwerp[Oproeping] aangemaakt;
+
+	private struct Oproeping{
+		uint hoektal;
+		Vec!3 plek;
+		bool maakNormalen;
+		bool maakBeeldplekken;
+	}
+
+	this(uint hoektal, Vec!3 plek = Vec!(3).nul, bool maakNormalen = false,
 			bool maakBeeldplekken = false) {
 		assert(hoektal >= 3);
+		Oproeping oproeping = Oproeping(hoektal, plek, maakNormalen, maakBeeldplekken);
+		if(oproeping in aangemaakt) {
+			super(aangemaakt[oproeping]);
+			return;
+		}
 
 		Vec!3[] plekken = new Vec!3[](hoektal);
 		immutable real stap = 2 * PI / hoektal;
 		foreach (i; 0 .. hoektal)
 			plekken[i] = Vec!3([
-					-sin(i * stap) + plek.x, 0 + plek.y, cos(i * stap) + plek.z
+					-0.5*sin(i * stap) + plek.x, 0 + plek.y, 0.5*cos(i * stap) + plek.z
 					]);
-		
-		return maak(plekken, maakNormalen, maakBeeldplekken);
+
+		aangemaakt[oproeping] = this;
+		this(plekken, maakNormalen, maakBeeldplekken);
 	}
 
-	static Voorwerp maak(Vec!3[] plekken, bool maakNormalen = false, bool maakBeeldplekken = false) {
+	this(Vec!3[] plekken, bool maakNormalen = false, bool maakBeeldplekken = false) {
 		assert(plekken.length >= 3);
 
 		Vec!(3, uint)[] volgorde;
@@ -46,6 +63,6 @@ static class PlatteVorm {
 						]);
 		}
 
-		return new Voorwerp(plekken, volgorde, normalen, beeldplekken);
+		super(plekken, volgorde, normalen, beeldplekken);
 	}
 }
