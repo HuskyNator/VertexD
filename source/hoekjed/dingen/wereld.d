@@ -48,6 +48,8 @@ class Wereld : Ding {
 
 	package void voegDing(Ding ding) {
 		assert(ding._wereld is null);
+		foreach(Ding kind; ding.kinderen)
+			voegDing(kind);
 		ding._wereld = this;
 		if (Voorwerp voorwerp = cast(Voorwerp) ding) {
 			voorwerpen[voorwerp.verver] ~= voorwerp;
@@ -57,6 +59,8 @@ class Wereld : Ding {
 
 	package void verwijderDing(Ding ding) {
 		assert(ding._wereld is this);
+		foreach(Ding kind; ding.kinderen)
+			verwijderDing(kind);
 		if (Voorwerp voorwerp = cast(Voorwerp) ding)
 			voorwerpen[voorwerp.verver].verwijder(voorwerp);
 		else
