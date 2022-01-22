@@ -11,7 +11,7 @@ class VerverFout : Exception {
 }
 
 class Verver {
-	public struct BronPaar{
+	public struct BronPaar {
 		string hoekV, snipperV;
 	}
 
@@ -41,7 +41,8 @@ class Verver {
 		huidig = this;
 	}
 
-	private this(){}
+	private this() {
+	}
 
 	private this(HoekVerver hoekV, SnipperVerver snipperV) {
 		this.hoekV = hoekV;
@@ -55,13 +56,13 @@ class Verver {
 		glGetProgramiv(verwijzing, GL_LINK_STATUS, &volbracht);
 		if (volbracht == 0)
 			throw new VerverFout(
-					"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
+				"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
 	}
 
 	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
-	public static Verver laad(string hoekV, string snipperV){
+	public static Verver laad(string hoekV, string snipperV) {
 		Verver verver = Verver.ververs.get(BronPaar(hoekV, snipperV), null);
-		if(verver is null){
+		if (verver is null) {
 			HoekVerver hV = HoekVerver.ververs.get(hoekV, new HoekVerver(hoekV));
 			SnipperVerver sV = SnipperVerver.ververs.get(snipperV, new SnipperVerver(snipperV));
 			verver = new Verver(hV, sV);
@@ -108,7 +109,8 @@ class Verver {
 		if (uniformplek == -1)
 			return foutmelding_ontbrekende_uniform(naam);
 
-		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
+				: (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, 1, true, waarde[0].ptr);");
 	}
 
@@ -118,7 +120,8 @@ class Verver {
 		if (uniformplek == -1)
 			return foutmelding_ontbrekende_uniform(naam);
 
-		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
+				: (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(nauwkeurigheid == float)
 				? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
 	}
@@ -135,7 +138,7 @@ class Verver {
 		import std.stdio;
 
 		stderr.writeln(
-				"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
+			"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
 				~ " niet vinden.\n" ~ krijg_foutmelding());
 	}
 
