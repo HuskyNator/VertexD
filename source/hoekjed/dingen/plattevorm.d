@@ -3,12 +3,11 @@ import bindbc.opengl;
 import hoekjed.kern;
 import std.math : cos, PI, sin;
 
-
 class PlatteVorm : Voorwerp {
 	// PAS OP: Dit kan opruiming van geheugen voorkomen.
 	private static Voorwerp[Oproeping] aangemaakt;
 
-	private struct Oproeping{
+	private struct Oproeping {
 		uint hoektal;
 		Vec!3 plek;
 		bool maakNormalen;
@@ -16,10 +15,10 @@ class PlatteVorm : Voorwerp {
 	}
 
 	this(uint hoektal, Vec!3 plek = Vec!(3).nul, bool maakNormalen = false,
-			bool maakBeeldplekken = false) {
+		bool maakBeeldplekken = false) {
 		assert(hoektal >= 3);
 		Oproeping oproeping = Oproeping(hoektal, plek, maakNormalen, maakBeeldplekken);
-		if(oproeping in aangemaakt) {
+		if (oproeping in aangemaakt) {
 			super(aangemaakt[oproeping]);
 			return;
 		}
@@ -28,8 +27,9 @@ class PlatteVorm : Voorwerp {
 		immutable real stap = 2 * PI / hoektal;
 		foreach (i; 0 .. hoektal)
 			plekken[i] = Vec!3([
-					-0.5*sin(i * stap) + plek.x, 0 + plek.y, 0.5*cos(i * stap) + plek.z
-					]);
+				-0.5 * sin(i * stap) + plek.x, 0 + plek.y,
+				0.5 * cos(i * stap) + plek.z
+			]);
 
 		aangemaakt[oproeping] = this;
 		this(plekken, maakNormalen, maakBeeldplekken);
@@ -58,9 +58,9 @@ class PlatteVorm : Voorwerp {
 			Vec!3 plek = Vec!3([plekken[0].x, plekken[0].y, plekken[0].z - 1]);
 			foreach (i; 0 .. plekken.length)
 				beeldplekken[i] = Vec!2([
-						(plekken[i].x - plek.x) * 0.5 + 0.5,
-						(plekken[i].z - plek.z) * 0.5 + 0.5
-						]);
+					(plekken[i].x - plek.x) * 0.5 + 0.5,
+					(plekken[i].z - plek.z) * 0.5 + 0.5
+				]);
 		}
 
 		super(plekken, volgorde, normalen, beeldplekken);

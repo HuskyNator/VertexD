@@ -1,6 +1,6 @@
 module hoekjed.opengl;
 
-public{
+public {
 	import hoekjed.opengl.buffer;
 	import hoekjed.opengl.vao;
 }

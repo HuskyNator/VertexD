@@ -6,15 +6,15 @@ class Voorwerp : Ding {
 	protected VAO vao;
 	Verver verver; // TODO: Moet bescherm worden, aangezien Wereld het gebruikt als sleutel.
 
-	invariant(verver !is null);
+	invariant (verver !is null);
 
-	this(Voorwerp uiterlijk){
+	this(Voorwerp uiterlijk) {
 		this.vao = uiterlijk.vao;
 		this.verver = uiterlijk.verver;
 	}
 
 	this(Vec!3[] plekken, Vec!(3, uint)[] volgorde, Vec!3[] normalen = null,
-			Vec!2[] beeldplekken = null, Verver verver = Verver.plaatsvervanger) {
+		Vec!2[] beeldplekken = null, Verver verver = Verver.plaatsvervanger) {
 		this.vao = new VAO();
 
 		vao.zetInhoud(0, plekken);

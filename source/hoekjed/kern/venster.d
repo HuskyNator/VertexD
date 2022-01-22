@@ -51,7 +51,6 @@ class Venster {
 	MuisknopInvoer[] muisknopInvoer = [];
 	MuiswielInvoer[] muiswielInvoer = [];
 
-
 	alias scherm this;
 
 	static void zetStandaardZichtbaar(bool zichtbaar) {
@@ -82,6 +81,7 @@ class Venster {
 
 		Venster.vensters[glfw_venster] = this;
 		glfwMakeContextCurrent(glfw_venster); // VOEG TOE: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
+		//glfwSwapInterval(0); Kan met 1 vsynch gebruiken.
 
 		glfwSetKeyCallback(glfw_venster, &venster_toets_terugroeper);
 		glfwSetMouseButtonCallback(glfw_venster, &venster_muisknop_terugroeper);
@@ -102,7 +102,7 @@ class Venster {
 			glEnable(GL_DEBUG_OUTPUT);
 			glDebugMessageCallback(&gl_fout_terugroeper, null);
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
-					GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
+				GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
 		glfwSetCursorPos(glfw_venster, 0, 0);
@@ -147,9 +147,9 @@ class Venster {
 	// PAS OP: Moet mogelijk testen wat de toevoeging is bij gebrek aan toevoeging of dubbele
 	// toevoegingen. Hier is de documentatie niet duidelijk.
 	public bool krijgToets(int toets) {
-		foreach(ToetsInvoer t; this.toetsInvoer)
-			if( t.toets == toets && (t.gebeurtenis == GLFW_PRESS || t.gebeurtenis == GLFW_REPEAT))
-					return true;
+		foreach (ToetsInvoer t; this.toetsInvoer)
+			if (t.toets == toets && (t.gebeurtenis == GLFW_PRESS || t.gebeurtenis == GLFW_REPEAT))
+				return true;
 		return false;
 	}
 
@@ -275,7 +275,7 @@ extern (C) void venster_grootte_terugroeper(GLFWwindow* glfw_venster, int breedt
 }
 
 extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
-		int toets_sleutel, int gebeurtenis, int toevoeging) nothrow {
+	int toets_sleutel, int gebeurtenis, int toevoeging) nothrow {
 	debug {
 		import core.sys.windows.windows;
 
@@ -294,7 +294,7 @@ extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
 }
 
 extern (C) void venster_muisknop_terugroeper(GLFWwindow* glfw_venster, int knop,
-		int gebeurtenis, int toevoeging) nothrow {
+	int gebeurtenis, int toevoeging) nothrow {
 	Venster venster = Venster.vensters[glfw_venster];
 	MuisknopInvoer invoer = MuisknopInvoer(knop, gebeurtenis, toevoeging);
 	venster.muisknopInvoer ~= invoer;
@@ -314,7 +314,7 @@ extern (C) void venster_muiswiel_terugroeper(GLFWwindow* glfw_venster, double x,
 
 debug {
 	extern (System) void gl_fout_terugroeper(GLenum bron, GLenum soort, GLuint id,
-			GLenum ernstigheid, GLsizei length, const GLchar* message, const void* userParam) nothrow {
+		GLenum ernstigheid, GLsizei length, const GLchar* message, const void* userParam) nothrow {
 		import std.stdio : write, writeln;
 		import std.conv : to;
 		import bindbc.opengl.bind.types;
