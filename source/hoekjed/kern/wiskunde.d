@@ -19,7 +19,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	enum bool isMat = !isVec;
 	enum bool isVierkant = kolom_aantal == rij_aantal;
 
-	alias MatSoort = Mat!(rij_aantal, kolom_aantal, Soort);
+	alias MatSoort = typeof(this);
 
 	union {
 		Soort[grootte] vec;
@@ -195,7 +195,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 	static if (isVec) {
 		auto inp(Resultaat = Soort, R:
-				Mat!(rij_aantal, 1, T), T)(const R rechts) const {
+			Mat!(rij_aantal, 1, T), T)(const R rechts) const {
 			Resultaat resultaat = 0;
 			static foreach (i; 0 .. grootte)
 				resultaat.vec[i] += this.vec[i] * rechts.vec[i];
@@ -239,8 +239,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		// 	return resultaat;
 		// } Is het zelfde als:
 
-		auto maal(T, uint K)(const T[K][kolom_aantal] rechts) const 
-				if (is(Resultaat!(Soort, "*", T))) {
+		auto maal(T, uint K)(const T[K][kolom_aantal] rechts) const
+		if (is(Resultaat!(Soort, "*", T))) {
 			alias Onderdeel2 = Resultaat!(Soort, "*", T);
 			Mat!(rij_aantal, K, Onderdeel2) resultaat = Mat!(rij_aantal, K, Onderdeel2).nul;
 			static foreach (i; 0 .. rij_aantal)
@@ -250,8 +250,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			return resultaat;
 		}
 
-		auto maal(T)(const T[kolom_aantal] rechts) const 
-				if (is(Resultaat!(Soort, "*", T))) {
+		auto maal(T)(const T[kolom_aantal] rechts) const
+		if (is(Resultaat!(Soort, "*", T))) {
 			return maal!(T, 1)(cast(T[1][kolom_aantal]) rechts);
 		}
 
@@ -260,7 +260,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 			Mat!4 a = Mat!4.draaiMz(PI_2);
 			Vec!4 resultaat = a.maal([1, 0, 0, 1]);
-			int[4] b = [0,1,0,1];
+			int[4] b = [0, 1, 0, 1];
 			float verschil = (resultaat.elk(&abs!(float)) - b).som();
 			float delta = 1e-5;
 			assert(verschil < delta);
@@ -375,8 +375,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(b == c);
 	}
 
-	auto opBinary(string op, T)(const T rechts) const 
-			if (!isLijst!T) {
+	auto opBinary(string op, T)(const T rechts) const
+	if (!isLijst!T) {
 		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, T)) resultaat;
 		static foreach (i; 0 .. grootte)
 			mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts;");
@@ -393,8 +393,9 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	static if (isVec) {
 		// PAS OP: Wegens onduidelijke reden is gebruik van letterlijke lijsten momenteel niet goed
 		// ondersdoor templates. Zie https://forum.dlang.org/post/sfgv2a$u08$1@digitalmars.com voor meer.
-		auto opBinary(string op, T:U[grootte], U)(const T rechts) const 
-				if (isLijst!T && !isLijst!(T, 2)) {
+		auto opBinary(string op, T:
+			U[grootte], U)(const T rechts) const
+		if (isLijst!T && !isLijst!(T, 2)) {
 			Vec!(grootte, Resultaat!(Soort, op, U)) resultaat;
 			static foreach (i; 0 .. grootte)
 				mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts[i];");
@@ -404,14 +405,15 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 	unittest {
 		Vec!5 a = Vec!5([1, 2, 3, 4, 5]);
-		int[5] b = [5,4,3,2,1];
+		int[5] b = [5, 4, 3, 2, 1];
 		a = a - b;
 		foreach (i; 0 .. 4)
 			assert(a[i] == -4 + 2 * i, to!string(a));
 	}
 
-	auto opBinary(string op, T:U[kolom_aantal][rij_aantal], U)(const T rechts) const 
-			if (isLijst!(T, 2)) {
+	auto opBinary(string op, T:
+		U[kolom_aantal][rij_aantal], U)(const T rechts) const
+	if (isLijst!(T, 2)) {
 		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, U)) resultaat;
 		static foreach (i; 0 .. rij_aantal)
 			static foreach (j; 0 .. kolom_aantal)
@@ -493,63 +495,122 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		sink.put("]");
 	}
 
-	bool opEquals(R)(const R ander) const {
-		static if (is(const R == typeof(this)))
-			return this.mat == (cast(typeof(this)) ander).mat;
-		else {
-			static if (!isVec && is(const R == typeof(this.mat)))
-				return this.mat == ander;
-			else {
-				static if (isVec && is(const R == typeof(this.vec)))
-					return this.vec == ander;
-				else
+	bool opEquals(ref const MatSoort ander) const @safe pure nothrow {
+		foreach (uint i; 0 .. grootte)
+			if (this.vec[i] != ander.vec[i])
+				return false;
+		return true;
+	}
+
+	static if (isVec) {
+		bool opEquals(const Soort[grootte] ander) const @safe pure nothrow {
+			foreach (uint i; 0 .. grootte)
+				if (this.vec[i] != ander[i])
 					return false;
-			}
+			return true;
+		}
+	}
+
+	bool opEquals(const Soort[kolom_aantal][rij_aantal] ander) const @safe pure nothrow {
+		foreach (uint i; 0 .. rij_aantal)
+			foreach (uint j; 0 .. kolom_aantal)
+				if (this.mat[i][j] != ander[i][j])
+					return false;
+		return true;
+	}
+
+	// Hashes vereist voor associatieve lijsten.
+	static if (is(Soort == byte) ||
+		is(Soort == ubyte) ||
+		is(Soort == short) ||
+		is(Soort == ushort) ||
+		is(Soort == int) ||
+		is(Soort == uint) ||
+		is(Soort == long) ||
+		is(Soort == ulong)) {
+		size_t toHash() const @safe pure nothrow {
+			size_t hash = 1;
+			foreach (Soort s; this.vec)
+				hash = 31 * hash + s;
+			return hash;
+		}
+	}
+
+	static if (is(Soort == bool)) {
+		size_t toHash() const @safe pure nothrow {
+			size_t hash = 1;
+			foreach (Soort s; this.vec)
+				hash = 31 * hash + s ? 5 : 3;
+			return hash;
+		}
+	}
+
+	static if (is(Soort == float)) {
+		private static int _castFloatInt(const float f) @trusted {
+			return *cast(int*)&f;
+		}
+
+		size_t toHash() const @safe pure nothrow {
+			size_t hash = 1;
+			foreach (Soort s; this.vec)
+				hash = 31 * hash + _castFloatInt(s); // Reinterpret as int
+			return hash;
+		}
+	}
+
+	static if (is(Soort == double)) {
+		private static long _castDoubleLong(const double d) @trusted {
+			return *cast(long*)&d;
+		}
+
+		size_t toHash() const @safe pure nothrow {
+			size_t hash = 1;
+			foreach (Soort s; this.vec)
+				hash = 31 * hash + _castDoubleLong(s); // Reinterpret as long
+			return hash;
 		}
 	}
 
 	unittest {
-		Mat!(1, 2, float) mat = Mat!(1, 2, float)([1, 2]);
-		Mat!(1, 2, float) mat2 = Mat!(1, 2, float)([1, 2]);
-		Mat!(2, 1, float) mat3 = Mat!(2, 1, float)([1, 2]);
-		Vec!(2, float) vec = Vec!(2, float)([1, 2]);
-		float[2] lijst = [1, 2];
-		float[2][1] lijst2 = [[1, 2]];
-		assert(mat == mat);
-		assert(mat == mat2);
-		assert(mat != mat3);
-		assert(mat != vec);
-		assert(mat != lijst);
-		assert(mat == lijst2);
+		auto const mat1 = Mat!(1, 2, int)([1, 2]);
+		auto const mat2 = Mat!(1, 2, int)([1, 2]);
+		auto const mat3 = Mat!(1, 2, int)([2, 1]);
+		assert(mat1 == mat1);
+		assert(mat1 == mat2);
+		assert(mat1 != mat3);
 
-		assert(mat2 == mat2);
-		assert(mat2 != mat3);
-		assert(mat2 != vec);
-		assert(mat2 != lijst);
-		assert(mat2 == lijst2);
+		auto const mat4 = Mat!(1, 2, float)([1.0, 2.0]);
+		auto const mat5 = Mat!(2, 1, int)([1, 2]);
+		assert(!is(typeof(mat1 != mat4)));
+		assert(!is(typeof(mat1 != mat5)));
 
-		assert(mat3 == mat3);
-		assert(mat3 == vec);
-		assert(mat3 == lijst); //! mat 3 is een vec
-		assert(mat3 != lijst2);
+		auto const vec1 = Vec!(2, float)([1.0, 2.0]);
+		auto const mat6 = Mat!(2, 1, float)([1.0, 2.0]);
+		assert(!is(typeof(mat1 == vec1)));
+		assert(vec1 == mat6);
 
-		assert(vec == vec);
-		assert(vec == lijst);
-		assert(vec != lijst2);
+		assert(mat1 == [[1, 2]]);
+		assert(!is(typeof(mat1 == [1, 2])));
+		assert(vec1 == [1.0f, 2.0f]);
+		assert(vec1 == [[1.0f], [2.0f]]);
 	}
 
-	static if(is(typeof(abs!Soort))) {
+	static if (is(typeof(abs!Soort))) {
 		bool isOngeveer(const MatSoort ander, nauwkeurigheid delta = 1e-5) const {
 			import std.math : abs;
+
 			return (this - ander).elk(&abs!Soort).som() < delta;
 		}
 	}
 
-	unittest{
+	unittest {
 		float delta = 1e-6;
 		Mat!3 a = Mat!(3).identiteit;
-		float[3][3] verschil = [[delta, -delta, delta], [delta,delta,-delta], [-delta,-delta,delta]];
-		Mat!3 b = a+verschil;
+		float[3][3] verschil = [
+			[delta, -delta, delta], [delta, delta, -delta],
+			[-delta, -delta, delta]
+		];
+		Mat!3 b = a + verschil;
 		assert(a.isOngeveer(b));
 		assert(!a.isOngeveer(b, 8 * delta));
 	}
@@ -569,9 +630,9 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		nauwkeurigheid R = Vec!2([richting.x, richting.y]).lengte();
 		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
 		return Vec!3([
-				atan(richting.z / R), 0,
-				-signbit(richting.x) * acos(richting.y / R)
-				]);
+			atan(richting.z / R), 0,
+			-signbit(richting.x) * acos(richting.y / R)
+		]);
 	}
 
 	// VOEG TOE: test
