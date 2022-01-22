@@ -19,18 +19,17 @@ debug {
 }
 
 debug void hdToonConsole(bool zichtbaar) {
-	ShowWindow(console, zichtbaar?SW_SHOW:SW_HIDE);
+	ShowWindow(console, zichtbaar ? SW_SHOW : SW_HIDE);
 	_console_zichtbaar = zichtbaar;
 }
 
 void hdZetOp() {
-	debug{
-	console = GetConsoleWindow();
-	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
+	debug {
+		console = GetConsoleWindow();
+		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
 	} else {
 		FreeConsole();
 	}
-
 
 	glfwSetErrorCallback(&glfw_foutterugroep);
 	glfwInit();
@@ -41,12 +40,12 @@ private ulong _hdStaptal = 0;
 private StopWatch _hdTijd;
 
 @property
-public ulong hdStaptal(){
+public ulong hdStaptal() {
 	return _hdStaptal;
 }
 
 @property
-public Duration hdTijd(){
+public Duration hdTijd() {
 	return _hdTijd.peek();
 }
 
@@ -63,6 +62,7 @@ public void hdStap() {
 		wereld.werkWereldBij();
 
 	import std.stdio;
+
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
 		if (glfwWindowShouldClose(venster.glfw_venster)) {
@@ -72,7 +72,6 @@ public void hdStap() {
 		} else
 			venster.teken();
 	}
-
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.leegInvoer();

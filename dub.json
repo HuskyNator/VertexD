@@ -25,13 +25,12 @@
 	],
 	"configurations": [
 		{
-			"name": "normaal",
-			"targetType": "autodetect"
+			"name": "library",
+			"targetType": "library"
 		},
 		{
 			"name": "unittest",
 			"targetType": "executable",
-			"targetName": "hoekjed-unittests",
 			"sourceFiles": [
 				"test/legeMain.d"
 			]

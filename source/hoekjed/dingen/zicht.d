@@ -25,9 +25,9 @@ abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
 		zichtM[2][3] = -_plek.z;
 		zichtM = Mat!(4).draaiMy(-_draai.y).maal(Mat!(4).draaiMx(-_draai.x)
 				.maal(Mat!(4).draaiMz(-_draai.z)).maal(zichtM));
-		zichtM[0][] = zichtM[0][]/grootte.x;
-		zichtM[1][] = zichtM[1][]/grootte.y;
-		zichtM[2][] = zichtM[2][]/grootte.z;
+		zichtM[0][] = zichtM[0][] / grootte.x;
+		zichtM[1][] = zichtM[1][] / grootte.y;
+		zichtM[2][] = zichtM[2][] / grootte.z;
 	}
 }
 
@@ -38,7 +38,7 @@ class DiepteZicht : Zicht {
 	nauwkeurigheid achtervlak;
 
 	this(nauwkeurigheid schermverhouding = 1920.0 / 1080.0, nauwkeurigheid zichthoek = 90,
-			nauwkeurigheid voorvlak = 0.01, nauwkeurigheid achtervlak = 100) {
+		nauwkeurigheid voorvlak = 0.01, nauwkeurigheid achtervlak = 100) {
 		this.voorvlak = voorvlak;
 		this.achtervlak = achtervlak;
 		this.zichthoek = zichthoek;
@@ -67,15 +67,19 @@ class VlakteZicht : Zicht {
 	nauwkeurigheid voorvlak;
 	nauwkeurigheid achtervlak;
 
-	this(nauwkeurigheid breedte = 16, nauwkeurigheid hoogte = 9, nauwkeurigheid voorvlak = 0, nauwkeurigheid achtervlak = 100){
-		this.breedte_1 = 1/breedte;
-		this.hoogte_1 = 1/hoogte;
+	this(nauwkeurigheid breedte = 16, nauwkeurigheid hoogte = 9, nauwkeurigheid voorvlak = 0, nauwkeurigheid achtervlak = 100) {
+		this.breedte_1 = 1 / breedte;
+		this.hoogte_1 = 1 / hoogte;
 		this.voorvlak = voorvlak;
 		this.achtervlak = achtervlak;
 	}
 
-	override void werkProjectieMBij(){
-		nauwkeurigheid a = 1/(achtervlak-voorvlak);
-		projectieM.mat = [[2*breedte_1, 0, 0, 0],[0,0,2*hoogte_1,0],[0,2*a,0,-(achtervlak+voorvlak)*a],[0,0,0,cast(nauwkeurigheid) 1]];
+	override void werkProjectieMBij() {
+		nauwkeurigheid a = 1 / (achtervlak - voorvlak);
+		projectieM.mat = [
+			[2 * breedte_1, 0, 0, 0], [0, 0, 2 * hoogte_1, 0],
+			[0, 2 * a, 0, -(achtervlak + voorvlak) * a],
+			[0, 0, 0, cast(nauwkeurigheid) 1]
+		];
 	}
 }

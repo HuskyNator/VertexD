@@ -74,8 +74,9 @@ abstract class Ding {
 		eigenM[0][0] = houding._grootte.x;
 		eigenM[1][1] = houding._grootte.y;
 		eigenM[2][2] = houding._grootte.z;
-		eigenM = Mat!(4).draaiMz(houding._draai.z).maal(Mat!(4).draaiMx(houding._draai.x)
-			.maal(Mat!(4).draaiMy(houding._draai.y).maal(eigenM)));
+		eigenM = Mat!(4).draaiMz(houding._draai.z).maal(Mat!(4)
+				.draaiMx(houding._draai.x)
+				.maal(Mat!(4).draaiMy(houding._draai.y).maal(eigenM)));
 		// [x, y, z] komen dus overeen met een [theta, psi, rho] stelsel.
 		eigenM[0][3] = houding._plek.x;
 		eigenM[1][3] = houding._plek.y;
@@ -116,7 +117,7 @@ abstract class Ding {
 		assert(kind !is null);
 		kinderen.verwijder(kind);
 		kind.ouder = null;
-		if(kind._wereld !is null)
+		if (kind._wereld !is null)
 			kind._wereld.verwijderDing(kind);
 	}
 
