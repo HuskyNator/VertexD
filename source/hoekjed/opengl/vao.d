@@ -42,7 +42,7 @@ class VAO {
 		this.hoekAantal = 3 * cast(uint) volgorde.length;
 	}
 
-	public void tekenVAO(){
+	public void tekenVAO() {
 		glDrawElements(GL_TRIANGLES, this.hoekAantal, GL_UNSIGNED_INT, null);
 	}
 
