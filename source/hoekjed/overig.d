@@ -30,3 +30,7 @@ bool isLijst(T, uint n = 1)() if (n > 0) {
 
 	return is(typeof(mixin("T.init" ~ "[0]".replicate(n))));
 }
+
+bool inLijst(T, L)(T element, L lijst) {
+	return countUntil(lijst, element) >= 0;
+}
