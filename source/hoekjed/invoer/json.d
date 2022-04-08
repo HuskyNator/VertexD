@@ -10,7 +10,8 @@ enum JsonSoort {
 	VOORWERP,
 	LIJST,
 	STRING,
-	GETAL,
+	FLOAT,
+	INT,
 	BOOL,
 	NULL
 }
@@ -21,11 +22,13 @@ struct JsonVal {
 		Json voorwerp;
 		JsonVal[] lijst;
 		string str;
-		double getal;
+		double float_;
+		long int_;
 		bool boolean;
 	}
 }
 
+/// Gemaakt zonder kennis van std.json.
 class JsonLezer {
 	private string inhoud;
 	private size_t p = 0;
@@ -165,14 +168,15 @@ private:
 		return inhoud[p_begin .. p - 1].idup;
 	}
 
-	double leesGetal() {
+	JsonVal leesGetal() {
 		size_t p_begin = p;
 
-		bool negatief = false;
-		if (c == '-') {
-			negatief = true;
-			stap();
-		}
+		bool isFloat = false;
+		// bool negatief = false;
+		// if (c == '-') {
+		// 	negatief = true;
+		// 	stap();
+		// }
 
 		if (c >= '1' && c <= '9') {
 			stap();
@@ -184,6 +188,7 @@ private:
 		}
 
 		if (c == '.') {
+			isFloat = true;
 			stap();
 			enforce(isNumber(c), "Verwachtte cijfer maar kreeg '" ~ c ~ "'");
 			stap();
@@ -205,7 +210,13 @@ private:
 
 		import std.conv : to;
 
-		return inhoud[p_begin - 1 .. p].to!double;
+		JsonVal j;
+		j.soort = isFloat ? JsonSoort.FLOAT : JsonSoort.INT;
+		if (isFloat)
+			j.float_ = inhoud[p_begin - 1 .. p].to!double;
+		else
+			j.int_ = inhoud[p_begin - 1 .. p].to!long;
+		return j;
 	}
 
 	void lees(string s)() {
@@ -253,8 +264,7 @@ private:
 			}
 		default:
 			// Laatste mogelijkheid
-			JsonVal j = {soort: JsonSoort.GETAL, getal: leesGetal()};
-			return j;
+			return leesGetal();
 		}
 	}
 }
@@ -288,13 +298,12 @@ unittest {
 	assert(lijst[1].boolean == false);
 	assert("getal" in json);
 	JsonVal getal = json["getal"];
-	assert(getal.soort == JsonSoort.GETAL);
-	double getal_d = getal.getal;
-	assert(getal_d == 0);
+	assert(getal.soort == JsonSoort.INT);
+	int getal_i = getal.int_;
+	assert(getal_i == 0);
 	assert("getal2" in json);
 	JsonVal getal2 = json["getal2"];
-	assert(getal2.soort == JsonSoort.GETAL);
+	assert(getal2.soort == JsonSoort.FLOAT);
 	double getal2_d = getal2.getal;
-	import std.conv : to;
 	assert(getal2_d == 1.2e+20);
 }
