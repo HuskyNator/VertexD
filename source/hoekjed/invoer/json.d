@@ -10,8 +10,8 @@ enum JsonSoort {
 	VOORWERP,
 	LIJST,
 	STRING,
-	FLOAT,
-	INT,
+	DOUBLE,
+	LONG,
 	BOOL,
 	NULL
 }
@@ -22,8 +22,8 @@ struct JsonVal {
 		Json voorwerp;
 		JsonVal[] lijst;
 		string str;
-		double float_;
-		long int_;
+		double double_;
+		long long_;
 		bool boolean;
 	}
 }
@@ -211,11 +211,11 @@ private:
 		import std.conv : to;
 
 		JsonVal j;
-		j.soort = isFloat ? JsonSoort.FLOAT : JsonSoort.INT;
+		j.soort = isFloat ? JsonSoort.DOUBLE : JsonSoort.LONG;
 		if (isFloat)
-			j.float_ = inhoud[p_begin - 1 .. p].to!double;
+			j.double_ = inhoud[p_begin - 1 .. p].to!double;
 		else
-			j.int_ = inhoud[p_begin - 1 .. p].to!long;
+			j.long_ = inhoud[p_begin - 1 .. p].to!long;
 		return j;
 	}
 
@@ -298,12 +298,12 @@ unittest {
 	assert(lijst[1].boolean == false);
 	assert("getal" in json);
 	JsonVal getal = json["getal"];
-	assert(getal.soort == JsonSoort.INT);
-	int getal_i = getal.int_;
+	assert(getal.soort == JsonSoort.LONG);
+	int getal_i = getal.long_;
 	assert(getal_i == 0);
 	assert("getal2" in json);
 	JsonVal getal2 = json["getal2"];
-	assert(getal2.soort == JsonSoort.FLOAT);
+	assert(getal2.soort == JsonSoort.DOUBLE);
 	double getal2_d = getal2.getal;
 	assert(getal2_d == 1.2e+20);
 }
