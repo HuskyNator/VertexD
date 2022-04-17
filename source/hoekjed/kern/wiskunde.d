@@ -38,26 +38,10 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
-	// VOEG TOE: constructer met ... arg lijst
-
-	// this(Soort[][] inhoud) {
-	// 	foreach (i; 0 .. rij_aantal)
-	// 		foreach (j; 0 .. kolom_aantal)
-	// 			this.mat[i][j] = inhoud[i][j];
-	// }
-
 	static if (isVec)
 		alias vec this;
 	else
 		alias mat this;
-
-	static immutable auto nul = _bereken_nul();
-	private static auto _bereken_nul() {
-		MatSoort resultaat;
-		static foreach (i; 0 .. grootte)
-			resultaat.vec[i] = 0;
-		return resultaat;
-	}
 
 	static if (isVierkant) {
 		static immutable auto identiteit = _bereken_identiteit();
@@ -67,6 +51,87 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 				static foreach (j; 0 .. kolom_aantal)
 					resultaat.vec[i + j * kolom_aantal] = (i == j ? 1 : 0);
 			return resultaat;
+		}
+
+		MatSoort inverse() {
+			MatSoort inverse;
+			nauwkeurigheid determinant;
+			static if (rij_aantal == 2) {
+				inverse[0][0] = mat[1][1];
+				inverse[0][1] = -mat[1][0];
+				inverse[1][0] = -mat[0][1];
+				inverse[1][1] = mat[0][0];
+				determinant = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
+			} else static if (rij_aantal == 3) {
+				// Bepaal geadjudeerde (getransponeerde cofactor matrix) matrix (2x2 determinanten maal een even index teken)
+				inverse[0][0] = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
+				inverse[0][1] = -(mat[0][1] * mat[2][2] - mat[0][2] * mat[2][1]);
+				inverse[0][2] = mat[0][0] * mat[1][2] - mat[0][2] * mat[1][0];
+
+				inverse[1][0] = -(mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0]);
+				inverse[1][1] = mat[0][0] * mat[2][2] - mat[0][2] * mat[2][0];
+				inverse[1][2] = -(mat[0][0] * mat[1][2] - mat[0][2] * mat[1][0]);
+
+				inverse[2][0] = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
+				inverse[2][1] = -(mat[0][0] * mat[2][1] - mat[0][1] * mat[2][0]);
+				inverse[2][2] = mat[0][0] * mat[1][2] - mat[0][2] * mat[1][0];
+
+				determinant = mat[0][0] * inverse[0][0]
+					+ mat[0][1] * inverse[1][0]
+					+ mat[0][2] * inverse[2][0]
+					+ mat[0][3] * inverse[3][0];
+			} else static if (rij_aantal == 4) {
+				// Bepaalt 2x2 determinanten van onderste 3 rijen.
+				// Mij_kl verwijst naar linkerbovenhoekindex ij & rechteronderhoekindex kl
+				M10_21 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
+				M10_31 = mat[1][0] * mat[3][1] - mat[1][1] * mat[3][0];
+				M20_31 = mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0];
+
+				M10_22 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
+				M10_32 = mat[1][0] * mat[3][2] - mat[1][2] * mat[3][0];
+				M20_32 = mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0];
+
+				M11_21 = mat[1][1] * mat[2][1] - mat[1][1] * mat[2][1];
+				M11_31 = mat[1][1] * mat[3][1] - mat[1][1] * mat[3][1];
+				M21_31 = mat[2][1] * mat[3][1] - mat[2][1] * mat[3][1];
+
+				M11_22 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
+				M11_32 = mat[1][1] * mat[3][2] - mat[1][2] * mat[3][1];
+				M21_32 = mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1];
+
+				M12_23 = mat[1][2] * mat[2][3] - mat[1][3] * mat[2][2];
+				M12_33 = mat[1][2] * mat[3][3] - mat[1][3] * mat[3][2];
+				M22_33 = mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2];
+
+				// Bepaal geadjudeerde (getransponeerde cofactor) matrix matrix (3x3 determinanten maal een even index teken)
+				inverse[0][0] = mat[1][1] * M22_33 - mat[1][2] * M21_33 + mat[1][3] * M21_32;
+				inverse[0][1] = -(mat[0][1] * M22_33 - mat[0][2] * M21_33 + mat[0][3] * M21_32);
+				inverse[0][2] = mat[0][1] * M12_33 - mat[0][2] * M11_33 + mat[0][3] * M11_32;
+				inverse[0][3] = -(mat[0][1] * M12_23 - mat[0][2] * M11_23 + mat[0][3] * M11_22);
+
+				inverse[1][0] = -(mat[1][0] * M22_33 - mat[1][2] * M20_33 + mat[1][3] * M20_32);
+				inverse[1][1] = mat[0][0] * M22_33 - mat[0][2] * M20_33 + mat[0][3] * M20_32;
+				inverse[1][2] = -(mat[0][0] * M12_33 - mat[0][2] * M10_33 + mat[0][3] * M10_32);
+				inverse[1][3] = mat[0][0] * M12_23 - mat[0][2] * M10_23 + mat[0][3] * M10_22;
+
+				inverse[2][0] = mat[1][0] * M21_33 - mat[1][1] * M20_33 + mat[1][3] * M20_31;
+				inverse[2][1] = -(mat[0][0] * M21_33 - mat[0][1] * M20_33 + mat[0][3] * M20_31);
+				inverse[2][2] = mat[0][0] * M11_33 - mat[0][1] * M10_33 + mat[0][3] * M10_31;
+				inverse[2][3] = -(mat[0][0] * M11_23 - mat[0][1] * M10_23 + mat[0][3] * M10_21);
+
+				inverse[3][0] = -(mat[1][0] * M21_32 - mat[1][1] * M20_32 + mat[1][2] * M20_31);
+				inverse[3][1] = mat[0][0] * M21_32 - mat[0][1] * M20_32 + mat[0][2] * M20_31;
+				inverse[3][2] = -(mat[0][0] * M11_32 - mat[0][1] * M10_32 + mat[0][2] * M10_31);
+				inverse[3][3] = mat[0][0] * M11_22 - mat[0][1] * M10_22 + mat[0][2] * M10_21;
+
+				determinant = mat[0][0] * inverse[0][0]
+					+ mat[0][1] * inverse[1][0]
+					+ mat[0][2] * inverse[2][0]
+					+ mat[0][3] * inverse[3][0];
+			}
+
+			inverse = inverse / determinant;
+			return inverse;
 		}
 	}
 
@@ -638,7 +703,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	// VOEG TOE: test
 
 	// Het omgekeerde van krijgDraai.
-	// Draai om de y as wordt aangenomen als 0 aangzien dit geen invloed heeft.
+	// Draai om de y as wordt aangenomen als 0 aangzien deze geen invloed heeft.
 	static Vec!3 krijgRichting(Vec!3 draai) {
 		import std.math : sin, cos;
 
