@@ -2,44 +2,103 @@ module hoekjed.dingen.voorwerp;
 
 import hoekjed;
 
-class Voorwerp : Ding {
-	protected VAO vao;
-	Verver verver; // TODO: Moet bescherm worden, aangezien Wereld het gebruikt als sleutel.
+struct Houding {
+	Vec!3 plek = {[0, 0, 0]};
+	Vec!3 draai = {[0, 0, 0]};
+	Vec!3 grootte = {[1, 1, 1]};
+}
 
-	invariant (verver !is null);
+abstract class Voorwerp {
+	Voorwerp ouder;
+	Voorwerp[] kinderen;
+	Houding houding;
+	Voorwerp uiterlijk;
 
-	this(VAO vao, Verver verver) {
-		this.vao = vao;
-		this.verver = verver;
+	Mat!4 eigenMatrix = Mat!(4).identiteit;
+	Mat!4 voorwerpMatrix = Mat!(4).identiteit;
+
+	private bool aangepast = true;
+
+	public @property {
+		Vec!3 plek() nothrow {
+			return houding.plek;
+		}
+
+		Vec!3 draai() nothrow {
+			return houding.draai;
+		}
+
+		Vec!3 grootte() nothrow {
+			return houding.grootte;
+		}
+
+		void plek(Vec!3 plek) nothrow {
+			houding.plek = plek;
+			aangepast = true;
+		}
+
+		void draai(Vec!3 draai) nothrow {
+			houding.draai = draai;
+			aangepast = true;
+		}
+
+		void grootte(Vec!3 grootte) nothrow {
+			houding.grootte = grootte;
+			aangepast = true;
+		}
 	}
 
-	this(Voorwerp uiterlijk) {
-		this(uiterlijk.vao, uiterlijk.verver);
+	void teken(Zicht zicht) {
+		if (uiterlijk !is null)
+			uiterlijk.teken(zicht, voorwerpMatrix);
+		foreach (Ding kind; kinderen)
+			kind.teken(zicht);
 	}
 
-	this(Vec!3[] plekken, Vec!(3, uint)[] volgorde, Vec!3[] normalen = null,
-		Vec!2[] beeldplekken = null, Verver verver = Verver.plaatsvervanger) {
-		this.vao = new VAO();
+	abstract void denkStap(float deltaT);
 
-		vao.zetInhoud(0, plekken);
-		if (normalen !is null)
-			vao.zetInhoud(1, normalen);
-		if (beeldplekken !is null)
-			vao.zetInhoud(2, beeldplekken);
-		vao.zetVolgorde(volgorde);
+	static pure Mat!4 krijgEigenMatrix(Houding houding) {
+		Mat!4 eigenMatrix = Mat!(4).identiteit;
+		eigenMatrix[0][0] = houding.grootte.x;
+		eigenMatrix[1][1] = houding.grootte.y;
+		eigenMatrix[2][2] = houding.grootte.z;
 
-		this.verver = verver;
+		eigenMatrix = Mat!(4).draaiMz(houding.draai.z).maal(Mat!(4)
+				.draaiMx(houding.draai.x)
+				.maal(Mat!(4).draaiMy(houding.draai.y).maal(eigenMatrix)));
+
+		eigenMatrix[0][3] = houding.plek.x;
+		eigenMatrix[1][3] = houding.plek.y;
+		eigenMatrix[2][3] = houding.plek.z;
+		return eigenMatrix;
 	}
 
-	protected void zetUniformen() {
-		verver.zetUniform("tekenM", tekenM);
+	void werkMatrixBij(bool ouderAangepast) {
+		assert(!(ouderAangepast && ouder is null));
+		bool werkBij = aangepast || ouderAangepast;
+
+		if (aangepast) {
+			eigenMatrix = Voorwerp.krijgeigenMatrix(this.houding);
+			aangepast = false;
+		}
+		if (werkBij)
+			voorwerpMatrix = (ouder is null) ? eigenMatrix : ouder.voorwerpMatrix.maal(eigenMatrix);
+
+		foreach (Voorwerp kind; kinderen)
+			kind.werkMatrixBij(werkBij);
 	}
 
-	override public void teken() {
-		zetUniformen();
-		vao.teken();
+	public void voegKind(Voorwerp kind)
+	in (kind !is null)
+	in (kind.ouder is null) {
+		kind.ouder = this;
+		this.kinderen ~= kind;
 	}
 
-	override public void denk() {
+	public void verwijderKind(Voorwerp kind)
+	in (kind !is null) {
+		verwijder(kinderen, kind);
+		kind.ouder = null;
 	}
+
 }
