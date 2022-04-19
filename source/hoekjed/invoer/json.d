@@ -299,11 +299,11 @@ unittest {
 	assert("getal" in json);
 	JsonVal getal = json["getal"];
 	assert(getal.soort == JsonSoort.LONG);
-	int getal_i = getal.long_;
+	long getal_i = getal.long_;
 	assert(getal_i == 0);
 	assert("getal2" in json);
 	JsonVal getal2 = json["getal2"];
 	assert(getal2.soort == JsonSoort.DOUBLE);
-	double getal2_d = getal2.getal;
+	double getal2_d = getal2.double_;
 	assert(getal2_d == 1.2e+20);
 }
