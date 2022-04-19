@@ -328,82 +328,78 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
-	static if (isMat) {
-		// auto maal(T, R:
-		// 		Mat!(kolom_aantal, 1, T))(R rechts) {
-		// 	alias Onderdeel2 = typeof(Soort * T);
-		// 	Vec!(rij_aantal, Onderdeel2) resultaat = Vec!(R, Onderdeel2).nul;
-		// 	static foreach (i; 0 .. rij_aantal)
-		// 		static foreach (j; 0 .. rij_aantal)
-		// 			resultaat.vec[i] += this.mat[i][j] * rechts.vec[j];
-		// 	return resultaat;
-		// } Is het zelfde als:
+	auto maal(T, uint K)(const T[K][kolom_aantal] rechts) const
+	if (is(Resultaat!(Soort, "*", T))) {
+		alias Onderdeel2 = Resultaat!(Soort, "*", T);
+		Mat!(rij_aantal, K, Onderdeel2) resultaat;
+		static foreach (i; 0 .. rij_aantal)
+			static foreach (j; 0 .. K)
+				static foreach (k; 0 .. kolom_aantal)
+					resultaat.mat[i][j] += this.mat[i][k] * rechts[k][j];
+		return resultaat;
+	}
 
-		auto maal(T, uint K)(const T[K][kolom_aantal] rechts) const
-		if (is(Resultaat!(Soort, "*", T))) {
-			alias Onderdeel2 = Resultaat!(Soort, "*", T);
-			Mat!(rij_aantal, K, Onderdeel2) resultaat;
-			static foreach (i; 0 .. rij_aantal)
-				static foreach (j; 0 .. K)
-					static foreach (k; 0 .. kolom_aantal)
-						resultaat.mat[i][j] += this.mat[i][k] * rechts[k][j];
-			return resultaat;
+	auto maal(T)(const T[kolom_aantal] rechts) const
+	if (is(Resultaat!(Soort, "*", T))) {
+		return maal!(T, 1)(cast(T[1][kolom_aantal]) rechts);
+	}
+
+	unittest {
+		import std.math : PI_2;
+
+		Mat!4 a = Mat!4.draaiMz(PI_2);
+		Vec!4 resultaat = a.maal([1, 0, 0, 1]);
+		int[4] b = [0, 1, 0, 1];
+		float verschil = (resultaat.elk(&abs!(float)) - b).som();
+		float delta = 1e-5;
+		assert(verschil < delta);
+
+		Mat!(2, 3) c;
+		Mat!(3, 2) d;
+		foreach (i; 0 .. c.grootte) {
+			c.vec[i] = i + 1;
+			d.vec[i] = i + 1;
 		}
+		auto c_gevonden = c.maal(c.gekantelde);
+		assert(is(typeof(c_gevonden) == Mat!2));
+		Mat!2 c_verwacht = Mat!2([14, 32, 32, 77]);
+		assert(c_gevonden == c_verwacht, c_gevonden.toString() ~ "\n!=\n" ~ c_verwacht.toString());
 
-		auto maal(T)(const T[kolom_aantal] rechts) const
-		if (is(Resultaat!(Soort, "*", T))) {
-			return maal!(T, 1)(cast(T[1][kolom_aantal]) rechts);
-		}
+		auto d_gevonden = c.maal(d);
+		assert(is(typeof(d_gevonden) == Mat!2));
+		Mat!2 d_verwacht = Mat!2([22, 28, 49, 64]);
+		assert(d_gevonden == d_verwacht);
+	}
 
-		unittest {
-			import std.math : PI_2;
+	unittest {
+		Mat!(2, 3, int) a;
+		Mat!(3, 5, float) b;
+		foreach (i; 0 .. 6)
+			a.vec[i] = i;
+		foreach (i; 0 .. 15)
+			b.vec[i] = -i;
+		auto c = a.maal(b);
+		scope (failure)
+			writefln("c:\n%l", c);
 
-			Mat!4 a = Mat!4.draaiMz(PI_2);
-			Vec!4 resultaat = a.maal([1, 0, 0, 1]);
-			int[4] b = [0, 1, 0, 1];
-			float verschil = (resultaat.elk(&abs!(float)) - b).som();
-			float delta = 1e-5;
-			assert(verschil < delta);
+		assert(is(typeof(c) == Mat!(2, 5, float)));
+		Mat!(2, 5, float) d;
+		foreach (i; 0 .. 5)
+			d.vec[i] = -(25 + 3 * i);
+		foreach (i; 0 .. 5)
+			d.vec[i + 5] = -(70 + 12 * i);
+		scope (failure)
+			writefln("d:\n%l", d);
 
-			Mat!(2, 3) c;
-			Mat!(3, 2) d;
-			foreach (i; 0 .. c.grootte) {
-				c.vec[i] = i + 1;
-				d.vec[i] = i + 1;
-			}
-			auto c_gevonden = c.maal(c.gekantelde);
-			assert(is(typeof(c_gevonden) == Mat!2));
-			Mat!2 c_verwacht = Mat!2([14, 32, 32, 77]);
-			assert(c_gevonden == c_verwacht, c_gevonden.toString() ~ "\n!=\n" ~ c_verwacht.toString());
+		assert(c == d);
+	}
 
-			auto d_gevonden = c.maal(d);
-			assert(is(typeof(d_gevonden) == Mat!2));
-			Mat!2 d_verwacht = Mat!2([22, 28, 49, 64]);
-			assert(d_gevonden == d_verwacht);
-		}
-
-		unittest {
-			Mat!(2, 3, int) a;
-			Mat!(3, 5, float) b;
-			foreach (i; 0 .. 6)
-				a.vec[i] = i;
-			foreach (i; 0 .. 15)
-				b.vec[i] = -i;
-			auto c = a.maal(b);
-			scope (failure)
-				writefln("c:\n%l", c);
-
-			assert(is(typeof(c) == Mat!(2, 5, float)));
-			Mat!(2, 5, float) d;
-			foreach (i; 0 .. 5)
-				d.vec[i] = -(25 + 3 * i);
-			foreach (i; 0 .. 5)
-				d.vec[i + 5] = -(70 + 12 * i);
-			scope (failure)
-				writefln("d:\n%l", d);
-
-			assert(c == d);
-		}
+	unittest {
+		Mat!3 A = Mat!3(2);
+		Vec!3 x = Vec!3(1);
+		Vec!3 x2 = A.maal(x);
+		x = x * 2;
+		assert(x == x2);
 	}
 
 	auto som(T = nauwkeurigheid)() const {
