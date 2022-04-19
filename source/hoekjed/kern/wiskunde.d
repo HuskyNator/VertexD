@@ -1,5 +1,6 @@
 module hoekjed.kern.wiskunde;
 import hoekjed.overig;
+import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
 
@@ -22,7 +23,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	alias MatSoort = typeof(this);
 
 	union {
-		Soort[grootte] vec;
+		Soort[grootte] vec = 0; // Default values are 0.
 		Soort[kolom_aantal][rij_aantal] mat;
 		static if (isVec) {
 			struct {
@@ -38,24 +39,33 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 	}
 
+	this(Soort n) {
+		static if (isVec)
+			vec[] = n;
+		else {
+			static foreach (i; 0 .. rij_aantal)
+				static foreach (j; 0 .. kolom_aantal)
+					mat[i][j] = (i == j) ? n : 0;
+		}
+	}
+
+	this(Soort[grootte] n) {
+		this.vec = n;
+	}
+
+	this(Soort[kolom_aantal][rij_aantal] n) {
+		this.mat = n;
+	}
+
 	static if (isVec)
 		alias vec this;
 	else
 		alias mat this;
 
 	static if (isVierkant) {
-		static immutable auto identiteit = _bereken_identiteit();
-		private static auto _bereken_identiteit() {
-			MatSoort resultaat;
-			static foreach (i; 0 .. rij_aantal)
-				static foreach (j; 0 .. kolom_aantal)
-					resultaat.vec[i + j * kolom_aantal] = (i == j ? 1 : 0);
-			return resultaat;
-		}
-
 		MatSoort inverse() {
 			MatSoort inverse;
-			nauwkeurigheid determinant;
+			Soort determinant;
 			static if (rij_aantal == 2) {
 				inverse[0][0] = mat[1][1];
 				inverse[0][1] = -mat[1][0];
@@ -66,7 +76,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 				// Bepaal geadjudeerde (getransponeerde cofactor matrix) matrix (2x2 determinanten maal een even index teken)
 				inverse[0][0] = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
 				inverse[0][1] = -(mat[0][1] * mat[2][2] - mat[0][2] * mat[2][1]);
-				inverse[0][2] = mat[0][0] * mat[1][2] - mat[0][2] * mat[1][0];
+				inverse[0][2] = mat[0][1] * mat[1][2] - mat[0][2] * mat[1][1];
 
 				inverse[1][0] = -(mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0]);
 				inverse[1][1] = mat[0][0] * mat[2][2] - mat[0][2] * mat[2][0];
@@ -74,36 +84,40 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 				inverse[2][0] = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
 				inverse[2][1] = -(mat[0][0] * mat[2][1] - mat[0][1] * mat[2][0]);
-				inverse[2][2] = mat[0][0] * mat[1][2] - mat[0][2] * mat[1][0];
+				inverse[2][2] = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
 
 				determinant = mat[0][0] * inverse[0][0]
 					+ mat[0][1] * inverse[1][0]
-					+ mat[0][2] * inverse[2][0]
-					+ mat[0][3] * inverse[3][0];
+					+ mat[0][2] * inverse[2][0];
 			} else static if (rij_aantal == 4) {
-				// Bepaalt 2x2 determinanten van onderste 3 rijen.
+				// Bepaalt 2x2 determinanten van de onderste 3 rijen
 				// Mij_kl verwijst naar linkerbovenhoekindex ij & rechteronderhoekindex kl
-				M10_21 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
-				M10_31 = mat[1][0] * mat[3][1] - mat[1][1] * mat[3][0];
-				M20_31 = mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0];
+				Soort M10_21 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
+				Soort M10_31 = mat[1][0] * mat[3][1] - mat[1][1] * mat[3][0];
+				Soort M20_31 = mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0];
 
-				M10_22 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
-				M10_32 = mat[1][0] * mat[3][2] - mat[1][2] * mat[3][0];
-				M20_32 = mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0];
+				Soort M10_22 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
+				Soort M10_32 = mat[1][0] * mat[3][2] - mat[1][2] * mat[3][0];
+				Soort M20_32 = mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0];
 
-				M11_21 = mat[1][1] * mat[2][1] - mat[1][1] * mat[2][1];
-				M11_31 = mat[1][1] * mat[3][1] - mat[1][1] * mat[3][1];
-				M21_31 = mat[2][1] * mat[3][1] - mat[2][1] * mat[3][1];
+				Soort M10_23 = mat[1][0] * mat[2][3] - mat[1][3] * mat[2][0];
+				Soort M10_33 = mat[1][0] * mat[3][3] - mat[1][3] * mat[3][0];
+				Soort M20_33 = mat[2][0] * mat[3][3] - mat[2][3] * mat[3][0];
 
-				M11_22 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
-				M11_32 = mat[1][1] * mat[3][2] - mat[1][2] * mat[3][1];
-				M21_32 = mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1];
+				Soort M11_22 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
+				Soort M11_32 = mat[1][1] * mat[3][2] - mat[1][2] * mat[3][1];
+				Soort M21_32 = mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1];
 
-				M12_23 = mat[1][2] * mat[2][3] - mat[1][3] * mat[2][2];
-				M12_33 = mat[1][2] * mat[3][3] - mat[1][3] * mat[3][2];
-				M22_33 = mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2];
+				Soort M11_23 = mat[1][1] * mat[2][3] - mat[1][3] * mat[2][1];
+				Soort M11_33 = mat[1][1] * mat[3][3] - mat[1][3] * mat[3][1];
+				Soort M21_33 = mat[2][1] * mat[3][3] - mat[2][3] * mat[3][1];
 
-				// Bepaal geadjudeerde (getransponeerde cofactor) matrix matrix (3x3 determinanten maal een even index teken)
+				Soort M12_23 = mat[1][2] * mat[2][3] - mat[1][3] * mat[2][2];
+				Soort M12_33 = mat[1][2] * mat[3][3] - mat[1][3] * mat[3][2];
+				Soort M22_33 = mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2];
+
+				// Bepaal geadjudeerde (getransponeerde cofactor) matrix (minoren maal een even index teken)
+				// Dit door middel van een laplace expansie ter bepaling van de minor.
 				inverse[0][0] = mat[1][1] * M22_33 - mat[1][2] * M21_33 + mat[1][3] * M21_32;
 				inverse[0][1] = -(mat[0][1] * M22_33 - mat[0][2] * M21_33 + mat[0][3] * M21_32);
 				inverse[0][2] = mat[0][1] * M12_33 - mat[0][2] * M11_33 + mat[0][3] * M11_32;
@@ -124,14 +138,35 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 				inverse[3][2] = -(mat[0][0] * M11_32 - mat[0][1] * M10_32 + mat[0][2] * M10_31);
 				inverse[3][3] = mat[0][0] * M11_22 - mat[0][1] * M10_22 + mat[0][2] * M10_21;
 
+				// Bepaal determinant met de cofactoren.
 				determinant = mat[0][0] * inverse[0][0]
 					+ mat[0][1] * inverse[1][0]
 					+ mat[0][2] * inverse[2][0]
 					+ mat[0][3] * inverse[3][0];
 			}
 
+			enforce(determinant != 0, "Matrix niet inverteerbaar: determinant = 0");
 			inverse = inverse / determinant;
 			return inverse;
+		}
+
+		unittest {
+			Mat!3 M = Mat!3([
+					1, 0, 3, 4, 5, 6, 7, 8, 9
+				]); // Determinant -12
+
+			Mat!3 I = M.inverse().maal(M);
+			Vec!3 i = Vec!3(1);
+			assert(i.isOngeveer(I.maal(i)));
+		}
+
+		unittest {
+			Mat!4 M = Mat!4([
+				1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16
+			]); // Determinant 512
+			Mat!4 I = M.inverse().maal(M);
+			Vec!4 i = Vec!4(1);
+			assert(i.isOngeveer(I.maal(i)));
 		}
 	}
 
@@ -145,7 +180,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 	static {
 		Mat!(4, 4, nauwkeurigheid) draaiMx(nauwkeurigheid hoek) {
-			Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
+			Mat!(4, 4, nauwkeurigheid) draaiM;
 			nauwkeurigheid cos = cos(hoek);
 			nauwkeurigheid sin = sin(hoek);
 			draaiM[0][0] = 1;
@@ -161,11 +196,11 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			import std.math : PI, PI_2;
 
 			Mat!4 draai = Mat!(4).draaiMx(0);
-			Mat!4 draai2 = Mat!(4).identiteit;
+			Mat!4 draai2 = Mat!4(1);
 			assert(draai == draai2);
 
 			draai = Mat!(4).draaiMx(PI_2);
-			draai2 = Mat!(4).nul;
+			draai2 = Mat!4();
 			draai2[0][0] = 1;
 			draai2[1][2] = -1;
 			draai2[2][1] = 1;
@@ -175,7 +210,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			assert(verschil < delta);
 
 			draai = Mat!(4).draaiMx(PI);
-			draai2 = Mat!(4).identiteit;
+			draai2 = Mat!4(1);
 			draai2[1][1] = -1;
 			draai2[2][2] = -1;
 			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
@@ -183,7 +218,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 
 		Mat!(4, 4, nauwkeurigheid) draaiMy(nauwkeurigheid hoek) {
-			Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
+			auto draaiM = Mat!(4, 4, nauwkeurigheid)(1);
 			nauwkeurigheid cos = cos(hoek);
 			nauwkeurigheid sin = sin(hoek);
 			draaiM[0][0] = cos;
@@ -199,11 +234,11 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			import std.math : PI, PI_2;
 
 			Mat!4 draai = Mat!(4).draaiMy(0);
-			Mat!4 draai2 = Mat!(4).identiteit;
+			Mat!4 draai2 = Mat!4(1);
 			assert(draai == draai2);
 
 			draai = Mat!(4).draaiMy(PI_2);
-			draai2 = Mat!(4).nul;
+			draai2 = Mat!4();
 			draai2[0][2] = 1;
 			draai2[1][1] = 1;
 			draai2[2][0] = -1;
@@ -213,7 +248,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			assert(verschil < delta);
 
 			draai = Mat!(4).draaiMy(PI);
-			draai2 = Mat!(4).identiteit;
+			draai2 = Mat!4(1);
 			draai2[0][0] = -1;
 			draai2[2][2] = -1;
 			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
@@ -221,7 +256,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		}
 
 		Mat!(4, 4, nauwkeurigheid) draaiMz(nauwkeurigheid hoek) {
-			Mat!(4, 4, nauwkeurigheid) draaiM = Mat!(4, 4, nauwkeurigheid).nul;
+			auto draaiM = Mat!(4, 4, nauwkeurigheid)(1);
 			nauwkeurigheid cos = cos(hoek);
 			nauwkeurigheid sin = sin(hoek);
 			draaiM[0][0] = cos;
@@ -237,7 +272,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			import std.math : PI, PI_2;
 
 			Mat!4 draai = Mat!(4).draaiMz(0);
-			Mat!4 draai2 = Mat!(4).identiteit;
+			Mat!4 draai2 = Mat!4(1);
 			assert(draai == draai2);
 
 			draai = Mat!(4).draaiMz(PI_2);
@@ -250,7 +285,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			assert(verschil < delta);
 
 			draai = Mat!(4).draaiMz(PI);
-			draai2 = Mat!(4).identiteit;
+			draai2 = Mat!4(1);
 			draai2[0][0] = -1;
 			draai2[1][1] = -1;
 			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
@@ -307,7 +342,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		auto maal(T, uint K)(const T[K][kolom_aantal] rechts) const
 		if (is(Resultaat!(Soort, "*", T))) {
 			alias Onderdeel2 = Resultaat!(Soort, "*", T);
-			Mat!(rij_aantal, K, Onderdeel2) resultaat = Mat!(rij_aantal, K, Onderdeel2).nul;
+			Mat!(rij_aantal, K, Onderdeel2) resultaat;
 			static foreach (i; 0 .. rij_aantal)
 				static foreach (j; 0 .. K)
 					static foreach (k; 0 .. kolom_aantal)
@@ -386,14 +421,14 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(a.som() == 12);
 	}
 
-	auto elk(S1, S2)(S1 function(S2 onderdeel) functie) const if (!is(S1 == void)) {
+	auto elk(S1)(S1 function(Soort onderdeel) functie) const if (!is(S1 == void)) {
 		Mat!(rij_aantal, kolom_aantal, S1) resultaat;
 		static foreach (i; 0 .. grootte)
 			resultaat.vec[i] = functie(this.vec[i]);
 		return resultaat;
 	}
 
-	void elk(S)(void function(S onderdeel) functie) const {
+	void elk(void function(Soort onderdeel) functie) const {
 		static foreach (i; 0 .. grootte)
 			functie(this.vec[i]);
 	}
@@ -412,7 +447,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			assert(b.vec[i] == (i % 2 == 0));
 	}
 
-	auto elk(S1, S2)(S1 delegate(S2 onderdeel) functie) const if (!is(S1 == void)) {
+	auto elk(S1)(S1 delegate(Soort onderdeel) functie) const if (!is(S1 == void)) {
 		Mat!(rij_aantal, kolom_aantal, S1) resultaat;
 		static foreach (i; 0 .. grootte)
 			resultaat.vec[i] = functie(this.vec[i]);
@@ -440,30 +475,40 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		assert(b == c);
 	}
 
-	auto opBinary(string op, T)(const T rechts) const
-	if (!isLijst!T) {
-		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, T)) resultaat;
-		static foreach (i; 0 .. grootte)
-			mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts;");
+	auto opBinary(string op, S)(const S rechts) const
+	if (is(Resultaat!(Soort, op, S))) {
+		alias R = Resultaat!(Soort, op, S);
+		Mat!(rij_aantal, kolom_aantal, R) resultaat;
+		mixin("resultaat.vec[] = this.vec[] " ~ op ~ " rechts;");
 		return resultaat;
 	}
 
 	unittest {
-		Mat!5 a = Mat!5.nul;
+		Mat!5 a;
 		a = (a + 2) * 3;
 		foreach (i; 0 .. a.grootte)
 			assert(a.vec[i] == 6);
 	}
 
 	static if (isVec) {
-		// PAS OP: Wegens onduidelijke reden is gebruik van letterlijke lijsten momenteel niet goed
-		// ondersdoor templates. Zie https://forum.dlang.org/post/sfgv2a$u08$1@digitalmars.com voor meer.
 		auto opBinary(string op, T:
-			U[grootte], U)(const T rechts) const
-		if (isLijst!T && !isLijst!(T, 2)) {
-			Vec!(grootte, Resultaat!(Soort, op, U)) resultaat;
+			S[grootte], S)(const T rechts) const
+		if (is(Resultaat!(Soort, op, S)) && !isLijst!(S)) {
+			alias R = Resultaat!(Soort, op, S);
+			Mat!(rij_aantal, kolom_aantal, R) resultaat;
 			static foreach (i; 0 .. grootte)
 				mixin("resultaat.vec[i] = this.vec[i] " ~ op ~ " rechts[i];");
+			return resultaat;
+		}
+	} else {
+		auto opBinary(string op, T:
+			S[kolom_aantal][rij_aantal], S)(const T rechts) const
+		if (is(Resultaat!(Soort, op, S)) && !isLijst!(S)) {
+			alias R = Resultaat!(Soort, op, S);
+			Mat!(rij_aantal, kolom_aantal, R) resultaat;
+			static foreach (i; 0 .. rij_aantal)
+				static foreach (j; 0 .. kolom_aantal)
+					mixin("resultaat.mat[i][j] = this.mat[i][j] " ~ op ~ " rechts[i][j];");
 			return resultaat;
 		}
 	}
@@ -476,20 +521,10 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			assert(a[i] == -4 + 2 * i, to!string(a));
 	}
 
-	auto opBinary(string op, T:
-		U[kolom_aantal][rij_aantal], U)(const T rechts) const
-	if (isLijst!(T, 2)) {
-		Mat!(rij_aantal, kolom_aantal, Resultaat!(Soort, op, U)) resultaat;
-		static foreach (i; 0 .. rij_aantal)
-			static foreach (j; 0 .. kolom_aantal)
-				mixin("resultaat.mat[i][j] = this.mat[i][j] " ~ op ~ " rechts[i][j];");
-		return resultaat;
-	}
-
 	unittest {
 		int x = 0; // PAS OP: Wegens onduidelijke redenen vereist voor de leesbaarheid van a.
 		Mat!(3, 3, float) a = Mat!(3, 3, float)([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-		Mat!(3, 3, double) b = Mat!(3, 3, double).identiteit;
+		Mat!(3, 3, double) b = Mat!(3, 3, double)(1);
 
 		auto c = a + b;
 		assert(c.isSoort!(Mat!(3, 3, double)));
@@ -560,7 +595,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		sink.put("]");
 	}
 
-	bool opEquals(ref const MatSoort ander) const @safe pure nothrow {
+	bool opEquals(const MatSoort ander) const @safe pure nothrow {
 		foreach (uint i; 0 .. grootte)
 			if (this.vec[i] != ander.vec[i])
 				return false;
@@ -670,7 +705,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 
 	unittest {
 		float delta = 1e-6;
-		Mat!3 a = Mat!(3).identiteit;
+		Mat!3 a = Mat!(3)(1);
 		float[3][3] verschil = [
 			[delta, -delta, delta], [delta, delta, -delta],
 			[-delta, -delta, delta]

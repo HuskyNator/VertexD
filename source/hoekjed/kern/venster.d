@@ -199,8 +199,8 @@ class Venster {
 	// VOEG TOE: glfw mogelijkheden, zoals openen/sluiten/focus/muis/toetsen (toetsen per scherm of venster?)
 
 	protected void hervorm() nothrow {
-		Vec!(2, int) lb = {[0, 0]};
-		Vec!(2, int) grootte = {[breedte, hoogte]};
+		Vec!(2, int) lb = Vec!(2, int)([0, 0]);
+		Vec!(2, int) grootte = Vec!(2, int)([breedte, hoogte]);
 		scherm.hervorm(lb, grootte);
 	}
 
@@ -225,8 +225,8 @@ import hoekjed.dingen.zicht;
 // VERBETER: Vensters, Schremen & Zichten volledig herwerken.
 
 struct Scherm {
-	Vec!2 linksboven_f = {[0, 0]};
-	Vec!2 rechtsonder_f = {[1, 1]};
+	Vec!2 linksboven_f = Vec!2([0, 0]);
+	Vec!2 rechtsonder_f = Vec!2([1, 1]);
 	Vec!(2, int) linksboven;
 	Vec!(2, int) rechtsonder;
 

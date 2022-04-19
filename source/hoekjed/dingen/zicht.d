@@ -1,9 +1,9 @@
 module hoekjed.dingen.zicht;
 import hoekjed.kern;
 
-abstract class Zicht : Ding { // VOEG TOE: zicht als ding in de wereld.
-	Mat!4 projectieM;
-	Mat!4 zichtM;
+abstract class Zicht { // VOEG TOE: zicht als ding in de wereld.
+	Mat!4 projectieM = Mat!4(1);
+	Mat!4 zichtM = Mat!4(1);
 
 	override void teken() {
 	}

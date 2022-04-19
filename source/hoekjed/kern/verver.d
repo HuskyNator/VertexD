@@ -22,9 +22,9 @@ class Verver {
 	SnipperVerver snipperV;
 	protected uint verwijzing;
 
-	public static immutable Vec!4 plaatsvervangerkleur = {
+	public static immutable Vec!4 plaatsvervangerkleur = Vec!4(
 		[250.0 / 255.0, 176.0 / 255.0, 22.0 / 255.0, 1]
-	};
+	);
 
 	@property public static Verver plaatsvervanger() {
 		static Verver voorbeeld;

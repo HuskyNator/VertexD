@@ -3,19 +3,19 @@ module hoekjed.dingen.voorwerp;
 import hoekjed;
 
 struct Houding {
-	Vec!3 plek = {[0, 0, 0]};
-	Vec!3 draai = {[0, 0, 0]};
-	Vec!3 grootte = {[1, 1, 1]};
+	Vec!3 plek = Vec!3([0, 0, 0]);
+	Vec!3 draai = Vec!3([0, 0, 0]);
+	Vec!3 grootte = Vec!3([1, 1, 1]);
 }
 
 abstract class Voorwerp {
 	Voorwerp ouder;
 	Voorwerp[] kinderen;
 	Houding houding;
-	Voorwerp uiterlijk;
+	Uiterlijk uiterlijk;
 
-	Mat!4 eigenMatrix = Mat!(4).identiteit;
-	Mat!4 voorwerpMatrix = Mat!(4).identiteit;
+	Mat!4 eigenMatrix = Mat!4(1);
+	Mat!4 voorwerpMatrix = Mat!4(1);
 
 	private bool aangepast = true;
 
@@ -51,14 +51,14 @@ abstract class Voorwerp {
 	void teken(Zicht zicht) {
 		if (uiterlijk !is null)
 			uiterlijk.teken(zicht, voorwerpMatrix);
-		foreach (Ding kind; kinderen)
+		foreach (Voorwerp kind; kinderen)
 			kind.teken(zicht);
 	}
 
 	abstract void denkStap(float deltaT);
 
 	static pure Mat!4 krijgEigenMatrix(Houding houding) {
-		Mat!4 eigenMatrix = Mat!(4).identiteit;
+		Mat!4 eigenMatrix = Mat!4(1);
 		eigenMatrix[0][0] = houding.grootte.x;
 		eigenMatrix[1][1] = houding.grootte.y;
 		eigenMatrix[2][2] = houding.grootte.z;
@@ -78,7 +78,7 @@ abstract class Voorwerp {
 		bool werkBij = aangepast || ouderAangepast;
 
 		if (aangepast) {
-			eigenMatrix = Voorwerp.krijgeigenMatrix(this.houding);
+			eigenMatrix = Voorwerp.krijgEigenMatrix(this.houding);
 			aangepast = false;
 		}
 		if (werkBij)
