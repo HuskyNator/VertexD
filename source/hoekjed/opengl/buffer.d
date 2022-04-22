@@ -5,7 +5,7 @@ import bindbc.opengl;
 alias VBO = Buffer!(GL_ARRAY_BUFFER);
 alias EBO = Buffer!(GL_ELEMENT_ARRAY_BUFFER);
 
-// VERBETER: voeg inhoud van type M[] aan template toe zonder dat VAO hier last van heeft.
+// VERBETER: voeg inhoud van type M[] aan template toe zonder dat Uiterlijk hier last van heeft.
 class Buffer(GLenum Buffer_Soort) {
 	private uint bo;
 

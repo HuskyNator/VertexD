@@ -1,7 +1,9 @@
 module hoekjed.kern.venster;
+
 import bindbc.glfw;
 import bindbc.opengl;
 import hoekjed.kern;
+import hoekjed.wereld;
 import std.container.rbtree;
 import std.conv : to;
 
@@ -220,8 +222,6 @@ class Venster {
 	}
 }
 
-import hoekjed.dingen.zicht;
-
 // VERBETER: Vensters, Schremen & Zichten volledig herwerken.
 
 struct Scherm {
@@ -232,18 +232,15 @@ struct Scherm {
 
 	Scherm[] deelschermen;
 	Wereld wereld;
-	Zicht zicht; // In principe kan deze uit een andere wereld komen. . . Parallele werelden?
 
 	void teken() {
 		foreach (Scherm scherm; deelschermen)
 			scherm.teken();
-		if (zicht is null)
-			return;
 		glViewport(linksboven.x, linksboven.y, rechtsonder.x, rechtsonder.y); // Zet het tekengebied.
 		if (deelschermen.length != 0)
 			glClear(GL_DEPTH_BUFFER_BIT); // Over deelscherm heen tekenen.
 
-		wereld.tekenWereld(zicht);
+		wereld.teken();
 	}
 
 	protected void hervorm(Vec!(2, int) lb, Vec!(2, int) grootte) nothrow {

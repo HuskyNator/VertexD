@@ -1,9 +1,10 @@
 module hoekjed.invoer.gltf;
-import hoekjed.dingen;
+
 import hoekjed.invoer.json;
-import std.exception : enforce;
+import hoekjed.wereld;
 import std.algorithm.searching : countUntil;
 import std.conv : to;
+import std.exception : enforce;
 
 class GltfLezer {
 	Json json;
