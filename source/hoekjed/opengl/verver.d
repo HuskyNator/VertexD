@@ -1,6 +1,8 @@
-module hoekjed.kern.verver;
+module hoekjed.opengl.verver;
+
 import bindbc.opengl;
 import hoekjed.kern;
+import hoekjed.wereld;
 import std.array : replace;
 import std.conv;
 
@@ -74,6 +76,10 @@ class Verver {
 	void zetUniform(Zicht zicht) {
 		this.zetUniform("projectieM", zicht.projectieM);
 		this.zetUniform("zichtM", zicht.zichtM);
+	}
+
+	void zetUniform(Voorwerp voorwerp) {
+		this.zetUniform("voorwerpM", voorwerp.voorwerpMatrix);
 	}
 
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)

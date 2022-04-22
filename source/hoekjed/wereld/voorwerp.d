@@ -1,6 +1,7 @@
-module hoekjed.dingen.voorwerp;
+module hoekjed.wereld.voorwerp;
 
 import hoekjed;
+import std.datetime : Duration;
 
 struct Houding {
 	Vec!3 plek = Vec!3([0, 0, 0]);
@@ -8,7 +9,7 @@ struct Houding {
 	Vec!3 grootte = Vec!3([1, 1, 1]);
 }
 
-abstract class Voorwerp {
+class Voorwerp {
 	Voorwerp ouder;
 	Voorwerp[] kinderen;
 	Houding houding;
@@ -48,29 +49,30 @@ abstract class Voorwerp {
 		}
 	}
 
-	void teken(Zicht zicht) {
-		if (uiterlijk !is null)
-			uiterlijk.teken(zicht, voorwerpMatrix);
+	void teken() {
+		if (uiterlijk !is null) {
+			uiterlijk.teken(this);
+		}
 		foreach (Voorwerp kind; kinderen)
-			kind.teken(zicht);
+			kind.teken();
 	}
 
-	abstract void denkStap(float deltaT);
+	abstract void denkStap(Duration deltaT);
 
-	static pure Mat!4 krijgEigenMatrix(Houding houding) {
-		Mat!4 eigenMatrix = Mat!4(1);
+	void werkEigenMatrixBij() {
+		this.eigenMatrix = Mat!4();
 		eigenMatrix[0][0] = houding.grootte.x;
 		eigenMatrix[1][1] = houding.grootte.y;
 		eigenMatrix[2][2] = houding.grootte.z;
 
-		eigenMatrix = Mat!(4).draaiMz(houding.draai.z).maal(Mat!(4)
-				.draaiMx(houding.draai.x)
-				.maal(Mat!(4).draaiMy(houding.draai.y).maal(eigenMatrix)));
+		eigenMatrix = Mat!(4).draaiMz(houding.draai.z)
+			.maal(Mat!(4).draaiMx(houding.draai.x)
+					.maal(Mat!(4).draaiMy(houding.draai.y)
+						.maal(eigenMatrix)));
 
 		eigenMatrix[0][3] = houding.plek.x;
 		eigenMatrix[1][3] = houding.plek.y;
 		eigenMatrix[2][3] = houding.plek.z;
-		return eigenMatrix;
 	}
 
 	void werkMatrixBij(bool ouderAangepast) {
@@ -78,7 +80,7 @@ abstract class Voorwerp {
 		bool werkBij = aangepast || ouderAangepast;
 
 		if (aangepast) {
-			eigenMatrix = Voorwerp.krijgEigenMatrix(this.houding);
+			werkEigenMatrixBij();
 			aangepast = false;
 		}
 		if (werkBij)
@@ -100,5 +102,4 @@ abstract class Voorwerp {
 		verwijder(kinderen, kind);
 		kind.ouder = null;
 	}
-
 }

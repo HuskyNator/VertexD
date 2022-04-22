@@ -1,28 +1,43 @@
-module hoekjed.opengl.vao;
+module hoekjed.opengl.uiterlijk;
 
 import bindbc.opengl;
 import hoekjed;
 
-class VAO {
+final class Uiterlijk {
 	private uint vao;
 	private VBO[uint] vbos;
 	private EBO ebo;
 	private uint hoekAantal;
+	Verver verver;
 
-	public this() {
+	public this(Verver verver) {
 		glGenVertexArrays(1, &vao);
+		this.verver = verver;
+	}
+
+	public this(Vec!3[] plekken,
+		Vec!3[] normalen,
+		Vec!2[] beeldplekken,
+		Vec!(3, uint)[] volgorde, Verver verver) {
+		glGenVertexArrays(1, &vao);
+		zetInhoud(0, plekken);
+		zetInhoud(1, normalen);
+		zetInhoud(2, beeldplekken);
+		zetVolgorde(volgorde);
+		this.verver = verver;
 	}
 
 	public ~this() {
 		import std.stdio;
 
 		glDeleteVertexArrays(1, &vao);
-		stderr.write("VAO ");
+		stderr.write("Uiterlijk ");
 		stderr.write(vao);
 		stderr.writeln(" is verwijderd.");
 	}
 
-	public void teken() {
+	public void teken(Voorwerp voorwerp) {
+		verver.zetUniform(voorwerp);
 		zetVAO();
 		tekenVAO();
 	}
@@ -42,11 +57,11 @@ class VAO {
 		this.hoekAantal = 3 * cast(uint) volgorde.length;
 	}
 
-	public void tekenVAO() {
+	private void tekenVAO() {
 		glDrawElements(GL_TRIANGLES, this.hoekAantal, GL_UNSIGNED_INT, null);
 	}
 
-	public void zetVAO() {
+	private void zetVAO() {
 		glBindVertexArray(vao);
 	}
 }
