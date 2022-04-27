@@ -53,6 +53,11 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		this.vec = n;
 	}
 
+	this(Soort[] n) {
+		enforce(n.length == grootte);
+		this.vec = n;
+	}
+
 	this(Soort[kolom_aantal][rij_aantal] n) {
 		this.mat = n;
 	}
