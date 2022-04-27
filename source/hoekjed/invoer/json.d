@@ -21,11 +21,49 @@ struct JsonVal {
 	union {
 		Json voorwerp;
 		JsonVal[] lijst;
-		string str;
+		string string_;
 		double double_;
 		long long_;
-		bool boolean;
+		bool bool_;
 	}
+
+	this(bool b) {
+		this.soort = JsonSoort.BOOL;
+		this.bool_ = b;
+	}
+
+	this(long l) {
+		this.soort = JsonSoort.LONG;
+		this.long_ = l;
+	}
+
+	this(double d) {
+		this.soort = JsonSoort.DOUBLE;
+		this.double_ = d;
+	}
+
+	this(string s) {
+		this.soort = JsonSoort.STRING;
+		this.string_ = s;
+	}
+
+	this(JsonVal[] lijst) {
+		this.soort = JsonSoort.LIJST;
+		this.lijst = lijst;
+	}
+
+	this(Json voorwerp) {
+		this.soort = JsonSoort.VOORWERP;
+		this.voorwerp = voorwerp;
+	}
+
+	static JsonVal NULL() {
+		JsonVal v;
+		v.soort = JsonSoort.NULL;
+		v.voorwerp = null; //?
+		return v;
+	}
+
 }
 
 /// Gemaakt zonder kennis van std.json.
@@ -240,26 +278,26 @@ private:
 	JsonVal leesVal() {
 		switch (c) {
 		case '{':
-			JsonVal j = {soort: JsonSoort.VOORWERP, voorwerp: leesVoorwerp()};
+			JsonVal j = JsonVal(leesVoorwerp());
 			return j;
 		case '[':
-			JsonVal j = {soort: JsonSoort.LIJST, lijst: leesLijst()};
+			JsonVal j = JsonVal(leesLijst());
 			return j;
 		case '"':
 			stap();
 			switch (c) {
 			case 't', 'f':
-				JsonVal j = {soort: JsonSoort.BOOL, boolean: leesBool()};
+				JsonVal j = JsonVal(leesBool());
 				stap();
 				eis!'"';
 				return j;
 			case 'n':
-				JsonVal j = {soort: JsonSoort.NULL};
+				JsonVal j = JsonVal.NULL();
 				lees!"null\"";
 				return j;
 			default:
 				stapTerug();
-				JsonVal j = {soort: JsonSoort.STRING, str: leesString()};
+				JsonVal j = JsonVal(leesString());
 				return j;
 			}
 		default:

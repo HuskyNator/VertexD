@@ -5,13 +5,15 @@ import hoekjed.kern;
 import std.math : tan;
 
 class Zicht {
+	string naam;
 	Mat!4 projectieM = Mat!4(1);
 	Mat!4 zichtM = Mat!4(1);
 	Voorwerp ouder;
 
-	this(Voorwerp ouder, Mat!4 projectieM) {
-		this.ouder = ouder;
+	this(string naam, Mat!4 projectieM, Voorwerp ouder) {
+		this.naam = naam;
 		this.projectieM = projectieM;
+		this.ouder = ouder;
 	}
 
 	static Mat!4 perspectiefProjectie(

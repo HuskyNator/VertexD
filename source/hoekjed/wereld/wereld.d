@@ -10,7 +10,8 @@ class Wereld {
 	Verver verver;
 	static Wereld[] werelden;
 
-	this() {
+	this(string naam) {
+		this.naam = naam;
 		werelden ~= this;
 	}
 

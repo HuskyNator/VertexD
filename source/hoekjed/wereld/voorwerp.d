@@ -10,15 +10,21 @@ struct Houding {
 }
 
 class Voorwerp {
+	string naam;
 	Voorwerp ouder;
 	Voorwerp[] kinderen;
 	Houding houding;
-	Uiterlijk uiterlijk;
+	Driehoeksnet driehoeksnet;
 
 	Mat!4 eigenMatrix = Mat!4(1);
 	Mat!4 voorwerpMatrix = Mat!4(1);
 
 	private bool aangepast = true;
+
+	this(string naam, Driehoeksnet driehoeksnet = null) {
+		this.naam = naam;
+		this.driehoeksnet = driehoeksnet;
+	}
 
 	public @property {
 		Vec!3 plek() nothrow {
@@ -50,14 +56,17 @@ class Voorwerp {
 	}
 
 	void teken() {
-		if (uiterlijk !is null) {
-			uiterlijk.teken(this);
+		if (driehoeksnet !is null) {
+			driehoeksnet.teken(this);
 		}
 		foreach (Voorwerp kind; kinderen)
 			kind.teken();
 	}
 
-	abstract void denkStap(Duration deltaT);
+	// abstract void denkStap(Duration deltaT);
+	// TODO
+	void denkStap(Duration deltaT) {
+	}
 
 	void werkEigenMatrixBij() {
 		this.eigenMatrix = Mat!4();
