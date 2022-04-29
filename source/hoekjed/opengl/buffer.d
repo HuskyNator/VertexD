@@ -7,7 +7,7 @@ class Buffer {
 	// private byte[] inhoud; Mogelijk opslaan.
 	// private size_t grootte; Andere mogelijkheid.
 
-	public this(byte[] inhoud) {
+	public this(ubyte[] inhoud) {
 		glCreateBuffers(1, &buffer);
 		glNamedBufferStorage(buffer, inhoud.sizeof, inhoud.ptr, 0);
 	}
