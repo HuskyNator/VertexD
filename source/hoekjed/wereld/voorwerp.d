@@ -73,6 +73,7 @@ class Voorwerp {
 		eigenMatrix[0][0] = houding.grootte.x;
 		eigenMatrix[1][1] = houding.grootte.y;
 		eigenMatrix[2][2] = houding.grootte.z;
+		eigenMatrix[3][3] = 1;
 
 		eigenMatrix = Mat!(4).draaiMz(houding.draai.z)
 			.maal(Mat!(4).draaiMx(houding.draai.x)

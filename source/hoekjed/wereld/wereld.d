@@ -16,7 +16,7 @@ class Wereld {
 	}
 
 	public void teken() {
-		verver.zetUniform(zicht);
+		verver.zetUniform(zicht); // TODO: Uniform buffer objecten
 		foreach (Voorwerp kind; kinderen)
 			kind.teken();
 	}
