@@ -5,4 +5,5 @@ public {
 	import hoekjed.wereld;
 	import hoekjed.opengl;
 	import hoekjed.overig;
+	import hoekjed.invoer;
 }

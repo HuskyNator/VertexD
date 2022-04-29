@@ -101,6 +101,8 @@ class GltfLezer {
 	}
 
 	private void leesZichten() {
+		if ("cameras" !in json)
+			return;
 		JsonVal[] zichten_json = json["cameras"].lijst;
 		foreach (JsonVal zicht; zichten_json)
 			zichten ~= leesZicht(zicht.voorwerp);
@@ -203,9 +205,9 @@ class GltfLezer {
 			return GL_UNSIGNED_SHORT;
 		case 5123:
 			return GL_SHORT;
-		case 5124:
-			return GL_UNSIGNED_INT;
 		case 5125:
+			return GL_UNSIGNED_INT;
+		case 5126:
 			return GL_FLOAT;
 		default:
 			assert(0, "Onondersteund accessor.componentType: " ~ soort.to!string);
@@ -270,20 +272,28 @@ class GltfLezer {
 
 	private Buffer leesBuffer(Json buffer) {
 		const long grootte = buffer["byteLength"].long_;
-		byte[] inhoud = new byte[grootte];
+		ubyte[] inhoud = new ubyte[grootte];
 		string uri = buffer["uri"].string_;
 
 		if (uri.length > 5 && uri[0 .. 5] == "data:") {
-			inhoud = cast(byte[]) uri[5 .. $];
+			import std.base64;
+
+			uint char_p = 5;
+			while (uri[char_p] != ',') {
+				char_p++;
+				enforce(char_p < uri.length, "Onjuiste data uri bevat geen ','");
+			}
+			inhoud = Base64.decode(uri[(char_p + 1) .. $]);
 		} else {
 			import std.uri;
 			import std.file;
 
 			string uri_decoded = decode(uri);
-			inhoud = cast(byte[]) read(uri_decoded);
+			inhoud = cast(ubyte[]) read(uri_decoded);
 		}
 
-		enforce(inhoud.length == grootte, "Buffer grootte onjuist.");
+		enforce(inhoud.length == grootte, "Buffer grootte onjuist: "
+				~ inhoud.length.to!string ~ " in plaats van " ~ grootte.to!string);
 		return new Buffer(inhoud);
 	}
 }
