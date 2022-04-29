@@ -203,18 +203,15 @@ private:
 			}
 			stap();
 		}
-		return inhoud[p_begin .. p - 1].idup;
+		return inhoud[p_begin .. (p - 1)].idup;
 	}
 
 	JsonVal leesGetal() {
 		size_t p_begin = p;
 
 		bool isFloat = false;
-		// bool negatief = false;
-		// if (c == '-') {
-		// 	negatief = true;
-		// 	stap();
-		// }
+		if (c == '-')
+			stap();
 
 		if (c >= '1' && c <= '9') {
 			stap();
@@ -331,9 +328,9 @@ unittest {
 	JsonVal[] lijst = vals.lijst;
 	assert(lijst.length == 2);
 	assert(lijst[0].soort == JsonSoort.BOOL);
-	assert(lijst[0].boolean == true);
+	assert(lijst[0].bool_ == true);
 	assert(lijst[1].soort == JsonSoort.BOOL);
-	assert(lijst[1].boolean == false);
+	assert(lijst[1].bool_ == false);
 	assert("getal" in json);
 	JsonVal getal = json["getal"];
 	assert(getal.soort == JsonSoort.LONG);
