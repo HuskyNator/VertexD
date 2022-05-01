@@ -157,12 +157,12 @@ layout(location=2)in vec2 h_beeldplek;
 
 uniform mat4 projectieM;
 uniform mat4 zichtM;
-uniform mat4 tekenM;
+uniform mat4 voorwerpM;
 
 out vec4 gl_Position;
 
 void main(){
-	gl_Position = projectieM * zichtM * tekenM * vec4(h_plek, 1.0);
+	gl_Position = projectieM * zichtM * voorwerpM * vec4(h_plek, 1.0);
 }
 `;
 
