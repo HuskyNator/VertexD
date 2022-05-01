@@ -181,7 +181,7 @@ class GltfLezer {
 			Koppeling koppeling = this.koppelingen[eigenschap.koppeling];
 			knoopindex.buffer = koppeling.buffer;
 			knoopindex.knooptal = cast(int) eigenschap.elementtal;
-			knoopindex.begin = cast(int)(eigenschap.begin + koppeling.begin);
+			knoopindex.begin = cast(uint)(eigenschap.begin + koppeling.begin);
 		}
 
 		return new Driehoeksnet(naam, eigenschappen, koppelingen, knoopindex);
@@ -256,7 +256,7 @@ class GltfLezer {
 
 	private Koppeling leesKoppeling(Json koppeling_json) {
 		Koppeling koppeling;
-		koppeling.buffer = cast(uint) koppeling_json["buffer"].long_;
+		koppeling.buffer = buffers[koppeling_json["buffer"].long_].buffer;
 		koppeling.grootte = koppeling_json["byteLength"].long_;
 		koppeling.begin = koppeling_json.get("byteOffset", JsonVal(0L)).long_;
 		koppeling.tussensprong = cast(int) koppeling_json.get("byteStride", JsonVal(0L)).long_;

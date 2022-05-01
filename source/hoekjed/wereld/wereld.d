@@ -15,8 +15,10 @@ class Wereld {
 		werelden ~= this;
 	}
 
+	static Zicht ZICHT_TIJDELIJK;
 	public void teken() {
-		verver.zetUniform(zicht); // TODO: Uniform buffer objecten
+		// verver.zetUniform(zicht); // TODO: Uniform buffer objecten
+		ZICHT_TIJDELIJK = zicht;
 		foreach (Voorwerp kind; kinderen)
 			kind.teken();
 	}
