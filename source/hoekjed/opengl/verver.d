@@ -4,7 +4,8 @@ import bindbc.opengl;
 import hoekjed.kern;
 import hoekjed.wereld;
 import std.array : replace;
-import std.conv;
+import std.conv : to;
+import std.stdio : writeln;
 
 class VerverFout : Exception {
 	this(string melding) {
@@ -54,11 +55,21 @@ class Verver {
 		glAttachShader(verwijzing, snipperV.verwijzing);
 		glLinkProgram(verwijzing);
 
+		writeln("Verver aangemaakt: " ~ verwijzing.to!string ~ " (" ~ hoekV.verwijzing.to!string ~ "," ~ snipperV
+				.verwijzing.to!string ~ ")");
+
 		int volbracht;
 		glGetProgramiv(verwijzing, GL_LINK_STATUS, &volbracht);
 		if (volbracht == 0)
 			throw new VerverFout(
 				"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
+	}
+
+	~this() {
+		import core.stdc.stdio : printf;
+
+		glDeleteProgram(verwijzing);
+		printf("Verver verwijderd: %u (%u, %u)\n", verwijzing, hoekV.verwijzing, snipperV.verwijzing);
 	}
 
 	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
@@ -141,8 +152,6 @@ class Verver {
 	}
 
 	private void foutmelding_ontbrekende_uniform(string naam) {
-		import std.stdio;
-
 		stderr.writeln(
 			"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
 				~ " niet vinden.\n" ~ krijg_foutmelding());
@@ -196,9 +205,10 @@ class DeelVerver(uint soort) {
 	}
 
 	this(string bestand) {
-		import std.file : readText, exists;
+		import std.file : exists, readText;
 
 		this.verwijzing = glCreateShader(soort);
+		writeln("Deelverver aangemaakt: " ~ verwijzing.to!string);
 		string bron;
 		if (exists(bestand)) // Gegeven bestand is een verwijzing naar een bestand met verfinhoud.
 			bron = readText(bestand);
@@ -220,5 +230,12 @@ class DeelVerver(uint soort) {
 					string) krijg_foutmelding());
 
 		this.ververs[bestand] = this;
+	}
+
+	~this() {
+		import core.stdc.stdio : printf;
+
+		glDeleteShader(verwijzing);
+		printf("Deelverver verwijderd: %u\n", verwijzing);
 	}
 }

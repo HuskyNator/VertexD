@@ -102,9 +102,10 @@ class Venster {
 
 		debug {
 			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 			glDebugMessageCallback(&gl_fout_terugroeper, null);
-			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
-				GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
+			// glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
+				// GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
 		glfwSetCursorPos(glfw_venster, 0, 0);

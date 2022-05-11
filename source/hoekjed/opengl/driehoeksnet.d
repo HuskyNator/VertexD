@@ -2,6 +2,8 @@ module hoekjed.opengl.driehoeksnet;
 
 import bindbc.opengl;
 import hoekjed;
+import std.conv : to;
+import std.stdio : writeln;
 import std.typecons : Nullable;
 
 struct Eigenschap {
@@ -24,6 +26,7 @@ struct Knoopindex {
 	Nullable!uint buffer;
 	int knooptal;
 	int begin; // bytes
+	GLenum soort; // ubyte/ushort/uint
 }
 
 final class Driehoeksnet {
@@ -38,9 +41,11 @@ final class Driehoeksnet {
 		this.verver = verver;
 
 		glCreateVertexArrays(1, &vao);
+		writeln("Driehoeksnet aangemaakt: " ~ vao.to!string);
 
 		for (uint i = 0; i < eigenschappen.length; i++) {
 			Eigenschap e = eigenschappen[i];
+			e.writeln;
 			glEnableVertexArrayAttrib(vao, i);
 			glVertexArrayAttribFormat(vao, i, e.soorttal, e.soort, e.genormaliseerd, e.begin);
 			glVertexArrayAttribBinding(vao, i, e.koppeling);
@@ -48,16 +53,21 @@ final class Driehoeksnet {
 
 		for (uint i = 0; i < koppelingen.length; i++) {
 			Koppeling k = koppelingen[i];
+			k.writeln;
 			glVertexArrayVertexBuffer(vao, i, k.buffer, k.begin, k.tussensprong);
 		}
 
 		this.knoopindex = knoopindex;
 		if (!knoopindex.buffer.isNull())
 			glVertexArrayElementBuffer(vao, knoopindex.buffer.get());
+		knoopindex.writeln;
 	}
 
 	~this() {
+		import core.stdc.stdio : printf;
+
 		glDeleteVertexArrays(1, &vao);
+		printf("Driehoeksnet verwijderd: %u\n", vao);
 	}
 
 	public void teken(Voorwerp voorwerp) {
@@ -66,6 +76,7 @@ final class Driehoeksnet {
 		if (knoopindex.buffer.isNull())
 			glDrawArrays(GL_TRIANGLES, knoopindex.begin, knoopindex.knooptal);
 		else
-			glDrawElements(GL_TRIANGLES, knoopindex.knooptal, GL_UNSIGNED_INT, cast(void*)knoopindex.begin);
+			glDrawElements(GL_TRIANGLES, knoopindex.knooptal, knoopindex.soort, cast(void*) knoopindex
+					.begin);
 	}
 }
