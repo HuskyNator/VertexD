@@ -22,12 +22,16 @@ class GltfLezer {
 
 	Zicht[] zichten;
 
+	private ulong[] gezochte_tussensprongen;
+
 	this(string bestand) {
 		this.json = JsonLezer.leesJsonBestand(bestand);
 		enforce(json["asset"].voorwerp["version"].string_ == "2.0");
 		leesBuffers();
 		leesKoppelingen();
 		leesEigenschappen();
+		zoekTussensprongen();
+
 		leesMaterialen(); // TODO
 		leesDriehoeksnetten();
 		leesZichten();
@@ -151,40 +155,84 @@ class GltfLezer {
 
 		Json primitief = driehoeksnet_json["primitives"].lijst[0].voorwerp;
 		Json attributen = primitief["attributes"].voorwerp;
+		enforce("POSITION" in attributen && "NORMAL" in attributen, "Aanwezigheid van POSITION/NORMAL attributen aangenomen.");
 
-		Eigenschap[] eigenschappen;
-		enforce("POSITION" in attributen && "NORMAL" in attributen,
-			"Aanwezigheid van POSITION en NORMAL attributen wordt aangenomen.");
-		eigenschappen ~= this.eigenschappen[attributen["POSITION"].long_];
-		eigenschappen ~= this.eigenschappen[attributen["NORMAL"].long_];
+		Eigenschap[] net_eigenschappen;
+		net_eigenschappen ~= this.eigenschappen[attributen["POSITION"].long_];
+		net_eigenschappen ~= this.eigenschappen[attributen["NORMAL"].long_];
 		for (uint i = 0; uint.max; i++) {
 			string s = "TEXCOORD_" ~ i.to!string;
 			if (s !in attributen)
 				break;
-			eigenschappen ~= this.eigenschappen[attributen[s].long_];
+			net_eigenschappen ~= this.eigenschappen[attributen[s].long_];
 		}
 
-		Koppeling[uint] koppelingen_uniek;
-		foreach (Eigenschap eigenschap; eigenschappen) {
+		Koppeling[] net_koppelingen;
+		uint[uint] koppelingen_vertaling;
+		foreach (ref Eigenschap eigenschap; net_eigenschappen) {
 			uint i = eigenschap.koppeling;
-			koppelingen_uniek[i] = this.koppelingen[i];
+			if (i !in koppelingen_vertaling) {
+				koppelingen_vertaling[i] = cast(uint) koppelingen_vertaling.length;
+				net_koppelingen ~= this.koppelingen[i];
+			}
+			eigenschap.koppeling = koppelingen_vertaling[i];
 		}
-		Koppeling[] koppelingen = koppelingen_uniek.byValue().array();
 
 		Knoopindex knoopindex;
 		if ("indices" !in primitief) {
 			knoopindex.buffer.nullify();
-			knoopindex.knooptal = cast(int) eigenschappen[0].elementtal;
+			knoopindex.knooptal = cast(int) net_eigenschappen[0].elementtal;
 			knoopindex.begin = 0;
 		} else {
 			Eigenschap eigenschap = this.eigenschappen[primitief["indices"].long_];
 			Koppeling koppeling = this.koppelingen[eigenschap.koppeling];
+
 			knoopindex.buffer = koppeling.buffer;
 			knoopindex.knooptal = cast(int) eigenschap.elementtal;
 			knoopindex.begin = cast(uint)(eigenschap.begin + koppeling.begin);
+			knoopindex.soort = eigenschap.soort;
 		}
 
-		return new Driehoeksnet(naam, eigenschappen, koppelingen, knoopindex);
+		return new Driehoeksnet(naam, net_eigenschappen, net_koppelingen, knoopindex);
+	}
+
+	private void zoekTussensprongen() {
+		Tussensprong: foreach (ulong i; 0 .. gezochte_tussensprongen.length) {
+			foreach (Eigenschap e; eigenschappen) {
+				if (e.koppeling != i)
+					continue;
+				koppelingen[i].tussensprong = cast(int) bepaalTussensprong(e);
+				continue Tussensprong;
+			}
+			assert(0, "Kon geen accessor vinden om tussensprong van koppeling#" ~ i.to!string ~ " te vinden.");
+		}
+	}
+
+	private size_t bepaalTussensprong(Eigenschap e) {
+		return e.soorttal * eigenschapSoortGrootte(e.soort);
+	}
+
+	import bindbc.opengl : GLenum;
+
+	private size_t eigenschapSoortGrootte(GLenum soort) {
+		import bindbc.opengl;
+
+		switch (soort) {
+		case GL_UNSIGNED_BYTE:
+			return ubyte.sizeof;
+		case GL_BYTE:
+			return byte.sizeof;
+		case GL_UNSIGNED_SHORT:
+			return ushort.sizeof;
+		case GL_SHORT:
+			return short.sizeof;
+		case GL_UNSIGNED_INT:
+			return uint.sizeof;
+		case GL_FLOAT:
+			return float.sizeof;
+		default:
+			assert(0, "Onondersteund accessor.componentType: " ~ soort.to!string);
+		}
 	}
 
 	private void leesEigenschappen() {
@@ -198,13 +246,13 @@ class GltfLezer {
 
 		switch (soort) {
 		case 5120:
-			return GL_UNSIGNED_BYTE;
-		case 5121:
 			return GL_BYTE;
+		case 5121:
+			return GL_UNSIGNED_BYTE;
 		case 5122:
-			return GL_UNSIGNED_SHORT;
-		case 5123:
 			return GL_SHORT;
+		case 5123:
+			return GL_UNSIGNED_SHORT;
 		case 5125:
 			return GL_UNSIGNED_INT;
 		case 5126:
@@ -250,16 +298,19 @@ class GltfLezer {
 
 	private void leesKoppelingen() {
 		JsonVal[] koppelingen_json = json["bufferViews"].lijst;
-		foreach (JsonVal koppeling_json; koppelingen_json)
-			koppelingen ~= leesKoppeling(koppeling_json.voorwerp);
+		foreach (ulong i; 0 .. koppelingen_json.length)
+			koppelingen ~= leesKoppeling(koppelingen_json[i].voorwerp, i);
 	}
 
-	private Koppeling leesKoppeling(Json koppeling_json) {
+	private Koppeling leesKoppeling(Json koppeling_json, ulong index) {
 		Koppeling koppeling;
-		koppeling.buffer = buffers[koppeling_json["buffer"].long_].buffer;
+		koppeling.buffer = cast(uint) buffers[koppeling_json["buffer"].long_].buffer;
 		koppeling.grootte = koppeling_json["byteLength"].long_;
 		koppeling.begin = koppeling_json.get("byteOffset", JsonVal(0L)).long_;
-		koppeling.tussensprong = cast(int) koppeling_json.get("byteStride", JsonVal(0L)).long_;
+		if ("byteStride" in koppeling_json)
+			koppeling.tussensprong = cast(int) koppeling_json["byteStride"].long_;
+		else
+			gezochte_tussensprongen ~= index;
 		return koppeling;
 	}
 

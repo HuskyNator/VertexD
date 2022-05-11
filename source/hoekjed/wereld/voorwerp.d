@@ -12,7 +12,7 @@ struct Houding {
 class Voorwerp {
 	string naam;
 	Voorwerp ouder;
-	Voorwerp[] kinderen;
+	Voorwerp[] kinderen = [];
 	Houding houding;
 	Driehoeksnet driehoeksnet;
 
