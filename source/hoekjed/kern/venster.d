@@ -35,13 +35,15 @@ enum Muissoort {
 }
 
 class Venster {
-	static public Venster[GLFWwindow* ] vensters;
-	package GLFWwindow* glfw_venster;
-
-	// Eigenschappen
+	// Venster Eigenschappen
 	string naam;
-	int breedte, hoogte;
-	Scherm scherm;
+	int breedte;
+	int hoogte;
+	package GLFWwindow* glfw_venster;
+	static package Venster[GLFWwindow* ] vensters;
+
+	// Wereld
+	Wereld wereld;
 
 	// Invoer
 	ToetsTerugroeper[] toetsTerugroepers = [];
@@ -52,8 +54,6 @@ class Venster {
 	MuisplekInvoer[] muisplekInvoer = [];
 	MuisknopInvoer[] muisknopInvoer = [];
 	MuiswielInvoer[] muiswielInvoer = [];
-
-	alias scherm this;
 
 	static void zetStandaardZichtbaar(bool zichtbaar) {
 		glfwWindowHint(GLFW_VISIBLE, zichtbaar);
@@ -75,14 +75,15 @@ class Venster {
 		glfwSetInputMode(glfw_venster, GLFW_CURSOR, soort);
 	}
 
-	this(string naam = "HoekjeD", int glfw_breedte = 1920 / 2, int glfw_hoogte = 1080 / 2) {
-		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+	this(string naam = "HoekjeD", int glfw_breedte = 960, int glfw_hoogte = 540) {
+		this.naam = naam;
 
+		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 		this.glfw_venster = glfwCreateWindow(glfw_breedte, glfw_hoogte, naam.ptr, null, null);
 		assert(glfw_venster !is null, "GLFW kon geen scherm aanmaken.");
 
 		Venster.vensters[glfw_venster] = this;
-		glfwMakeContextCurrent(glfw_venster); // VOEG TOE: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
+		glfwMakeContextCurrent(glfw_venster); // TODO: Moet voor multithreading & meerdere vensters nog een oplossing vinden.
 		//glfwSwapInterval(0); Kan met 1 vsynch gebruiken.
 
 		glfwSetKeyCallback(glfw_venster, &venster_toets_terugroeper);
@@ -92,11 +93,6 @@ class Venster {
 		// glfwSetWindowSizeCallback(glfw_venster, &venster_grootte_terugroeper);
 		glfwSetFramebufferSizeCallback(glfw_venster, &venster_grootte_terugroeper);
 
-		this.naam = naam;
-		glfwGetFramebufferSize(glfw_venster, &breedte, &hoogte);
-		this.scherm = Scherm();
-		this.scherm.hervorm(Vec!(2, int)([0, 0]), Vec!(2, int)([breedte, hoogte]));
-
 		GLSupport gl_versie = loadOpenGL();
 		assert(gl_versie == GLSupport.gl46, "GL laadt niet: " ~ gl_versie.to!string);
 
@@ -105,11 +101,23 @@ class Venster {
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 			glDebugMessageCallback(&gl_fout_terugroeper, null);
 			// glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
-				// GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
+			// GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
 		glfwSetCursorPos(glfw_venster, 0, 0);
 		glEnable(GL_DEPTH_TEST);
+	}
+
+	void teken() {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Verschoont het scherm.
+		wereld.teken();
+		glfwSwapBuffers(glfw_venster);
+	}
+
+	protected void hervorm(int breedte, int hoogte) nothrow {
+		this.breedte = breedte;
+		this.hoogte = hoogte;
+		glViewport(0, 0, breedte, hoogte);
 	}
 
 	void bekijk() {
@@ -163,25 +171,6 @@ class Venster {
 		muiswielInvoer = [];
 	}
 
-	void teken() {
-		glViewport(0, 0, breedte, hoogte); // Zet het tekengebied.
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Verschoont het scherm.
-		scherm.teken();
-
-		// VOEG TOE:
-		// Hebben een beter denksysteem nodig. Per ding of/en ook per scherm.
-		// VOEG TOE: alle denk functies in een globale lijst, voorkomt herhaalde instructies & maakt
-		// het mogelijk de "bijgewerkt" te verwijderen en "werkBij" sneller te maken door veranderde
-		// dingen in een globale set te plaatsen & hun en hun kinderen specifiek bij te werken.
-
-		// Mogelijk is het beter dit niet blobaal te doen maar per wereld, met werelden in een
-		// globale lijst, omdat het zo eenvoudiger is een wereld te pauzeren.
-
-		// Kan net als veel motoren dingen eigenschappen geven opdat het uitschakelen van een
-		// ding bijvoorbeeld eenvoudig door te voeren is naar het verwijderen van zijn denk opdracht(en).
-		glfwSwapBuffers(glfw_venster);
-	}
-
 	unittest {
 		import hoekjed.kern;
 
@@ -198,78 +187,10 @@ class Venster {
 
 		assert(called);
 	}
-
-	// VOEG TOE: glfw mogelijkheden, zoals openen/sluiten/focus/muis/toetsen (toetsen per scherm of venster?)
-
-	protected void hervorm() nothrow {
-		Vec!(2, int) lb = Vec!(2, int)([0, 0]);
-		Vec!(2, int) grootte = Vec!(2, int)([breedte, hoogte]);
-		scherm.hervorm(lb, grootte);
-	}
-
-	unittest {
-		import hoekjed.kern;
-
-		// TODO:
-		// hdZetOp();
-		// Venster.zetStandaardZichtbaar(false);
-		// Venster venster = new Venster();
-		// Vec!(2, int) ro = venster.scherm.rechtsonder;
-		// venster.breedte *= 2;
-		// venster.hervorm();
-		// Vec!(2, int) ro2 = venster.scherm.rechtsonder;
-		// assert(ro2.x == 2 * ro.x && ro2.y == ro.y,
-		// 		"[2 * " ~ ro.x.to!string ~ ", " ~ ro.y.to!string ~ "] != " ~ ro2.to!string);
-	}
-}
-
-// VERBETER: Vensters, Schremen & Zichten volledig herwerken.
-
-struct Scherm {
-	Vec!2 linksboven_f = Vec!2([0, 0]);
-	Vec!2 rechtsonder_f = Vec!2([1, 1]);
-	Vec!(2, int) linksboven;
-	Vec!(2, int) rechtsonder;
-
-	Scherm[] deelschermen;
-	Wereld wereld;
-
-	void teken() {
-		foreach (Scherm scherm; deelschermen)
-			scherm.teken();
-		glViewport(linksboven.x, linksboven.y, rechtsonder.x, rechtsonder.y); // Zet het tekengebied.
-		if (deelschermen.length != 0)
-			glClear(GL_DEPTH_BUFFER_BIT); // Over deelscherm heen tekenen.
-
-		wereld.teken();
-	}
-
-	protected void hervorm(Vec!(2, int) lb, Vec!(2, int) grootte) nothrow {
-		linksboven = lb + cast(Vec!(2, int))(linksboven_f * grootte);
-		rechtsonder = lb + cast(Vec!(2, int))(rechtsonder_f * grootte);
-		if (deelschermen.length != 0) {
-			Vec!(2, int) eigen_grootte = rechtsonder - linksboven;
-			foreach (Scherm scherm; deelschermen) {
-				scherm.hervorm(linksboven, eigen_grootte);
-			}
-		}
-	}
-
-	unittest {
-		// TODO:
-		// Scherm s = {rechtsonder_f: {[0.25, 0.5]}};
-		// Vec!(2, int) a = {[5, 5]};
-		// Vec!(2, int) b = {[1, 2]};
-		// s.hervorm(a, b);
-		// assert(s.rechtsonder.x == 5 && s.rechtsonder.y == 6);
-	}
 }
 
 extern (C) void venster_grootte_terugroeper(GLFWwindow* glfw_venster, int breedte, int hoogte) nothrow {
-	Venster venster = Venster.vensters[glfw_venster];
-	venster.breedte = breedte;
-	venster.hoogte = hoogte;
-	venster.hervorm();
+	Venster.vensters[glfw_venster].hervorm(breedte, hoogte);
 }
 
 extern (C) void venster_toets_terugroeper(GLFWwindow* glfw_venster, int toets,
