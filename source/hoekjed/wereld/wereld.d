@@ -18,6 +18,7 @@ class Wereld {
 
 	static Zicht ZICHT_TIJDELIJK;
 	public void teken() {
+		verver.gebruik();
 		verver.zetUniform(zicht); // TODO: Uniform buffer objecten
 		ZICHT_TIJDELIJK = zicht;
 		foreach (Voorwerp kind; kinderen)
