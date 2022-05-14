@@ -1,7 +1,8 @@
 module hoekjed.invoer.json;
-import std.stdio;
-import std.exception : enforce;
 import hoekjed.overig : inLijst;
+import std.conv : to;
+import std.exception : enforce;
+import std.stdio;
 import std.uni;
 
 alias Json = JsonVal[string];
@@ -71,6 +72,7 @@ class JsonLezer {
 	private string inhoud;
 	private size_t p = 0;
 	private char c; //TODO Mogelijk template
+	private uint regel; // Voor debugging.
 
 	static Json leesJson(string bron) {
 		JsonLezer lezer = new JsonLezer();
@@ -88,14 +90,18 @@ class JsonLezer {
 
 private:
 	void stap() {
-		enforce(p < inhoud.length, "Vroegtijdig einde van invoer");
+		enforce(p < inhoud.length, "Vroegtijdig einde van invoer op regel " ~ regel.to!string);
 		this.c = inhoud[p];
-		p++;
+		p += 1;
+		if (c == '\n')
+			regel += 1;
 	}
 
 	void stapTerug() {
 		assert(p > 0);
-		p--;
+		if (c == '\n')
+			regel -= 1;
+		p -= 1;
 		this.c = inhoud[p - 1];
 	}
 
@@ -109,7 +115,8 @@ private:
 	}
 
 	void eis(char verwacht)() {
-		enforce(c == verwacht, "Verwachtte '" ~ verwacht ~ "' maar vond '" ~ c ~ "'");
+		enforce(c == verwacht, "Verwachtte '" ~ verwacht ~ "' maar vond '" ~ c ~ "' op regel " ~ regel
+				.to!string);
 	}
 
 	static char[] witruimte_karakters = [' ', '\n', '\r', '\t'];
@@ -129,7 +136,7 @@ private:
 		Json json = leesVoorwerp();
 		if (!eind())
 			stapw();
-		enforce(eind(), "Einde van tekst verwacht");
+		enforce(eind(), "Einde van tekst verwacht op regel " ~ regel.to!string);
 		return json;
 	}
 
@@ -193,13 +200,15 @@ private:
 				if (c == 'u') {
 					static foreach (_; 0 .. 4) {
 						stap();
-						enforce(isHex(c), "Verwachtte hexadecimaal getal maar kreeg " ~ c);
+						enforce(isHex(c), "Verwachtte hexadecimaal getal maar kreeg " ~ c ~ " op regel " ~ regel
+								.to!string);
 					}
 				} else {
-					enforce(inLijst(c, string_karakters), "Illegaal karakter in string \\" ~ c);
+					enforce(inLijst(c, string_karakters), "Illegaal karakter in string " ~ c ~ " op regel " ~ regel
+							.to!string);
 				}
 			} else {
-				enforce(!isControl(c), "Controle karakter in string");
+				enforce(!isControl(c), "Controle karakter in string op regel " ~ regel.to!string);
 			}
 			stap();
 		}
@@ -218,14 +227,16 @@ private:
 			while (isNumber(c))
 				stap();
 		} else {
-			enforce(c == '0', "Verwachtte cijfer maar kreeg '" ~ c ~ "'");
+			enforce(c == '0', "Verwachtte cijfer maar kreeg '" ~ c ~ "' op regel " ~ regel
+					.to!string);
 			stap();
 		}
 
 		if (c == '.') {
 			isFloat = true;
 			stap();
-			enforce(isNumber(c), "Verwachtte cijfer maar kreeg '" ~ c ~ "'");
+			enforce(isNumber(c), "Verwachtte cijfer maar kreeg '" ~ c ~ "' op regel " ~ regel
+					.to!string);
 			stap();
 			while (isNumber(c))
 				stap();
@@ -235,15 +246,14 @@ private:
 			stap();
 			if (c == '-' || c == '+')
 				stap();
-			enforce(isNumber(c), "Verwachtte cijfer maar kreeg " ~ c ~ "'");
+			enforce(isNumber(c), "Verwachtte cijfer maar kreeg " ~ c ~ "' op regel " ~ regel
+					.to!string);
 			stap();
 			while (isNumber(c))
 				stap();
 		}
 
 		stapTerug();
-
-		import std.conv : to;
 
 		JsonVal j;
 		j.soort = isFloat ? JsonSoort.DOUBLE : JsonSoort.LONG;
@@ -280,23 +290,16 @@ private:
 		case '[':
 			JsonVal j = JsonVal(leesLijst());
 			return j;
+		case 't', 'f':
+			JsonVal j = JsonVal(leesBool());
+			return j;
+		case 'n':
+			JsonVal j = JsonVal.NULL();
+			lees!"null";
+			return j;
 		case '"':
-			stap();
-			switch (c) {
-			case 't', 'f':
-				JsonVal j = JsonVal(leesBool());
-				stap();
-				eis!'"';
-				return j;
-			case 'n':
-				JsonVal j = JsonVal.NULL();
-				lees!"null\"";
-				return j;
-			default:
-				stapTerug();
-				JsonVal j = JsonVal(leesString());
-				return j;
-			}
+			JsonVal j = JsonVal(leesString());
+			return j;
 		default:
 			// Laatste mogelijkheid
 			return leesGetal();
