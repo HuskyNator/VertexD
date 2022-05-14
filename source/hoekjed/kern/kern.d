@@ -52,8 +52,11 @@ public Duration hdTijd() {
 }
 
 public void hdStap() {
+	static Duration oudeT = Duration.zero();
 	_hdStaptal += 1;
-	Duration deltaT = hdTijd();
+	Duration nieuweT = hdTijd();
+	Duration deltaT = nieuweT - oudeT;
+	oudeT = nieuweT;
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.verwerkInvoer();
