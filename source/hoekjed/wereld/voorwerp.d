@@ -66,6 +66,9 @@ class Voorwerp {
 	// abstract void denkStap(Duration deltaT);
 	// TODO
 	void denkStap(Duration deltaT) {
+		foreach (Voorwerp kind; kinderen) {
+			kind.denkStap(deltaT);
+		}
 	}
 
 	void werkEigenMatrixBij() {
