@@ -14,16 +14,16 @@ class Voorwerp {
 	Voorwerp ouder;
 	Voorwerp[] kinderen = [];
 	Houding houding;
-	Driehoeksnet driehoeksnet;
+	Driehoeksnet[] driehoeksnetten;
 
 	Mat!4 eigenMatrix = Mat!4(1);
 	Mat!4 voorwerpMatrix = Mat!4(1);
 
 	private bool aangepast = true;
 
-	this(string naam, Driehoeksnet driehoeksnet = null) {
+	this(string naam, Driehoeksnet[] driehoeksnetten = []) {
 		this.naam = naam;
-		this.driehoeksnet = driehoeksnet;
+		this.driehoeksnetten = driehoeksnetten;
 	}
 
 	public @property {
@@ -56,8 +56,8 @@ class Voorwerp {
 	}
 
 	void teken() {
-		if (driehoeksnet !is null) {
-			driehoeksnet.teken(this);
+		foreach (Driehoeksnet net; driehoeksnetten) {
+			net.teken(this);
 		}
 		foreach (Voorwerp kind; kinderen)
 			kind.teken();

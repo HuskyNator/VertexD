@@ -1,4 +1,5 @@
 module hoekjed.invoer.json;
+import hoekjed.kern.wiskunde;
 import hoekjed.overig : inLijst;
 import std.conv : to;
 import std.exception : enforce;
@@ -65,6 +66,33 @@ struct JsonVal {
 		return v;
 	}
 
+	Vec!(L, S) vec(uint L, S)() {
+		enforce(soort == JsonSoort.LIJST, "Soort moet lijst zijn.");
+		enforce(L == lijst.length, "Verwachtte lijst van lengte " ~ L.to!string ~
+				" maar kreeg " ~ lijst.length.to!string);
+		import std.traits;
+
+		Vec!(L, S) v;
+		static if (isBoolean!S) {
+			enum element = "bool_";
+		} else static if (isFloatingPoint!S) {
+			enum element = "double_";
+		} else static if (isIntegral!S) {
+			enum element = "long_";
+		} else static if (isSomeChar!S || isSomeString!S) {
+			enum element = "string_";
+		} else
+			static assert(0, "Kan geen vector lezen van soort " ~ S.stringof);
+
+		foreach (i; 0 .. L)
+			v[i] = mixin("lijst[i].", element, ".to!S");
+		return v;
+	}
+
+	unittest {
+		JsonVal j = JsonVal([JsonVal(true), JsonVal(false)]);
+		j.vec!(2, bool).writeln();
+	}
 }
 
 /// Gemaakt zonder kennis van std.json.
