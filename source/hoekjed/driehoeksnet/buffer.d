@@ -1,4 +1,4 @@
-module hoekjed.opengl.buffer;
+module hoekjed.driehoeksnet.buffer;
 
 import bindbc.opengl;
 import std.stdio : writeln;

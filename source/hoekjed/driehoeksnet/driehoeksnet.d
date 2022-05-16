@@ -1,4 +1,4 @@
-module hoekjed.opengl.driehoeksnet;
+module hoekjed.driehoeksnet.driehoeksnet;
 
 import bindbc.opengl;
 import hoekjed;
@@ -36,7 +36,8 @@ final class Driehoeksnet {
 	Verver verver;
 
 	public this(string naam, Eigenschap[] eigenschappen, Koppeling[] koppelingen,
-		Knoopindex knoopindex, Verver verver = Verver.plaatsvervanger) {
+		Knoopindex knoopindex, Verver verver = Gltf.standaard_verver,
+		Materiaal materiaal = Gltf.standaard_materiaal) {
 		this.naam = naam;
 		this.verver = verver;
 
@@ -71,6 +72,7 @@ final class Driehoeksnet {
 	}
 
 	public void teken(Voorwerp voorwerp) {
+		verver.gebruik();
 		verver.zetUniform(voorwerp);
 		glBindVertexArray(vao);
 		if (knoopindex.buffer.isNull())
