@@ -57,6 +57,7 @@ class Voorwerp {
 
 	void teken() {
 		foreach (Driehoeksnet net; driehoeksnetten) {
+			net.verver.zetUniform("kleur", net.materiaal.pbr.kleur);
 			net.teken(this);
 		}
 		foreach (Voorwerp kind; kinderen)
@@ -78,9 +79,9 @@ class Voorwerp {
 		eigenMatrix[2][2] = houding.grootte.z;
 		eigenMatrix[3][3] = 1;
 
-		eigenMatrix = Mat!(4).draaiMz(houding.draai.z)
+		eigenMatrix = Mat!(4).draaiMy(houding.draai.y)
 			.maal(Mat!(4).draaiMx(houding.draai.x)
-					.maal(Mat!(4).draaiMy(houding.draai.y)
+					.maal(Mat!(4).draaiMz(houding.draai.z)
 						.maal(eigenMatrix)));
 
 		eigenMatrix[0][3] = houding.plek.x;

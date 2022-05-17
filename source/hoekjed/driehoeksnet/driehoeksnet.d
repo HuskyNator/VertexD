@@ -34,12 +34,14 @@ final class Driehoeksnet {
 	private uint vao;
 	private Knoopindex knoopindex;
 	Verver verver;
+	Materiaal materiaal;
 
 	public this(string naam, Eigenschap[] eigenschappen, Koppeling[] koppelingen,
 		Knoopindex knoopindex, Verver verver = Gltf.standaard_verver,
 		Materiaal materiaal = Gltf.standaard_materiaal) {
 		this.naam = naam;
 		this.verver = verver;
+		this.materiaal = materiaal;
 
 		glCreateVertexArrays(1, &vao);
 		writeln("Driehoeksnet aangemaakt: " ~ vao.to!string);
