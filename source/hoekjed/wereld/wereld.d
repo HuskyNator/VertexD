@@ -16,11 +16,8 @@ class Wereld {
 		verver=Gltf.standaard_verver;
 	}
 
-	static Zicht ZICHT_TIJDELIJK;
 	public void teken() {
-		verver.zetUniform(zicht); // TODO: Uniform buffer objecten
-		verver.zetUniform("ziener", zicht.ouder.plek);
-		ZICHT_TIJDELIJK = zicht;
+		zicht.gebruik();
 		foreach (Voorwerp kind; kinderen)
 			kind.teken();
 	}

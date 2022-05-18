@@ -83,13 +83,12 @@ class Verver {
 		return verver;
 	}
 
-	void zetUniform(Zicht zicht) {
-		this.zetUniform("projectieM", zicht.projectieM);
-		this.zetUniform("zichtM", zicht.zichtM);
-	}
-
 	void zetUniform(Voorwerp voorwerp) {
 		this.zetUniform("voorwerpM", voorwerp.voorwerpMatrix);
+	}
+
+	static void zetUniformBuffer(int index, Buffer buffer) {
+		glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer.buffer);
 	}
 
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)

@@ -3,17 +3,39 @@ module hoekjed.wereld.zicht;
 import hoekjed.wereld;
 import hoekjed.kern;
 import std.math : tan;
+import hoekjed.ververs.verver;
+import hoekjed.driehoeksnet.buffer;
 
 class Zicht {
+	union {
+		struct ZichtUniform {
+			Mat!4 projectieM = Mat!4(1);
+			Mat!4 zichtM = Mat!4(1);
+			Vec!3 plek = Vec!3(0);
+		}
+
+		ZichtUniform zichtUniform;
+		ubyte[ZichtUniform.sizeof] ubytes;
+	}
+
+	alias zichtUniform this;
+	Buffer uniformBuffer;
+
 	string naam;
-	Mat!4 projectieM = Mat!4(1);
-	Mat!4 zichtM = Mat!4(1);
 	Voorwerp ouder;
 
 	this(string naam, Mat!4 projectieM, Voorwerp ouder) {
 		this.naam = naam;
 		this.projectieM = projectieM;
 		this.ouder = ouder;
+	}
+
+	void gebruik() {
+		if (uniformBuffer is null) {
+			uniformBuffer = new Buffer(ubytes, true);
+			Verver.zetUniformBuffer(0, uniformBuffer);
+		} else
+			uniformBuffer.zetInhoud(ubytes);
 	}
 
 	static Mat!4 perspectiefProjectie(
@@ -37,6 +59,7 @@ class Zicht {
 
 	void werkBij()
 	in (ouder !is null) {
+		this.plek = Vec!3(ouder.voorwerpMatrix.maal(Vec!4([0, 0, 0, 1]))[0 .. 3]);
 		this.zichtM = ouder.voorwerpMatrix.inverse();
 	}
 }

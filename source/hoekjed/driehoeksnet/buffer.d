@@ -7,14 +7,21 @@ import std.stdio;
 
 class Buffer {
 	uint buffer;
-	// ubyte[] inhoud; // Mogelijk opslaan.
-	// private size_t grootte; Andere mogelijkheid.
+	debug private bool wijzigbaar;
 
-	public this(ubyte[] inhoud) {
-		// this.inhoud = inhoud;
+	public this(ubyte[] inhoud, bool wijzigbaar = false) {
+		debug this.wijzigbaar = wijzigbaar;
+
 		glCreateBuffers(1, &buffer);
-		glNamedBufferStorage(buffer, inhoud.length * ubyte.sizeof, inhoud.ptr, 0);
-		writeln("Buffer aangemaakt: " ~ buffer.to!string);
+		glNamedBufferData(buffer, inhoud.length * ubyte.sizeof, inhoud.ptr, wijzigbaar ? GL_DYNAMIC_DRAW
+				: GL_STATIC_DRAW);
+		writeln("Buffer(" ~ (wijzigbaar ? "wijzigbaar" : "onwijzigbaar") ~ ") aangemaakt: " ~ buffer
+				.to!string);
+	}
+
+	public void zetInhoud(ubyte[] inhoud) {
+		assert(wijzigbaar, "Kan inhoud van onwijzigbare buffer niet aanpassen.");
+		glNamedBufferSubData(buffer, 0, inhoud.length * ubyte.sizeof, inhoud.ptr);
 	}
 
 	public ~this() {
