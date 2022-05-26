@@ -65,7 +65,7 @@ public void hdStap() {
 		wereld.denkStap(deltaT);
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.werkMatricesBij();
+		wereld.werkBij();
 
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;

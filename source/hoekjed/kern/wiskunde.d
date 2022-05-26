@@ -23,7 +23,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	alias MatSoort = typeof(this);
 
 	union {
-		Soort[grootte] vec = 0; // Default values are 0.
+		Soort[grootte] vec = 0; // Standaard waarden zijn 0.
 		Soort[kolom_aantal][rij_aantal] mat;
 		static if (isVec) {
 			struct {
@@ -66,6 +66,18 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		alias vec this;
 	else
 		alias mat this;
+
+	Vec!rij_aantal kol(uint i) {
+		Vec!rij_aantal k;
+		foreach (r; 0 .. rij_aantal) {
+			k.vec[r] = mat[r][i];
+		}
+		return k;
+	}
+
+	Mat!(1, kolom_aantal) rij(uint i) {
+		return Mat!(1, kolom_aantal)([mat[i]]);
+	}
 
 	static if (isVierkant) {
 		MatSoort inverse() {
@@ -173,6 +185,117 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			Vec!4 i = Vec!4(1);
 			assert(i.isOngeveer(I.maal(i)));
 		}
+
+		static if (rij_aantal == 3 || rij_aantal == 4) {
+			static {
+				MatSoort draaiMx(nauwkeurigheid hoek) {
+					MatSoort draaiM = MatSoort(1);
+					nauwkeurigheid cos = cos(hoek);
+					nauwkeurigheid sin = sin(hoek);
+					draaiM[1][1] = cos;
+					draaiM[1][2] = -sin;
+					draaiM[2][1] = sin;
+					draaiM[2][2] = cos;
+					return draaiM;
+				}
+
+				unittest {
+					import std.math : PI, PI_2;
+
+					Mat!4 draai = Mat!(4).draaiMx(0);
+					Mat!4 draai2 = Mat!4(1);
+					assert(draai.isOngeveer(draai2));
+
+					draai = Mat!(4).draaiMx(PI_2);
+					draai2 = Mat!4();
+					draai2[0][0] = 1;
+					draai2[1][2] = -1;
+					draai2[2][1] = 1;
+					draai2[3][3] = 1;
+					float delta = 1e-5;
+					float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+
+					draai = Mat!(4).draaiMx(PI);
+					draai2 = Mat!4(1);
+					draai2[1][1] = -1;
+					draai2[2][2] = -1;
+					verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+				}
+
+				MatSoort draaiMy(nauwkeurigheid hoek) {
+					MatSoort draaiM = MatSoort(1);
+					nauwkeurigheid cos = cos(hoek);
+					nauwkeurigheid sin = sin(hoek);
+					draaiM[0][0] = cos;
+					draaiM[0][2] = sin;
+					draaiM[2][0] = -sin;
+					draaiM[2][2] = cos;
+					return draaiM;
+				}
+
+				unittest {
+					import std.math : PI, PI_2;
+
+					Mat!4 draai = Mat!(4).draaiMy(0);
+					Mat!4 draai2 = Mat!4(1);
+					assert(draai == draai2);
+
+					draai = Mat!(4).draaiMy(PI_2);
+					draai2 = Mat!4();
+					draai2[0][2] = 1;
+					draai2[1][1] = 1;
+					draai2[2][0] = -1;
+					draai2[3][3] = 1;
+					float delta = 1e-5;
+					float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+
+					draai = Mat!(4).draaiMy(PI);
+					draai2 = Mat!4(1);
+					draai2[0][0] = -1;
+					draai2[2][2] = -1;
+					verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+				}
+
+				MatSoort draaiMz(nauwkeurigheid hoek) {
+					MatSoort draaiM = MatSoort(1);
+					nauwkeurigheid cos = cos(hoek);
+					nauwkeurigheid sin = sin(hoek);
+					draaiM[0][0] = cos;
+					draaiM[0][1] = -sin;
+					draaiM[1][0] = sin;
+					draaiM[1][1] = cos;
+					return draaiM;
+				}
+
+				unittest {
+					import std.math : PI, PI_2;
+
+					Mat!4 draai = Mat!(4).draaiMz(0);
+					Mat!4 draai2 = Mat!4(1);
+					assert(draai == draai2);
+
+					draai = Mat!(4).draaiMz(PI_2);
+					draai2[0][0] = 0;
+					draai2[0][1] = -1;
+					draai2[1][0] = 1;
+					draai2[1][1] = 0;
+					float delta = 1e-5;
+					float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+
+					draai = Mat!(4).draaiMz(PI);
+					draai2 = Mat!4(1);
+					draai2[0][0] = -1;
+					draai2[1][1] = -1;
+					verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
+					assert(verschil < delta);
+				}
+			}
+		}
 	}
 
 	auto getransponeerde() const {
@@ -181,121 +304,6 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			static foreach (j; 0 .. kolom_aantal)
 				resultaat.mat[j][i] = this.mat[i][j];
 		return resultaat;
-	}
-
-	static {
-		Mat!(4, 4, nauwkeurigheid) draaiMx(nauwkeurigheid hoek) {
-			Mat!(4, 4, nauwkeurigheid) draaiM;
-			nauwkeurigheid cos = cos(hoek);
-			nauwkeurigheid sin = sin(hoek);
-			draaiM[0][0] = 1;
-			draaiM[1][1] = cos;
-			draaiM[1][2] = -sin;
-			draaiM[2][1] = sin;
-			draaiM[2][2] = cos;
-			draaiM[3][3] = 1;
-			return draaiM;
-		}
-
-		unittest {
-			import std.math : PI, PI_2;
-
-			Mat!4 draai = Mat!(4).draaiMx(0);
-			Mat!4 draai2 = Mat!4(1);
-			assert(draai.isOngeveer(draai2));
-
-			draai = Mat!(4).draaiMx(PI_2);
-			draai2 = Mat!4();
-			draai2[0][0] = 1;
-			draai2[1][2] = -1;
-			draai2[2][1] = 1;
-			draai2[3][3] = 1;
-			float delta = 1e-5;
-			float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-
-			draai = Mat!(4).draaiMx(PI);
-			draai2 = Mat!4(1);
-			draai2[1][1] = -1;
-			draai2[2][2] = -1;
-			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-		}
-
-		Mat!(4, 4, nauwkeurigheid) draaiMy(nauwkeurigheid hoek) {
-			auto draaiM = Mat!(4, 4, nauwkeurigheid)(1);
-			nauwkeurigheid cos = cos(hoek);
-			nauwkeurigheid sin = sin(hoek);
-			draaiM[0][0] = cos;
-			draaiM[0][2] = sin;
-			draaiM[1][1] = 1;
-			draaiM[2][0] = -sin;
-			draaiM[2][2] = cos;
-			draaiM[3][3] = 1;
-			return draaiM;
-		}
-
-		unittest {
-			import std.math : PI, PI_2;
-
-			Mat!4 draai = Mat!(4).draaiMy(0);
-			Mat!4 draai2 = Mat!4(1);
-			assert(draai == draai2);
-
-			draai = Mat!(4).draaiMy(PI_2);
-			draai2 = Mat!4();
-			draai2[0][2] = 1;
-			draai2[1][1] = 1;
-			draai2[2][0] = -1;
-			draai2[3][3] = 1;
-			float delta = 1e-5;
-			float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-
-			draai = Mat!(4).draaiMy(PI);
-			draai2 = Mat!4(1);
-			draai2[0][0] = -1;
-			draai2[2][2] = -1;
-			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-		}
-
-		Mat!(4, 4, nauwkeurigheid) draaiMz(nauwkeurigheid hoek) {
-			auto draaiM = Mat!(4, 4, nauwkeurigheid)(1);
-			nauwkeurigheid cos = cos(hoek);
-			nauwkeurigheid sin = sin(hoek);
-			draaiM[0][0] = cos;
-			draaiM[0][1] = -sin;
-			draaiM[1][0] = sin;
-			draaiM[1][1] = cos;
-			draaiM[2][2] = 1;
-			draaiM[3][3] = 1;
-			return draaiM;
-		}
-
-		unittest {
-			import std.math : PI, PI_2;
-
-			Mat!4 draai = Mat!(4).draaiMz(0);
-			Mat!4 draai2 = Mat!4(1);
-			assert(draai == draai2);
-
-			draai = Mat!(4).draaiMz(PI_2);
-			draai2[0][0] = 0;
-			draai2[0][1] = -1;
-			draai2[1][0] = 1;
-			draai2[1][1] = 0;
-			float delta = 1e-5;
-			float verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-
-			draai = Mat!(4).draaiMz(PI);
-			draai2 = Mat!4(1);
-			draai2[0][0] = -1;
-			draai2[1][1] = -1;
-			verschil = (draai.elk(&abs!(float)) - draai2.elk(&abs!(float))).som();
-			assert(verschil < delta);
-		}
 	}
 
 	static if (isVec) {

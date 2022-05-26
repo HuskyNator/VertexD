@@ -1,6 +1,9 @@
 module hoekjed.wereld.voorwerp;
 
-import hoekjed;
+import hoekjed.kern.wiskunde;
+import hoekjed.driehoeksnet.driehoeksnet;
+import hoekjed.wereld.wereld;
+import hoekjed.overig;
 import std.datetime : Duration;
 
 struct Houding {
@@ -10,11 +13,17 @@ struct Houding {
 }
 
 class Voorwerp {
+	interface Eigenschap {
+		void werkBij(Wereld wereld, Voorwerp ouder);
+	}
+
 	string naam;
 	Voorwerp ouder;
 	Voorwerp[] kinderen = [];
 	Houding houding;
 	Driehoeksnet[] driehoeksnetten;
+
+	Eigenschap[] eigenschappen = [];
 
 	Mat!4 eigenMatrix = Mat!4(1);
 	Mat!4 voorwerpMatrix = Mat!4(1);
@@ -57,7 +66,7 @@ class Voorwerp {
 
 	void teken() {
 		foreach (Driehoeksnet net; driehoeksnetten) {
-			net.verver.zetUniform("kleur", net.materiaal.pbr.kleur);
+			net.verver.zetUniform("u_kleur", net.materiaal.pbr.kleur);
 			net.teken(this);
 		}
 		foreach (Voorwerp kind; kinderen)
@@ -89,19 +98,22 @@ class Voorwerp {
 		eigenMatrix[2][3] = houding.plek.z;
 	}
 
-	void werkMatrixBij(bool ouderAangepast) {
+	void werkBij(Wereld wereld, bool ouderAangepast) {
 		assert(!(ouderAangepast && ouder is null));
 		bool werkBij = aangepast || ouderAangepast;
 
-		if (aangepast) {
+		if (aangepast)
 			werkEigenMatrixBij();
-			aangepast = false;
-		}
-		if (werkBij)
+		if (werkBij) {
 			voorwerpMatrix = (ouder is null) ? eigenMatrix : ouder.voorwerpMatrix.maal(eigenMatrix);
+			foreach (Voorwerp.Eigenschap e; eigenschappen)
+				e.werkBij(wereld, this);
+		}
 
 		foreach (Voorwerp kind; kinderen)
-			kind.werkMatrixBij(werkBij);
+			kind.werkBij(wereld, werkBij);
+
+		aangepast = false;
 	}
 
 	public void voegKind(Voorwerp kind)

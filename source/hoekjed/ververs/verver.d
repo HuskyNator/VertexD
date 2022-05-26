@@ -1,10 +1,12 @@
 module hoekjed.ververs.verver;
 
 import bindbc.opengl;
-import hoekjed;
+import hoekjed.driehoeksnet.buffer;
+import hoekjed.kern.wiskunde;
+import hoekjed.ververs.deel_verver;
 import std.array : replace;
 import std.conv : to;
-import std.stdio : writeln;
+import std.stdio;
 
 class VerverFout : Exception {
 	this(string melding) {
@@ -17,7 +19,18 @@ class Verver {
 		string hoekV, snipperV;
 	}
 
-	public static Verver[BronPaar] ververs;
+	static this() {
+		vervangers["nauwkeurigheid"] = nauwkeurigheid.stringof;
+		static if (is(nauwkeurigheid == double)) {
+			static foreach (i; 2 .. 4) {
+				vervangers["vec" ~ i.stringof] = " dvec" ~ i.stringof;
+				vervangers["mat" ~ i.stringof] = " dmat" ~ i.stringof;
+			}
+		}
+	}
+
+	static string[string] vervangers; // zie DeelVerver#this(bestand)
+	static Verver[BronPaar] ververs;
 	static Verver huidig = null;
 
 	HoekVerver hoekV;
@@ -32,7 +45,7 @@ class Verver {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
 			voorbeeld = Verver.laad(kleur_hoekverver, kleur_snipperverver);
-		voorbeeld.zetUniform("kleur", plaatsvervangerkleur);
+		voorbeeld.zetUniform("u_kleur", plaatsvervangerkleur);
 		return voorbeeld;
 	}
 
@@ -72,8 +85,10 @@ class Verver {
 	}
 
 	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
-	public static Verver laad(string hoekV, string snipperV) {
+	public static Verver laad(string hoekV, string snipperV, bool* nieuw = null) {
 		Verver verver = Verver.ververs.get(BronPaar(hoekV, snipperV), null);
+		if (nieuw !is null)
+			*nieuw = verver is null;
 		if (verver is null) {
 			HoekVerver hV = HoekVerver.ververs.get(hoekV, new HoekVerver(hoekV));
 			SnipperVerver sV = SnipperVerver.ververs.get(snipperV, new SnipperVerver(snipperV));
@@ -81,10 +96,6 @@ class Verver {
 			Verver.ververs[BronPaar(hoekV, snipperV)] = verver;
 		}
 		return verver;
-	}
-
-	void zetUniform(Voorwerp voorwerp) {
-		this.zetUniform("voorwerpM", voorwerp.voorwerpMatrix);
 	}
 
 	static void zetUniformBuffer(int index, Buffer buffer) {
@@ -150,7 +161,7 @@ class Verver {
 	}
 
 	private void foutmelding_ontbrekende_uniform(string naam) {
-		stderr.writeln(
+		writeln(
 			"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
 				~ " niet vinden.\n" ~ krijg_foutmelding());
 	}

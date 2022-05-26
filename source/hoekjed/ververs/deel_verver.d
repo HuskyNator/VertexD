@@ -2,7 +2,7 @@ module hoekjed.ververs.deel_verver;
 import bindbc.opengl;
 import hoekjed.kern.wiskunde : nauwkeurigheid;
 import hoekjed.ververs;
-import std.array : replace;
+import std.regex;
 import std.conv : to;
 import std.stdio : writeln;
 
@@ -32,11 +32,12 @@ class DeelVerver(uint soort) {
 			bron = readText(bestand);
 		else // Gegeven bestand is verfinhoud.
 			bron = bestand;
-		bron = bron.replace("nauwkeurigheid", nauwkeurigheid.stringof);
-		static if (is(nauwkeurigheid == double)) {
-			bron = bron.replace(" vec", " dvec");
-			bron = bron.replace(" mat", " dmat");
+
+		foreach (v; Verver.vervangers.byKeyValue()) {
+			bron = replaceAll(bron, regex(`(?<!\w)`~v.key~`(?!\w)`), v.value);
 		}
+		writeln(bron);
+
 		auto p = bron.ptr;
 		glShaderSource(verwijzing, 1, &p, null);
 		glCompileShader(verwijzing);
