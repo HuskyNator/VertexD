@@ -1,41 +1,39 @@
 module hoekjed.wereld.zicht;
 
-import hoekjed.wereld;
-import hoekjed.kern;
-import std.math : tan;
-import hoekjed.ververs.verver;
 import hoekjed.driehoeksnet.buffer;
+import hoekjed.kern;
+import hoekjed.ververs.verver;
+import hoekjed.wereld;
+import std.math : tan;
 
-class Zicht {
-	union {
-		struct ZichtUniform {
-			Mat!4 projectieM = Mat!4(1);
-			Mat!4 zichtM = Mat!4(1);
-			Vec!3 plek = Vec!3(0);
-		}
-
-		ZichtUniform zichtUniform;
-		ubyte[ZichtUniform.sizeof] ubytes;
+class Zicht : Voorwerp.Eigenschap {
+	struct ZichtS {
+		Mat!4 projectieM = Mat!4(1);
+		Mat!4 zichtM = Mat!4(1);
+		Vec!3 plek = Vec!3(0);
 	}
 
-	alias zichtUniform this;
-	Buffer uniformBuffer;
+	static Buffer uniformBuffer;
 
-	string naam;
-	Voorwerp ouder;
+	ZichtS zichtS;
+	alias zichtS this;
 
-	this(string naam, Mat!4 projectieM, Voorwerp ouder) {
-		this.naam = naam;
+	this(Mat!4 projectieM) {
 		this.projectieM = projectieM;
-		this.ouder = ouder;
+
+		if (uniformBuffer is null) {
+			uniformBuffer = new Buffer(&zichtS, zichtS.sizeof, true);
+			Verver.zetUniformBuffer(0, uniformBuffer);
+		}
+	}
+
+	void werkBij(Wereld wereld, Voorwerp ouder) {
+		this.plek = Vec!3(ouder.voorwerpMatrix.kol(3)[0 .. 3]);
+		this.zichtM = ouder.voorwerpMatrix.inverse();
 	}
 
 	void gebruik() {
-		if (uniformBuffer is null) {
-			uniformBuffer = new Buffer(ubytes, true);
-			Verver.zetUniformBuffer(0, uniformBuffer);
-		} else
-			uniformBuffer.zetInhoud(ubytes);
+		uniformBuffer.zetInhoud(&zichtS, zichtS.sizeof);
 	}
 
 	static Mat!4 perspectiefProjectie(
@@ -55,11 +53,5 @@ class Zicht {
 			[0.0, 0.0, z, y],
 			[0.0, 0.0, -1.0, 0.0]
 		]);
-	}
-
-	void werkBij()
-	in (ouder !is null) {
-		this.plek = Vec!3(ouder.voorwerpMatrix.maal(Vec!4([0, 0, 0, 1]))[0 .. 3]);
-		this.zichtM = ouder.voorwerpMatrix.inverse();
 	}
 }

@@ -1,19 +1,22 @@
 module hoekjed.wereld.wereld;
 
-import hoekjed;
 import std.datetime : Duration;
+import hoekjed.wereld.licht;
+import hoekjed.wereld.voorwerp;
+import hoekjed.wereld.zicht;
 
 class Wereld {
-	string naam;
-	Voorwerp[] kinderen;
-	Zicht zicht;
-	Verver verver;
 	static Wereld[] werelden;
+
+	string naam;
+	Voorwerp[] kinderen = [];
+	Zicht zicht;
+	LichtVerzameling lichtVerzameling;
 
 	this(string naam) {
 		this.naam = naam;
 		werelden ~= this;
-		verver=Gltf.standaard_verver;
+		lichtVerzameling = new LichtVerzameling();
 	}
 
 	public void teken() {
@@ -27,9 +30,8 @@ class Wereld {
 			kind.denkStap(deltaT);
 	}
 
-	public void werkMatricesBij() {
+	public void werkBij() {
 		foreach (Voorwerp kind; kinderen)
-			kind.werkMatrixBij(false);
-		zicht.werkBij();
+			kind.werkBij(this, false);
 	}
 }

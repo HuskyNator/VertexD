@@ -1,11 +1,15 @@
 module hoekjed.invoer.gltf_lezer;
 
+import bindbc.opengl;
 import hoekjed;
+import hoekjed.invoer.gltf;
 import std.algorithm.searching : countUntil;
 import std.array : array;
 import std.conv : to;
 import std.exception : enforce;
-import hoekjed.invoer.gltf;
+import std.file : readText;
+import std.math : PI_4;
+import std.path : dirName;
 
 class GltfLezer {
 	Json json;
@@ -17,8 +21,8 @@ class GltfLezer {
 	Licht[] lichten;
 
 	Buffer[] buffers;
-	Koppeling[] koppelingen;
-	Eigenschap[] eigenschappen;
+	Driehoeksnet.Koppeling[] koppelingen;
+	Driehoeksnet.Eigenschap[] eigenschappen;
 	Driehoeksnet[][] driehoeksnetten;
 
 	Zicht[] zichten;
@@ -26,10 +30,11 @@ class GltfLezer {
 	private ulong[] gezochte_tussensprongen;
 
 	this(string bestand) {
+		string dir = dirName(bestand);
 		this.json = JsonLezer.leesJsonBestand(bestand);
 		enforce(json["asset"].voorwerp["version"].string_ == "2.0");
 
-		leesBuffers();
+		leesBuffers(dir);
 		leesKoppelingen();
 		leesEigenschappen();
 		zoekTussensprongen();
@@ -58,8 +63,22 @@ class GltfLezer {
 		string naam = wereld_json["name"].string_;
 		Wereld wereld = new Wereld(naam);
 		JsonVal[] kinderen = wereld_json["nodes"].lijst;
-		foreach (JsonVal kind; kinderen)
-			wereld.kinderen ~= voorwerpen[kind.long_];
+
+		void voegEigenschappenToe(Voorwerp v) {
+			foreach (Voorwerp.Eigenschap e; v.eigenschappen) {
+				if (Licht l = cast(Licht) e) {
+					wereld.lichtVerzameling += l;
+				}
+			}
+			foreach (Voorwerp kind; v.kinderen)
+				voegEigenschappenToe(kind);
+		}
+
+		foreach (JsonVal kind; kinderen) {
+			Voorwerp v = voorwerpen[kind.long_];
+			wereld.kinderen ~= v;
+			voegEigenschappenToe(v);
+		}
 		return wereld;
 	}
 
@@ -82,8 +101,14 @@ class GltfLezer {
 
 		if (JsonVal* j = "camera" in voorwerp_json) {
 			long z = j.long_;
-			zichten[z].ouder = voorwerp;
+			voorwerp.eigenschappen ~= zichten[z];
 		}
+
+		if (JsonVal* e = "extensions" in voorwerp_json)
+			if (JsonVal* el = "KHR_lights_punctual" in e.voorwerp) {
+				long l = el.voorwerp["light"].long_;
+				voorwerp.eigenschappen ~= lichten[l];
+			}
 
 		if (JsonVal* j = "children" in voorwerp_json)
 			foreach (JsonVal kindj; j.lijst) {
@@ -136,7 +161,7 @@ class GltfLezer {
 			nauwkeurigheid achtervlak = instelling["zfar"].double_;
 
 			Mat!4 projectieM = Zicht.perspectiefProjectie(aspect, xfov, voorvlak, achtervlak);
-			return new Zicht(naam, projectieM, null);
+			return new Zicht(projectieM);
 		} else {
 			enforce(type == "orthographic");
 			assert(0, "Orthografisch zicht nog niet geïmplementeerd.");
@@ -167,7 +192,7 @@ class GltfLezer {
 		enforce("POSITION" in attributen && "NORMAL" in attributen,
 			"Aanwezigheid van POSITION/NORMAL attributen aangenomen.");
 
-		Eigenschap[] net_eigenschappen;
+		Driehoeksnet.Eigenschap[] net_eigenschappen;
 		net_eigenschappen ~= this.eigenschappen[attributen["POSITION"].long_];
 		net_eigenschappen ~= this.eigenschappen[attributen["NORMAL"].long_];
 		for (uint i = 0; 16u; i++) {
@@ -177,9 +202,9 @@ class GltfLezer {
 			net_eigenschappen ~= this.eigenschappen[attributen[s].long_];
 		}
 
-		Koppeling[] net_koppelingen;
+		Driehoeksnet.Koppeling[] net_koppelingen;
 		uint[uint] koppelingen_vertaling;
-		foreach (ref Eigenschap eigenschap; net_eigenschappen) {
+		foreach (ref Driehoeksnet.Eigenschap eigenschap; net_eigenschappen) {
 			uint i = eigenschap.koppeling;
 			if (i !in koppelingen_vertaling) {
 				koppelingen_vertaling[i] = cast(uint) koppelingen_vertaling.length;
@@ -188,14 +213,14 @@ class GltfLezer {
 			eigenschap.koppeling = koppelingen_vertaling[i];
 		}
 
-		Knoopindex knoopindex;
+		Driehoeksnet.Knoopindex knoopindex;
 		if ("indices" !in primitief) {
 			knoopindex.buffer.nullify();
 			knoopindex.knooptal = cast(int) net_eigenschappen[0].elementtal;
 			knoopindex.begin = 0;
 		} else {
-			Eigenschap eigenschap = this.eigenschappen[primitief["indices"].long_];
-			Koppeling koppeling = this.koppelingen[eigenschap.koppeling];
+			Driehoeksnet.Eigenschap eigenschap = this.eigenschappen[primitief["indices"].long_];
+			Driehoeksnet.Koppeling koppeling = this.koppelingen[eigenschap.koppeling];
 
 			knoopindex.buffer = koppeling.buffer;
 			knoopindex.knooptal = cast(int) eigenschap.elementtal;
@@ -247,8 +272,6 @@ class GltfLezer {
 	}
 
 	private Licht leesLicht(Json lj) {
-		import std.math : PI_4;
-
 		string naam = "";
 		Vec!3 kleur = Vec!3(1);
 		nauwkeurigheid sterkte = 1;
@@ -265,14 +288,14 @@ class GltfLezer {
 		string soort = lj["type"].string_;
 		switch (soort) {
 		case "directional":
-			return StraalLicht(naam, kleur, sterkte, rijkweidte);
+			return new Licht(Licht.Soort.STRAAL, kleur, sterkte, rijkweidte);
 		case "point":
-			return PuntLicht(naam, kleur, sterkte, rijkweidte);
+			return new Licht(Licht.Soort.PUNT, kleur, sterkte, rijkweidte);
 		case "spot":
 			Json spotj = lj["spot"].voorwerp;
 			nauwkeurigheid binnenhoek = spotj.get("innerConeAngle", JsonVal(0.0)).double_;
 			nauwkeurigheid buitenhoek = spotj.get("outerConeAngle", JsonVal(PI_4)).double_;
-			return SchijnWerper(naam, kleur, sterkte, rijkweidte, binnenhoek, buitenhoek);
+			return new Licht(Licht.Soort.SCHIJNWERPER, kleur, sterkte, rijkweidte, binnenhoek, buitenhoek);
 		default:
 			assert(0, "Licht soort onbekend: " ~ soort);
 		}
@@ -280,7 +303,7 @@ class GltfLezer {
 
 	private void zoekTussensprongen() {
 		Tussensprong: foreach (ulong i; 0 .. gezochte_tussensprongen.length) {
-			foreach (Eigenschap e; eigenschappen) {
+			foreach (Driehoeksnet.Eigenschap e; eigenschappen) {
 				if (e.koppeling != i)
 					continue;
 				koppelingen[i].tussensprong = cast(int) bepaalTussensprong(e);
@@ -290,15 +313,11 @@ class GltfLezer {
 		}
 	}
 
-	private size_t bepaalTussensprong(Eigenschap e) {
+	private size_t bepaalTussensprong(Driehoeksnet.Eigenschap e) {
 		return e.soorttal * eigenschapSoortGrootte(e.soort);
 	}
 
-	import bindbc.opengl : GLenum;
-
 	private size_t eigenschapSoortGrootte(GLenum soort) {
-		import bindbc.opengl;
-
 		switch (soort) {
 		case GL_UNSIGNED_BYTE:
 			return ubyte.sizeof;
@@ -324,8 +343,6 @@ class GltfLezer {
 	}
 
 	private uint vertaalEigenschapSoort(int soort) {
-		import bindbc.opengl;
-
 		switch (soort) {
 		case 5120:
 			return GL_BYTE;
@@ -365,8 +382,8 @@ class GltfLezer {
 		}
 	}
 
-	private Eigenschap leesEigenschap(Json eigenschap_json) {
-		Eigenschap eigenschap;
+	private Driehoeksnet.Eigenschap leesEigenschap(Json eigenschap_json) {
+		Driehoeksnet.Eigenschap eigenschap;
 		if ("sparse" in eigenschap_json || "bufferView" !in eigenschap_json)
 			assert(0, "Sparse accessor / lege bufferview niet geimplementeerd");
 		eigenschap.koppeling = cast(uint) eigenschap_json["bufferView"].long_;
@@ -384,8 +401,8 @@ class GltfLezer {
 			koppelingen ~= leesKoppeling(koppelingen_json[i].voorwerp, i);
 	}
 
-	private Koppeling leesKoppeling(Json koppeling_json, ulong index) {
-		Koppeling koppeling;
+	private Driehoeksnet.Koppeling leesKoppeling(Json koppeling_json, ulong index) {
+		Driehoeksnet.Koppeling koppeling;
 		koppeling.buffer = cast(uint) buffers[koppeling_json["buffer"].long_].buffer;
 		koppeling.grootte = koppeling_json["byteLength"].long_;
 		koppeling.begin = koppeling_json.get("byteOffset", JsonVal(0L)).long_;
@@ -396,14 +413,14 @@ class GltfLezer {
 		return koppeling;
 	}
 
-	private void leesBuffers() {
+	private void leesBuffers(string dir) {
 		JsonVal[] lijst = json["buffers"].lijst;
 		foreach (JsonVal buffer; lijst) {
-			buffers ~= leesBuffer(buffer.voorwerp);
+			buffers ~= leesBuffer(buffer.voorwerp, dir);
 		}
 	}
 
-	private Buffer leesBuffer(Json buffer) {
+	private Buffer leesBuffer(Json buffer, string dir) {
 		const long grootte = buffer["byteLength"].long_;
 		ubyte[] inhoud = new ubyte[grootte];
 		string uri = buffer["uri"].string_;
@@ -421,7 +438,7 @@ class GltfLezer {
 			import std.uri;
 			import std.file;
 
-			string uri_decoded = decode(uri);
+			string uri_decoded = dir ~ `\` ~ decode(uri);
 			inhoud = cast(ubyte[]) read(uri_decoded);
 		}
 
