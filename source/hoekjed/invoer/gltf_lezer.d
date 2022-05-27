@@ -119,17 +119,14 @@ class GltfLezer {
 
 		Houding houding;
 		if (JsonVal* j = "translation" in voorwerp_json) {
-			JsonVal[] translatie = j.lijst;
-			for (int i = 0; i < 3; i++)
-				houding.plek[i] = translatie[i].double_;
+			houding.plek = j.vec!(3, nauwkeurigheid);
 		}
 		if (JsonVal* j = "rotation" in voorwerp_json) {
-			// TODO Quaternions
+			Vec!4 r = j.vec!(4, nauwkeurigheid);
+			houding.draai = Quat(r.w, r.x, r.y, r.z);
 		}
 		if (JsonVal* j = "scale" in voorwerp_json) {
-			JsonVal[] schaal = j.lijst;
-			for (int i = 0; i < 3; i++)
-				houding.plek[i] = schaal[i].double_;
+			houding.grootte = j.vec!(3, nauwkeurigheid);
 		}
 
 		voorwerp.houding = houding;
