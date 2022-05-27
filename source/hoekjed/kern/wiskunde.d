@@ -4,6 +4,7 @@ import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
 
+alias nauw = nauwkeurigheid;
 version (HoekjeD_Double) {
 	alias nauwkeurigheid = double;
 } else {
@@ -67,6 +68,13 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	else
 		alias mat this;
 
+	void zetKol(uint k, Vec!(rij_aantal, Soort) kol) {
+		assert(k < rij_aantal);
+		foreach (i; 0 .. rij_aantal) {
+			this.mat[k][i] = kol[i];
+		}
+	}
+
 	Vec!rij_aantal kol(uint i) {
 		Vec!rij_aantal k;
 		foreach (r; 0 .. rij_aantal) {
@@ -75,8 +83,8 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 		return k;
 	}
 
-	Mat!(1, kolom_aantal) rij(uint i) {
-		return Mat!(1, kolom_aantal)([mat[i]]);
+	Mat!(1, kolom_aantal, Soort) rij(uint i) {
+		return Mat!(1, kolom_aantal, Soort)([mat[i]]);
 	}
 
 	static if (isVierkant) {
@@ -311,7 +319,7 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 			Mat!(rij_aantal, 1, T), T)(const R rechts) const {
 			Resultaat resultaat = 0;
 			static foreach (i; 0 .. grootte)
-				resultaat.vec[i] += this.vec[i] * rechts.vec[i];
+				resultaat += this.vec[i] * rechts.vec[i];
 			return resultaat;
 		}
 
@@ -355,6 +363,10 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	auto maal(T)(const T[kolom_aantal] rechts) const
 	if (is(Resultaat!(Soort, "*", T))) {
 		return maal!(T, 1)(cast(T[1][kolom_aantal]) rechts);
+	}
+
+	MatSoort opUnary(string op)() const if (op == "-") {
+		return this * cast(Soort)-1.0;
 	}
 
 	auto opBinary(string op, R)(const R rechts) const if (op == "^") {
