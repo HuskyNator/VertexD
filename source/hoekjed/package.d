@@ -2,7 +2,9 @@ module hoekjed;
 
 public {
 	import hoekjed.kern;
-	import hoekjed.dingen;
-	import hoekjed.opengl;
+	import hoekjed.wereld;
+	import hoekjed.driehoeksnet;
 	import hoekjed.overig;
+	import hoekjed.invoer;
+	import hoekjed.ververs;
 }
