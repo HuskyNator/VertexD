@@ -2,9 +2,11 @@ module hoekjed.kern.kern;
 import bindbc.glfw;
 import core.sys.windows.windows;
 import hoekjed.kern;
+import hoekjed.wereld;
 import std.conv : to;
-import std.stdio : writefln;
 import std.datetime.stopwatch;
+import std.stdio : writefln;
+import std.stdio;
 
 private extern (C) void glfw_foutterugroep(int soort, const char* beschrijving) nothrow {
 	try {
@@ -50,25 +52,26 @@ public Duration hdTijd() {
 }
 
 public void hdStap() {
+	static Duration oudeT = Duration.zero();
 	_hdStaptal += 1;
+	Duration nieuweT = hdTijd();
+	Duration deltaT = nieuweT - oudeT;
+	oudeT = nieuweT;
 
 	foreach (Venster venster; Venster.vensters.values)
 		venster.verwerkInvoer();
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.denkWereld();
+		wereld.denkStap(deltaT);
 
 	foreach (Wereld wereld; Wereld.werelden)
-		wereld.werkWereldBij();
-
-	import std.stdio;
+		wereld.werkBij();
 
 	foreach (Venster venster; Venster.vensters.values) {
 		GLFWwindow* glfw_venster = venster.glfw_venster;
 		if (glfwWindowShouldClose(venster.glfw_venster)) {
 			glfwDestroyWindow(glfw_venster);
 			Venster.vensters.remove(glfw_venster);
-			//PAS OP: mogelijke nullpointers wanneer werelden of voorwerpen dit venster gebruiken.
 		} else
 			venster.teken();
 	}

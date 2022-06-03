@@ -1,8 +1,14 @@
-module hoekjed.kern.verver;
+module hoekjed.ververs.verver;
+
 import bindbc.opengl;
-import hoekjed.kern;
+import hoekjed.driehoeksnet.buffer;
+import hoekjed.kern.wiskunde;
+import hoekjed.ververs.deel_verver;
 import std.array : replace;
-import std.conv;
+import std.conv : to;
+import std.regex;
+import std.stdio;
+import std.traits : isInstanceOf;
 
 class VerverFout : Exception {
 	this(string melding) {
@@ -15,22 +21,33 @@ class Verver {
 		string hoekV, snipperV;
 	}
 
-	public static Verver[BronPaar] ververs;
+	static this() {
+		vervangers["nauwkeurigheid"] = nauwkeurigheid.stringof;
+		static if (is(nauwkeurigheid == double)) {
+			static foreach (i; 2 .. 4) {
+				vervangers["vec" ~ i.stringof] = " dvec" ~ i.stringof;
+				vervangers["mat" ~ i.stringof] = " dmat" ~ i.stringof;
+			}
+		}
+	}
+
+	static string[string] vervangers; // zie DeelVerver#this(bestand)
+	static Verver[BronPaar] ververs;
 	static Verver huidig = null;
 
 	HoekVerver hoekV;
 	SnipperVerver snipperV;
 	protected uint verwijzing;
 
-	public static immutable Vec!4 plaatsvervangerkleur = {
+	public static immutable Vec!4 plaatsvervangerkleur = Vec!4(
 		[250.0 / 255.0, 176.0 / 255.0, 22.0 / 255.0, 1]
-	};
+	);
 
 	@property public static Verver plaatsvervanger() {
 		static Verver voorbeeld;
 		if (voorbeeld is null)
 			voorbeeld = Verver.laad(kleur_hoekverver, kleur_snipperverver);
-		voorbeeld.zetUniform("kleur", plaatsvervangerkleur);
+		voorbeeld.zetUniform("u_kleur", plaatsvervangerkleur);
 		return voorbeeld;
 	}
 
@@ -41,13 +58,15 @@ class Verver {
 		huidig = this;
 	}
 
-	private this() {
-	}
+	@disable this();
 
 	private this(HoekVerver hoekV, SnipperVerver snipperV) {
 		this.hoekV = hoekV;
 		this.snipperV = snipperV;
 		this.verwijzing = glCreateProgram();
+		writeln("Verver aangemaakt: " ~ verwijzing.to!string ~
+				" (" ~ hoekV.verwijzing.to!string ~ "," ~ snipperV.verwijzing.to!string ~ ")");
+
 		glAttachShader(verwijzing, hoekV.verwijzing);
 		glAttachShader(verwijzing, snipperV.verwijzing);
 		glLinkProgram(verwijzing);
@@ -59,9 +78,34 @@ class Verver {
 				"Kon Verver " ~ verwijzing.to!string ~ " niet samenstellen:\n" ~ krijg_foutmelding());
 	}
 
+	~this() {
+		import core.stdc.stdio : printf;
+
+		glDeleteProgram(verwijzing);
+		printf("Verver verwijderd: %u (%u, %u)\n", verwijzing, hoekV.verwijzing, snipperV
+				.verwijzing);
+	}
+
+	/// Vervangt plaatshouders met plaatsvervangers.
+	public static string vervang(const string bron, const string[string] vervangers = null) {
+		string bron2 = bron.dup;
+		if (vervangers !is null)
+			foreach (v; vervangers.byKeyValue())
+				bron2 = replaceAll(bron2, regex(`(?<!\w)` ~ v.key ~ `(?!\w)`), v.value);
+		foreach (v; Verver.vervangers.byKeyValue())
+			bron2 = replaceAll(bron2, regex(`(?<!\w)` ~ v.key ~ `(?!\w)`), v.value);
+		return bron2;
+	}
+
 	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
-	public static Verver laad(string hoekV, string snipperV) {
+	public static Verver laad(string hoekV, string snipperV, string[string] vervangers = null, bool* nieuw = null) {
+		// Vervang plaatshouders
+		hoekV = vervang(hoekV, vervangers);
+		snipperV = vervang(snipperV, vervangers);
+
 		Verver verver = Verver.ververs.get(BronPaar(hoekV, snipperV), null);
+		if (nieuw !is null)
+			*nieuw = verver is null;
 		if (verver is null) {
 			HoekVerver hV = HoekVerver.ververs.get(hoekV, new HoekVerver(hoekV));
 			SnipperVerver sV = SnipperVerver.ververs.get(snipperV, new SnipperVerver(snipperV));
@@ -71,9 +115,19 @@ class Verver {
 		return verver;
 	}
 
-	void zetUniform(Zicht zicht) {
-		this.zetUniform("projectieM", zicht.projectieM);
-		this.zetUniform("zichtM", zicht.zichtM);
+	static void zetUniformBuffer(int index, Buffer buffer) {
+		glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer.buffer);
+	}
+
+	void zetUniform(V)(string naam, V waarde) if (!isInstanceOf!(Mat, V)) {
+		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1)
+			return foutmelding_ontbrekende_uniform(naam);
+
+		enum string soort = is(V == uint) ? "ui" : (is(V == int)
+					? "i" : (is(V == float) ? "f" : (is(V == double) ? "d" : "")));
+		static assert(soort != "", "Soort " ~ V ~ " niet ondersteund voor zetUniform.");
+		mixin("glProgramUniform1" ~ soort ~ "(verwijzing, uniformplek, waarde);");
 	}
 
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)
@@ -135,9 +189,7 @@ class Verver {
 	}
 
 	private void foutmelding_ontbrekende_uniform(string naam) {
-		import std.stdio;
-
-		stderr.writeln(
+		writeln(
 			"Verver " ~ verwijzing.to!string ~ " kon uniform " ~ naam
 				~ " niet vinden.\n" ~ krijg_foutmelding());
 	}
@@ -151,12 +203,12 @@ layout(location=2)in vec2 h_beeldplek;
 
 uniform mat4 projectieM;
 uniform mat4 zichtM;
-uniform mat4 tekenM;
+uniform mat4 voorwerpM;
 
 out vec4 gl_Position;
 
 void main(){
-	gl_Position = projectieM * zichtM * tekenM * vec4(h_plek, 1.0);
+	gl_Position = projectieM * zichtM * voorwerpM * vec4(h_plek, 1.0);
 }
 `;
 
@@ -171,48 +223,4 @@ void main(){
 	u_kleur = kleur;
 }
 `;
-}
-
-alias HoekVerver = DeelVerver!GL_VERTEX_SHADER;
-alias SnipperVerver = DeelVerver!GL_FRAGMENT_SHADER;
-
-class DeelVerver(uint soort) {
-	protected uint verwijzing;
-
-	static DeelVerver!(soort)[string] ververs;
-
-	private string krijg_foutmelding() {
-		int lengte;
-		glGetShaderiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
-		char[] melding = new char[lengte];
-		glGetShaderInfoLog(this.verwijzing, lengte, null, &melding[0]);
-		return cast(string) melding.idup;
-	}
-
-	this(string bestand) {
-		import std.file : readText, exists;
-
-		this.verwijzing = glCreateShader(soort);
-		string bron;
-		if (exists(bestand)) // Gegeven bestand is een verwijzing naar een bestand met verfinhoud.
-			bron = readText(bestand);
-		else // Gegeven bestand is verfinhoud.
-			bron = bestand;
-		bron = bron.replace("nauwkeurigheid", nauwkeurigheid.stringof);
-		static if (is(nauwkeurigheid == double)) {
-			bron = bron.replace(" vec", " dvec");
-			bron = bron.replace(" mat", " dmat");
-		}
-		auto p = bron.ptr;
-		glShaderSource(verwijzing, 1, &p, null);
-		glCompileShader(verwijzing);
-
-		int volbracht;
-		glGetShaderiv(verwijzing, GL_COMPILE_STATUS, &volbracht);
-		if (volbracht == 0)
-			throw new VerverFout("Kon DeelVerver " ~ verwijzing.to!string ~ " niet bouwen:\n" ~ cast(
-					string) krijg_foutmelding());
-
-		this.ververs[bestand] = this;
-	}
 }
