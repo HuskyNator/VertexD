@@ -10,6 +10,8 @@ import std.exception : enforce;
 import std.file : readText;
 import std.math : PI_4;
 import std.path : dirName;
+import std.stdio;
+import std.typecons : Nullable;
 
 class GltfLezer {
 	Json json;
@@ -18,9 +20,14 @@ class GltfLezer {
 	Voorwerp[] voorwerpen;
 	Materiaal[] materialen;
 
+	Textuur[] texturen;
+	Afbeelding[] afbeeldingen;
+	Sampler[] samplers;
+
 	Licht[] lichten;
 
 	Buffer[] buffers;
+	ubyte[][] buffers_inhoud;
 	Driehoeksnet.Koppeling[] koppelingen;
 	Driehoeksnet.Eigenschap[] eigenschappen;
 	Driehoeksnet[][] driehoeksnetten;
@@ -40,6 +47,10 @@ class GltfLezer {
 		zoekTussensprongen();
 
 		leesLichten(); // KHR_lights_punctual uitbreiding
+
+		leesSamplers();
+		leesAfbeeldingen(dir);
+		leesTextures();
 
 		leesMaterialen();
 		leesDriehoeksnetten();
@@ -185,18 +196,34 @@ class GltfLezer {
 	}
 
 	private Driehoeksnet leesPrimitief(Json primitief, string naam) {
+		Driehoeksnet.Koppeling vertaalKoppeling(Driehoeksnet.Koppeling k) {
+			k.buffer = this.buffers[k.buffer].buffer;
+			return k;
+		}
+
 		Json attributen = primitief["attributes"].voorwerp;
 		enforce("POSITION" in attributen && "NORMAL" in attributen,
 			"Aanwezigheid van POSITION/NORMAL attributen aangenomen.");
 
 		Driehoeksnet.Eigenschap[] net_eigenschappen;
+		string[] net_eigenschap_namen;
 		net_eigenschappen ~= this.eigenschappen[attributen["POSITION"].long_];
 		net_eigenschappen ~= this.eigenschappen[attributen["NORMAL"].long_];
+		net_eigenschap_namen ~= "POSITION";
+		net_eigenschap_namen ~= "NORMAL";
 		for (uint i = 0; 16u; i++) {
 			string s = "TEXCOORD_" ~ i.to!string;
 			if (s !in attributen)
 				break;
 			net_eigenschappen ~= this.eigenschappen[attributen[s].long_];
+			net_eigenschap_namen ~= s;
+		}
+		for (uint i = 0; 16u; i++) {
+			string s = "COLOR_" ~ i.to!string;
+			if (s !in attributen)
+				break;
+			net_eigenschappen ~= this.eigenschappen[attributen[s].long_];
+			net_eigenschap_namen ~= s;
 		}
 
 		Driehoeksnet.Koppeling[] net_koppelingen;
@@ -205,7 +232,7 @@ class GltfLezer {
 			uint i = eigenschap.koppeling;
 			if (i !in koppelingen_vertaling) {
 				koppelingen_vertaling[i] = cast(uint) koppelingen_vertaling.length;
-				net_koppelingen ~= this.koppelingen[i];
+				net_koppelingen ~= vertaalKoppeling(this.koppelingen[i]);
 			}
 			eigenschap.koppeling = koppelingen_vertaling[i];
 		}
@@ -217,7 +244,8 @@ class GltfLezer {
 			knoopindex.begin = 0;
 		} else {
 			Driehoeksnet.Eigenschap eigenschap = this.eigenschappen[primitief["indices"].long_];
-			Driehoeksnet.Koppeling koppeling = this.koppelingen[eigenschap.koppeling];
+			Driehoeksnet.Koppeling koppeling = vertaalKoppeling(
+				this.koppelingen[eigenschap.koppeling]);
 
 			knoopindex.buffer = koppeling.buffer;
 			knoopindex.knooptal = cast(int) eigenschap.elementtal;
@@ -229,34 +257,186 @@ class GltfLezer {
 		if (JsonVal* j = "material" in primitief)
 			materiaal = this.materialen[j.long_];
 
-		return new Driehoeksnet(naam, net_eigenschappen, net_koppelingen, knoopindex, Gltf.standaard_verver, materiaal);
+		Verver verver = Gltf.genereerVerver(net_eigenschappen, net_eigenschap_namen, materiaal);
+
+		return new Driehoeksnet(naam, net_eigenschappen, net_koppelingen, knoopindex, verver, materiaal);
+	}
+
+	private void leesSamplers() {
+		if (JsonVal* ss_json = "samplers" in json) {
+			JsonVal[] ss = ss_json.lijst;
+			samplers = new Sampler[ss.length + 1];
+			foreach (long i; 0 .. ss.length)
+				samplers[i] = leesSampler(ss[i].voorwerp);
+		}
+	}
+
+	private Sampler leesSampler(Json s_json) {
+		uint minFilter = GL_NEAREST_MIPMAP_LINEAR;
+		uint magFilter = GL_NEAREST;
+		if (JsonVal* j = "minFilter" in s_json)
+			minFilter = gltfNaarGlFilter(j.long_, true);
+		if (JsonVal* j = "magFilter" in s_json)
+			magFilter = gltfNaarGlFilter(j.long_, false);
+
+		uint wrapS = gltfNaarGlWrap(s_json.get("wrapS", JsonVal(10497)).long_);
+		uint wrapT = gltfNaarGlWrap(s_json.get("wrapT", JsonVal(10497)).long_);
+		string naam = s_json.get("name", JsonVal("")).string_;
+
+		return new Sampler(naam, wrapS, wrapT, minFilter, magFilter);
+	}
+
+	private uint gltfNaarGlWrap(long gltfWrap) {
+		switch (gltfWrap) {
+		case 33071:
+			return GL_CLAMP_TO_EDGE;
+		case 33648:
+			return GL_MIRRORED_REPEAT;
+		case 10497:
+			return GL_REPEAT;
+		default:
+			assert(0, "Onjuiste waarde voor wrapS/T: " ~ gltfWrap.to!string);
+		}
+	}
+
+	private uint gltfNaarGlFilter(long gltfFilter, bool isMinFilter) {
+		switch (gltfFilter) {
+		case 9728:
+			return GL_NEAREST;
+		case 9729:
+			return GL_LINEAR;
+		default:
+		}
+		enforce(isMinFilter, "Onjuiste waarde voor magFilter: " ~ gltfFilter.to!string);
+		switch (gltfFilter) {
+		case 9984:
+			return GL_NEAREST_MIPMAP_NEAREST;
+		case 9985:
+			return GL_LINEAR_MIPMAP_NEAREST;
+		case 9986:
+			return GL_NEAREST_MIPMAP_LINEAR;
+		case 9987:
+			return GL_LINEAR_MIPMAP_LINEAR;
+		default:
+			assert(0, "Onjuiste waarde voor minFilter: " ~ gltfFilter.to!string);
+		}
+	}
+
+	private void leesAfbeeldingen(string dir) {
+		if (JsonVal* j = "images" in json)
+			foreach (JsonVal a_json; j.lijst)
+				afbeeldingen ~= leesAfbeelding(a_json.voorwerp, dir);
+	}
+
+	private Afbeelding leesAfbeelding(Json a_json, string dir) {
+		ubyte[] inhoud;
+		if (JsonVal* uri_json = "uri" in a_json) {
+			assert("bufferView" !in a_json);
+			inhoud = leesURI(uri_json.string_, dir);
+		} else {
+			inhoud = leesKoppelingInhoud(cast(uint) a_json["bufferView"].long_);
+		}
+		string naam = a_json.get("name", JsonVal("")).string_;
+		return new Afbeelding(inhoud, naam);
+	}
+
+	private void leesTextures() {
+		if (JsonVal* ts_json = "textures" in json) {
+			JsonVal[] ts = ts_json.lijst;
+			texturen = new Textuur[ts.length];
+			foreach (long i; 0 .. ts.length) {
+				Json t_json = ts[i].voorwerp;
+				Textuur t;
+				t.naam = t_json.get("sampler", JsonVal("")).string_;
+				if (JsonVal* s = "sampler" in t_json)
+					t.sampler = samplers[s.long_];
+				else
+					t.sampler = samplers[$ - 1];
+				assert("source" in t_json, "Textuur heeft geen afbeelding");
+				t.afbeelding = afbeeldingen[t_json["source"].long_];
+				texturen[i] = t;
+			}
+		}
 	}
 
 	private void leesMaterialen() {
 		if (JsonVal* j = "materials" in json)
-			foreach (JsonVal m_json; j.lijst) {
+			foreach (JsonVal m_json; j.lijst)
 				materialen ~= leesMateriaal(m_json.voorwerp);
-			}
+	}
+
+	private TextuurInfo leesTextuurInfo(Json ti_json) {
+		TextuurInfo ti;
+		ti.textuur = texturen[ti_json["index"].long_];
+		ti.beeldplek = cast(uint) ti_json.get("texCoord", JsonVal(0)).long_;
+		return ti;
+	}
+
+	private NormaalTextuurInfo leesNormaalTextuurInfo(Json ti_json) {
+		NormaalTextuurInfo ti;
+		ti.textuurInfo = leesTextuurInfo(ti_json);
+		ti.normaal_schaal = cast(nauw) ti_json.get("scale", JsonVal(1.0)).double_;
+		return ti;
+	}
+
+	private OcclusionTextuurInfo leesOcclusionTextuurInfo(Json ti_json) {
+		OcclusionTextuurInfo ti;
+		ti.textuurInfo = leesTextuurInfo(ti_json);
+		ti.occlusion_sterkte = cast(nauw) ti_json.get("strength", JsonVal(1.0)).double_;
+		return ti;
 	}
 
 	private Materiaal leesMateriaal(Json m_json) {
-		Materiaal materiaal;
+		Materiaal.AlphaGedrag vertaalAlphaGedrag(string gedrag) {
+			switch (gedrag) {
+			case "OPAQUE":
+				return Materiaal.AlphaGedrag.ONDOORZICHTIG;
+			case "MASK":
+				return Materiaal.AlphaGedrag.MASKER;
+			case "BLEND":
+				return Materiaal.AlphaGedrag.MENGEN;
+			default:
+				assert(0, "Ongeldig alphagedrag: " ~ gedrag);
+			}
+		}
+
+		Materiaal materiaal = Gltf.standaard_materiaal;
 		materiaal.naam = m_json.get("name", JsonVal("")).string_;
 
-		PBR pbr = Gltf.standaard_pbr;
-		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json) {
-			Json pbr_j = pbr_jval.voorwerp;
-			if (JsonVal* j = "baseColorFactor" in pbr_j)
-				pbr.kleur = j.vec!(4, nauwkeurigheid);
-			if (JsonVal* j = "metallicFactor" in pbr_j)
-				pbr.metaal = j.double_;
-			if (JsonVal* j = "roughnessFactor" in pbr_j)
-				pbr.ruwheid = j.double_;
-		}
-		materiaal.pbr = pbr;
+		materiaal.pbr = Gltf.standaard_pbr;
+		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json)
+			materiaal.pbr = leesPBR(pbr_jval.voorwerp);
 
-		// TODO Rest van materiaal
+		if (JsonVal* j = "normalTexture" in m_json)
+			materiaal.normaal_textuur = leesNormaalTextuurInfo(j.voorwerp);
+		if (JsonVal* j = "occlusionTexture" in m_json)
+			materiaal.occlusion_textuur = leesOcclusionTextuurInfo(j.voorwerp);
+		if (JsonVal* j = "emissiveTexture" in m_json)
+			materiaal.straling_textuur = leesTextuurInfo(j.voorwerp);
+		if (JsonVal* j = "emissiveFactor" in m_json)
+			materiaal.straling_factor = j.vec!(3, nauw);
+		if (JsonVal* j = "alphaMode" in m_json)
+			materiaal.alpha_gedrag = vertaalAlphaGedrag(j.string_);
+		if (JsonVal* j = "alphaCutoff" in m_json)
+			materiaal.alpha_scheiding = cast(nauw) j.double_;
+		if (JsonVal* j = "doubleSided" in m_json)
+			materiaal.tweezijdig = j.bool_;
 		return materiaal;
+	}
+
+	private PBR leesPBR(Json pbr_j) {
+		PBR pbr = Gltf.standaard_pbr;
+		if (JsonVal* j = "baseColorFactor" in pbr_j)
+			pbr.kleur_factor = j.vec!(4, nauwkeurigheid);
+		if (JsonVal* j = "baseColorTexture" in pbr_j)
+			pbr.kleur_textuur = leesTextuurInfo(j.voorwerp);
+		if (JsonVal* j = "metallicFactor" in pbr_j)
+			pbr.metaal = j.double_;
+		if (JsonVal* j = "roughnessFactor" in pbr_j)
+			pbr.ruwheid = j.double_;
+		if (JsonVal* j = "metallicRoughnessTexture" in pbr_j)
+			pbr.metaal_ruwheid_textuur = leesTextuurInfo(j.voorwerp);
+		return pbr;
 	}
 
 	private void leesLichten() {
@@ -306,7 +486,9 @@ class GltfLezer {
 				koppelingen[i].tussensprong = cast(int) bepaalTussensprong(e);
 				continue Tussensprong;
 			}
-			assert(0, "Kon geen accessor vinden om tussensprong van koppeling#" ~ i.to!string ~ " te vinden.");
+			koppelingen[i].tussensprong = 0;
+			writeln(
+				"Kon geen accessor vinden om tussensprong van koppeling#" ~ i.to!string ~ " te vinden.");
 		}
 	}
 
@@ -384,8 +566,10 @@ class GltfLezer {
 		if ("sparse" in eigenschap_json || "bufferView" !in eigenschap_json)
 			assert(0, "Sparse accessor / lege bufferview niet geimplementeerd");
 		eigenschap.koppeling = cast(uint) eigenschap_json["bufferView"].long_;
-		eigenschap.soort = vertaalEigenschapSoort(cast(int) eigenschap_json["componentType"].long_);
+		eigenschap.soort = vertaalEigenschapSoort(
+			cast(int) eigenschap_json["componentType"].long_);
 		eigenschap.soorttal = vertaalEigenschapSoorttal(eigenschap_json["type"].string_);
+		eigenschap.matrix = (eigenschap_json["type"].string_[0 .. 3] == "MAT");
 		eigenschap.genormaliseerd = eigenschap_json.get("normalized", JsonVal(false)).bool_;
 		eigenschap.elementtal = eigenschap_json["count"].long_;
 		eigenschap.begin = cast(uint) eigenschap_json.get("byteOffset", JsonVal(0L)).long_;
@@ -394,34 +578,40 @@ class GltfLezer {
 
 	private void leesKoppelingen() {
 		JsonVal[] koppelingen_json = json["bufferViews"].lijst;
-		foreach (ulong i; 0 .. koppelingen_json.length)
-			koppelingen ~= leesKoppeling(koppelingen_json[i].voorwerp, i);
-	}
-
-	private Driehoeksnet.Koppeling leesKoppeling(Json koppeling_json, ulong index) {
-		Driehoeksnet.Koppeling koppeling;
-		koppeling.buffer = cast(uint) buffers[koppeling_json["buffer"].long_].buffer;
-		koppeling.grootte = koppeling_json["byteLength"].long_;
-		koppeling.begin = koppeling_json.get("byteOffset", JsonVal(0L)).long_;
-		if (JsonVal* j = "byteStride" in koppeling_json)
-			koppeling.tussensprong = cast(int) j.long_;
-		else
-			gezochte_tussensprongen ~= index;
-		return koppeling;
+		koppelingen = new Driehoeksnet.Koppeling[koppelingen_json.length];
+		for (int i = 0; i < koppelingen_json.length; i++) {
+			Json koppeling_json = koppelingen_json[i].voorwerp;
+			Driehoeksnet.Koppeling koppeling;
+			koppeling.buffer = cast(uint) koppeling_json["buffer"].long_;
+			koppeling.grootte = koppeling_json["byteLength"].long_;
+			koppeling.begin = koppeling_json.get("byteOffset", JsonVal(0L)).long_;
+			if (JsonVal* j = "byteStride" in koppeling_json)
+				koppeling.tussensprong = cast(int) j.long_;
+			else
+				gezochte_tussensprongen ~= i;
+			koppelingen[i] = koppeling;
+		}
 	}
 
 	private void leesBuffers(string dir) {
 		JsonVal[] lijst = json["buffers"].lijst;
-		foreach (JsonVal buffer; lijst) {
-			buffers ~= leesBuffer(buffer.voorwerp, dir);
+		buffers = new Buffer[lijst.length];
+		buffers_inhoud = new ubyte[][lijst.length];
+		for (uint i = 0; i < lijst.length; i++) {
+			Json buffer = lijst[i].voorwerp;
+			const long grootte = buffer["byteLength"].long_;
+			string uri = buffer["uri"].string_;
+			ubyte[] inhoud = leesURI(uri, dir);
+
+			enforce(inhoud.length == grootte, "Buffer grootte onjuist: "
+					~ inhoud.length.to!string ~ " in plaats van " ~ grootte.to!string);
+
+			buffers[i] = new Buffer(inhoud);
+			buffers_inhoud[i] = inhoud;
 		}
 	}
 
-	private Buffer leesBuffer(Json buffer, string dir) {
-		const long grootte = buffer["byteLength"].long_;
-		ubyte[] inhoud = new ubyte[grootte];
-		string uri = buffer["uri"].string_;
-
+	private ubyte[] leesURI(string uri, string dir) {
 		if (uri.length > 5 && uri[0 .. 5] == "data:") {
 			import std.base64;
 
@@ -430,17 +620,21 @@ class GltfLezer {
 				char_p++;
 				enforce(char_p < uri.length, "Onjuiste data uri bevat geen ','");
 			}
-			inhoud = Base64.decode(uri[(char_p + 1) .. $]);
+			return Base64.decode(uri[(char_p + 1) .. $]);
 		} else {
 			import std.uri;
 			import std.file;
 
 			string uri_decoded = dir ~ `\` ~ decode(uri);
-			inhoud = cast(ubyte[]) read(uri_decoded);
+			return cast(ubyte[]) read(uri_decoded);
 		}
+	}
 
-		enforce(inhoud.length == grootte, "Buffer grootte onjuist: "
-				~ inhoud.length.to!string ~ " in plaats van " ~ grootte.to!string);
-		return new Buffer(inhoud);
+	private ubyte[] leesKoppelingInhoud(uint koppeling_index) {
+		Driehoeksnet.Koppeling koppeling = koppelingen[koppeling_index];
+		ubyte[] bron = buffers_inhoud[koppeling.buffer];
+		assert(koppeling.tussensprong == 0 || koppeling.tussensprong == 1,
+			"Tussensprong probleem bij uitlezen van koppeling.");
+		return bron[koppeling.begin .. koppeling.begin + koppeling.grootte].dup;
 	}
 }

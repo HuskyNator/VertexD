@@ -6,7 +6,9 @@ import hoekjed.kern.wiskunde;
 import hoekjed.ververs.deel_verver;
 import std.array : replace;
 import std.conv : to;
+import std.regex;
 import std.stdio;
+import std.traits : isInstanceOf;
 
 class VerverFout : Exception {
 	this(string melding) {
@@ -62,12 +64,12 @@ class Verver {
 		this.hoekV = hoekV;
 		this.snipperV = snipperV;
 		this.verwijzing = glCreateProgram();
+		writeln("Verver aangemaakt: " ~ verwijzing.to!string ~
+				" (" ~ hoekV.verwijzing.to!string ~ "," ~ snipperV.verwijzing.to!string ~ ")");
+
 		glAttachShader(verwijzing, hoekV.verwijzing);
 		glAttachShader(verwijzing, snipperV.verwijzing);
 		glLinkProgram(verwijzing);
-
-		writeln("Verver aangemaakt: " ~ verwijzing.to!string ~ " (" ~ hoekV.verwijzing.to!string ~ "," ~ snipperV
-				.verwijzing.to!string ~ ")");
 
 		int volbracht;
 		glGetProgramiv(verwijzing, GL_LINK_STATUS, &volbracht);
@@ -84,8 +86,23 @@ class Verver {
 				.verwijzing);
 	}
 
+	/// Vervangt plaatshouders met plaatsvervangers.
+	public static string vervang(const string bron, const string[string] vervangers = null) {
+		string bron2 = bron.dup;
+		if (vervangers !is null)
+			foreach (v; vervangers.byKeyValue())
+				bron2 = replaceAll(bron2, regex(`(?<!\w)` ~ v.key ~ `(?!\w)`), v.value);
+		foreach (v; Verver.vervangers.byKeyValue())
+			bron2 = replaceAll(bron2, regex(`(?<!\w)` ~ v.key ~ `(?!\w)`), v.value);
+		return bron2;
+	}
+
 	/// Laadt Ververs met gegeven verversbestanden. Hergebruikt (deel)ververs indien mogelijk.
-	public static Verver laad(string hoekV, string snipperV, bool* nieuw = null) {
+	public static Verver laad(string hoekV, string snipperV, string[string] vervangers = null, bool* nieuw = null) {
+		// Vervang plaatshouders
+		hoekV = vervang(hoekV, vervangers);
+		snipperV = vervang(snipperV, vervangers);
+
 		Verver verver = Verver.ververs.get(BronPaar(hoekV, snipperV), null);
 		if (nieuw !is null)
 			*nieuw = verver is null;
@@ -100,6 +117,17 @@ class Verver {
 
 	static void zetUniformBuffer(int index, Buffer buffer) {
 		glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer.buffer);
+	}
+
+	void zetUniform(V)(string naam, V waarde) if (!isInstanceOf!(Mat, V)) {
+		const int uniformplek = glGetUniformLocation(verwijzing, naam.ptr);
+		if (uniformplek == -1)
+			return foutmelding_ontbrekende_uniform(naam);
+
+		enum string soort = is(V == uint) ? "ui" : (is(V == int)
+					? "i" : (is(V == float) ? "f" : (is(V == double) ? "d" : "")));
+		static assert(soort != "", "Soort " ~ V ~ " niet ondersteund voor zetUniform.");
+		mixin("glProgramUniform1" ~ soort ~ "(verwijzing, uniformplek, waarde);");
 	}
 
 	void zetUniform(V : Mat!(L, 1, S), uint L, S)(string naam, V waarde)

@@ -68,7 +68,8 @@ class Voorwerp {
 
 	void teken() {
 		foreach (Driehoeksnet net; driehoeksnetten) {
-			net.verver.zetUniform("u_kleur", net.materiaal.pbr.kleur);
+			// net.verver.zetUniform("u_kleur", net.materiaal.pbr.kleur);
+			net.materiaal.gebruik(net.verver);
 			net.teken(this);
 		}
 		foreach (Voorwerp kind; kinderen)

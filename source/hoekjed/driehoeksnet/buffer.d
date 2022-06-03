@@ -9,11 +9,11 @@ final class Buffer {
 	uint buffer;
 	size_t grootte = 0;
 	private GLenum soort;
-	debug private bool wijzigbaar;
+	private bool wijzigbaar;
 
 public:
 	this(bool wijzigbaar = false) {
-		debug this.wijzigbaar = wijzigbaar;
+		this.wijzigbaar = wijzigbaar;
 		this.soort = wijzigbaar ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
 		glCreateBuffers(1, &buffer);
@@ -48,10 +48,13 @@ public:
 	}
 
 	void zetInhoud(void* inhoud, size_t grootte, int offset = 0) {
-		debug assert(wijzigbaar || this.grootte == 0, "Kan inhoud van onwijzigbare buffer niet aanpassen.");
+		assert(wijzigbaar || this.grootte == 0, "Kan inhoud van onwijzigbare buffer niet aanpassen.");
+		// assert(offset < grootte, "offset is grote dan oude grootte?");
+
 		if (grootte + offset > this.grootte) {
-			if (offset == 0)
+			if (offset == 0) {
 				return glNamedBufferData(buffer, grootte, inhoud, soort);
+			}
 			Buffer kopie = this.kopie(0, offset, true);
 			zetGrootte(grootte + offset);
 			zetInhoudKopie(kopie, 0, 0, offset);
@@ -70,5 +73,4 @@ public:
 		kopie.zetInhoudKopie(this, offset, 0, grootte);
 		return kopie;
 	}
-
 }
