@@ -9,7 +9,8 @@ import std.stdio : writeln;
 alias HoekVerver = DeelVerver!GL_VERTEX_SHADER;
 alias SnipperVerver = DeelVerver!GL_FRAGMENT_SHADER;
 
-class DeelVerver(uint soort) {
+class DeelVerver(uint soort)
+		if (soort == GL_VERTEX_SHADER || soort == GL_FRAGMENT_SHADER) {
 	package uint verwijzing;
 
 	static DeelVerver!(soort)[string] ververs;
@@ -17,38 +18,33 @@ class DeelVerver(uint soort) {
 	private string krijg_foutmelding() {
 		int lengte;
 		glGetShaderiv(this.verwijzing, GL_INFO_LOG_LENGTH, &lengte);
+		if (lengte == 0)
+			return "";
 		char[] melding = new char[lengte];
 		glGetShaderInfoLog(this.verwijzing, lengte, null, &melding[0]);
 		return cast(string) melding.idup;
 	}
 
-	this(string bestand) {
-		import std.file : exists, readText;
-
+	this(string bron) {
 		this.verwijzing = glCreateShader(soort);
-		writeln("Deelverver aangemaakt: " ~ verwijzing.to!string);
-		string bron;
-		if (exists(bestand)) // Gegeven bestand is een verwijzing naar een bestand met verfinhoud.
-			bron = readText(bestand);
-		else // Gegeven bestand is verfinhoud.
-			bron = bestand;
-
-		foreach (v; Verver.vervangers.byKeyValue()) {
-			bron = replaceAll(bron, regex(`(?<!\w)`~v.key~`(?!\w)`), v.value);
-		}
+		writeln("Deelverver(" ~ (soort == GL_VERTEX_SHADER ? "HoekVerver" : "SnipperVerver") ~
+				") aangemaakt: " ~ verwijzing.to!string);
 		writeln(bron);
 
 		auto p = bron.ptr;
-		glShaderSource(verwijzing, 1, &p, null);
+		int l = cast(int) bron.length;
+		glShaderSource(verwijzing, 1, &p, &l);
 		glCompileShader(verwijzing);
 
 		int volbracht;
 		glGetShaderiv(verwijzing, GL_COMPILE_STATUS, &volbracht);
 		if (volbracht == 0)
-			throw new VerverFout("Kon DeelVerver " ~ verwijzing.to!string ~ " niet bouwen:\n" ~ cast(
-					string) krijg_foutmelding());
+			throw new VerverFout(
+				"Kon DeelVerver " ~ verwijzing.to!string ~ " niet bouwen:\n" ~ krijg_foutmelding());
+		else
+			writeln("Foutmelding log: " ~ krijg_foutmelding());
 
-		this.ververs[bestand] = this;
+		this.ververs[bron] = this;
 	}
 
 	~this() {

@@ -91,7 +91,7 @@ struct JsonVal {
 
 	unittest {
 		JsonVal j = JsonVal([JsonVal(true), JsonVal(false)]);
-		j.vec!(2, bool).writeln();
+		assert(j.vec!(2, bool) == Vec!(2, bool)([true, false]));
 	}
 }
 
@@ -147,7 +147,9 @@ private:
 				.to!string);
 	}
 
-	static char[] witruimte_karakters = [' ', '\n', '\r', '\t'];
+	static char[] witruimte_karakters = [
+		' ', '\n', '\r', '\t'
+	];
 	void witruimte() {
 		while (c.inLijst(witruimte_karakters) && !eind()) {
 			stap();
@@ -164,20 +166,18 @@ private:
 		Json json = leesVoorwerp();
 		if (!eind())
 			stapw();
-		enforce(eind(), "Einde van tekst verwacht op regel " ~ regel.to!string);
+		enforce(eind(), "Einde van tekst verwacht op regel " ~ regel
+				.to!string);
 		return json;
 	}
 
 	Json leesVoorwerp() {
 		eis!'{';
 		Json json;
-
 		stapw();
 		if (c == '}')
 			return json;
-
 		goto begin;
-
 		while (c == ',') {
 			stapw();
 		begin:
@@ -196,12 +196,11 @@ private:
 
 	JsonVal[] leesLijst() {
 		eis!'[';
-		JsonVal[] lijst = [];
-
+		JsonVal[] lijst = [
+		];
 		stapw();
 		if (c == ']')
 			return lijst;
-
 		goto begin;
 
 		do {
@@ -216,8 +215,10 @@ private:
 		return lijst;
 	}
 
-	static char[] string_karakters = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't'];
-
+	static char[] string_karakters = [
+		'"', '\\', '/', 'b',
+		'f', 'n', 'r', 't'
+	];
 	string leesString() {
 		eis!'"';
 		size_t p_begin = p;
@@ -236,11 +237,13 @@ private:
 							.to!string);
 				}
 			} else {
-				enforce(!isControl(c), "Controle karakter in string op regel " ~ regel.to!string);
+				enforce(!isControl(c), "Controle karakter in string op regel " ~ regel
+						.to!string);
 			}
 			stap();
 		}
-		return inhoud[p_begin .. (p - 1)].idup;
+		return inhoud[p_begin .. (p - 1)]
+			.idup;
 	}
 
 	JsonVal leesGetal() {
@@ -252,7 +255,8 @@ private:
 
 		if (c >= '1' && c <= '9') {
 			stap();
-			while (isNumber(c))
+			while (
+				isNumber(c))
 				stap();
 		} else {
 			enforce(c == '0', "Verwachtte cijfer maar kreeg '" ~ c ~ "' op regel " ~ regel
@@ -286,9 +290,11 @@ private:
 		JsonVal j;
 		j.soort = isFloat ? JsonSoort.DOUBLE : JsonSoort.LONG;
 		if (isFloat)
-			j.double_ = inhoud[p_begin - 1 .. p].to!double;
+			j.double_ = inhoud[p_begin - 1 .. p]
+				.to!double;
 		else
-			j.long_ = inhoud[p_begin - 1 .. p].to!long;
+			j.long_ = inhoud[p_begin - 1 .. p]
+				.to!long;
 		return j;
 	}
 
@@ -313,20 +319,24 @@ private:
 	JsonVal leesVal() {
 		switch (c) {
 		case '{':
-			JsonVal j = JsonVal(leesVoorwerp());
+			JsonVal j = JsonVal(
+				leesVoorwerp());
 			return j;
 		case '[':
-			JsonVal j = JsonVal(leesLijst());
+			JsonVal j = JsonVal(
+				leesLijst());
 			return j;
 		case 't', 'f':
-			JsonVal j = JsonVal(leesBool());
+			JsonVal j = JsonVal(
+				leesBool());
 			return j;
 		case 'n':
 			JsonVal j = JsonVal.NULL();
 			lees!"null";
 			return j;
 		case '"':
-			JsonVal j = JsonVal(leesString());
+			JsonVal j = JsonVal(
+				leesString());
 			return j;
 		default:
 			// Laatste mogelijkheid
@@ -347,29 +357,47 @@ unittest {
 		"getal": 0,
 		"getal2": 1.2e+20
 	}`;
-
 	Json json = JsonLezer.leesJson(json_string);
 	assert("test" in json);
 	JsonVal testval = json["test"];
-	assert(testval.soort == JsonSoort.VOORWERP);
-	Json test = testval.voorwerp;
+	assert(
+		testval.soort == JsonSoort
+			.VOORWERP);
+	Json test = testval
+		.voorwerp;
 	assert("values" in test);
 	JsonVal vals = test["values"];
-	assert(vals.soort == JsonSoort.LIJST);
-	JsonVal[] lijst = vals.lijst;
+	assert(
+		vals.soort == JsonSoort
+			.LIJST);
+	JsonVal[] lijst = vals
+		.lijst;
 	assert(lijst.length == 2);
-	assert(lijst[0].soort == JsonSoort.BOOL);
-	assert(lijst[0].bool_ == true);
-	assert(lijst[1].soort == JsonSoort.BOOL);
-	assert(lijst[1].bool_ == false);
+	assert(
+		lijst[0].soort == JsonSoort
+			.BOOL);
+	assert(
+		lijst[0].bool_ == true);
+	assert(
+		lijst[1].soort == JsonSoort
+			.BOOL);
+	assert(
+		lijst[1].bool_ == false);
 	assert("getal" in json);
 	JsonVal getal = json["getal"];
-	assert(getal.soort == JsonSoort.LONG);
-	long getal_i = getal.long_;
+	assert(
+		getal.soort == JsonSoort
+			.LONG);
+	long getal_i = getal
+		.long_;
 	assert(getal_i == 0);
 	assert("getal2" in json);
 	JsonVal getal2 = json["getal2"];
-	assert(getal2.soort == JsonSoort.DOUBLE);
-	double getal2_d = getal2.double_;
-	assert(getal2_d == 1.2e+20);
+	assert(
+		getal2.soort == JsonSoort
+			.DOUBLE);
+	double getal2_d = getal2
+		.double_;
+	assert(
+		getal2_d == 1.2e+20);
 }

@@ -1,7 +1,6 @@
 module hoekjed.driehoeksnet.driehoeksnet;
 
 import bindbc.opengl;
-import hoekjed.invoer.gltf;
 import hoekjed.ververs.materiaal;
 import hoekjed.ververs.verver;
 import hoekjed.wereld.voorwerp;
@@ -13,7 +12,8 @@ final class Driehoeksnet {
 	struct Eigenschap {
 		uint koppeling;
 		GLenum soort;
-		ubyte soorttal; // 1-4
+		ubyte soorttal; // 1-4 / 9 / 16
+		bool matrix;
 		bool genormaliseerd;
 		size_t elementtal;
 		uint begin;
@@ -40,8 +40,7 @@ final class Driehoeksnet {
 	Materiaal materiaal;
 
 	public this(string naam, Eigenschap[] eigenschappen, Koppeling[] koppelingen,
-		Knoopindex knoopindex, Verver verver = Gltf.standaard_verver,
-		Materiaal materiaal = Gltf.standaard_materiaal) {
+		Knoopindex knoopindex, Verver verver, Materiaal materiaal) {
 		this.naam = naam;
 		this.verver = verver;
 		this.materiaal = materiaal;
@@ -58,6 +57,8 @@ final class Driehoeksnet {
 
 		for (uint i = 0; i < koppelingen.length; i++) {
 			Koppeling k = koppelingen[i];
+			assert(k.tussensprong > 0,
+				"Tussensprong moet hoger dan 0 zijn maar was: " ~ k.tussensprong.to!string);
 			glVertexArrayVertexBuffer(vao, i, k.buffer, k.begin, k.tussensprong);
 		}
 
