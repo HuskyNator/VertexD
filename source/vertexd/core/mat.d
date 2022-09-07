@@ -373,6 +373,11 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		return this.mult(right);
 	}
 
+	auto opOpAssign(string op, T)(T value) {
+		this = mixin(this, op, "value");
+		return this;
+	}
+
 	unittest {
 		Mat!4 A = Mat!4(1);
 		Vec!4 x = Vec!4([1, 0, 0, 1]);

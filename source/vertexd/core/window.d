@@ -6,6 +6,8 @@ import vertexd.core;
 import vertexd.world;
 import std.container.rbtree;
 import std.conv : to;
+import std.exception : enforce;
+import bindbc.opengl.bind.arb.arb_01 : hasARBBindlessTexture;
 
 struct KeyInput {
 	int key, key_id, event, modifier;
@@ -93,8 +95,11 @@ class Window {
 		// glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
 		glfwSetFramebufferSizeCallback(glfw_window, &windows_size_callback);
 
+		glfwSetCursorPos(glfw_window, 0, 0);
+
 		GLSupport opengl_version = loadOpenGL();
-		assert(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version.to!string);
+		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version.to!string);
+		enforce(hasARBBindlessTexture, "No support for bindless textures");
 
 		debug {
 			glEnable(GL_DEBUG_OUTPUT);
@@ -103,8 +108,8 @@ class Window {
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
-		glfwSetCursorPos(glfw_window, 0, 0);
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 	}
 
 	void draw() {
@@ -192,8 +197,7 @@ extern (C) void windows_size_callback(GLFWwindow* glfw_window, int width, int he
 	Window.windows[glfw_window].reshape(width, height);
 }
 
-extern (C) void window_key_callback(GLFWwindow* glfw_window, int key,
-	int key_code, int event, int modifier) nothrow {
+extern (C) void window_key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
 	debug {
 		import core.sys.windows.windows;
 
@@ -211,8 +215,7 @@ extern (C) void window_key_callback(GLFWwindow* glfw_window, int key,
 	window.keyInput ~= input;
 }
 
-extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button,
-	int event, int modifier) nothrow {
+extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
 	Window window = Window.windows[glfw_window];
 	MousebuttonInput input = MousebuttonInput(button, event, modifier);
 	window.mousebuttonInput ~= input;
@@ -231,8 +234,8 @@ extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, d
 }
 
 debug {
-	extern (System) void gl_error_callback(GLenum source, GLenum type, GLuint errorID,
-		GLenum severity, GLsizei length, const GLchar* message, const void* userParam) nothrow {
+	extern (System) void gl_error_callback(GLenum source, GLenum type, GLuint errorID, GLenum severity,
+		GLsizei length, const GLchar* message, const void* userParam) nothrow {
 		import std.stdio : write, writeln;
 		import std.conv : to;
 		import bindbc.opengl.bind.types;
@@ -241,77 +244,77 @@ debug {
 			writeln("Opengl Exception #" ~ errorID.to!string);
 			write("\tSource: ");
 			switch (source) {
-			case GL_DEBUG_SOURCE_API:
-				writeln("OpenGL API");
-				break;
-			case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-				writeln("Window System API");
-				break;
-			case GL_DEBUG_SOURCE_SHADER_COMPILER:
-				writeln("Shader Compiler");
-				break;
-			case GL_DEBUG_SOURCE_THIRD_PARTY:
-				writeln("Third Party");
-				break;
-			case GL_DEBUG_SOURCE_APPLICATION:
-				writeln("Source Application");
-				break;
-			case GL_DEBUG_SOURCE_OTHER:
-				writeln("Miscellaneous");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_SOURCE_API:
+					writeln("OpenGL API");
+					break;
+				case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+					writeln("Window System API");
+					break;
+				case GL_DEBUG_SOURCE_SHADER_COMPILER:
+					writeln("Shader Compiler");
+					break;
+				case GL_DEBUG_SOURCE_THIRD_PARTY:
+					writeln("Third Party");
+					break;
+				case GL_DEBUG_SOURCE_APPLICATION:
+					writeln("Source Application");
+					break;
+				case GL_DEBUG_SOURCE_OTHER:
+					writeln("Miscellaneous");
+					break;
+				default:
+					assert(false);
 			}
 
 			write("\tType: ");
 			switch (type) {
-			case GL_DEBUG_TYPE_ERROR:
-				writeln("Error ╮(. ❛ ᴗ ❛.)╭");
-				break;
-			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-				writeln("Deprecated usage");
-				break;
-			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-				writeln("Undefined behaviour");
-				break;
-			case GL_DEBUG_TYPE_PORTABILITY:
-				writeln("System portability");
-				break;
-			case GL_DEBUG_TYPE_PERFORMANCE:
-				writeln("Performance Issues");
-				break;
-			case GL_DEBUG_TYPE_MARKER:
-				writeln("\"Command stream annotation\"");
-				break;
-			case GL_DEBUG_TYPE_PUSH_GROUP:
-				writeln("\"Group pushing\"");
-				break;
-			case GL_DEBUG_TYPE_POP_GROUP:
-				writeln("\"Group popping\"");
-				break;
-			case GL_DEBUG_TYPE_OTHER:
-				writeln("Miscellaneous");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_TYPE_ERROR:
+					writeln("Error ╮(. ❛ ᴗ ❛.)╭");
+					break;
+				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+					writeln("Deprecated usage");
+					break;
+				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+					writeln("Undefined behaviour");
+					break;
+				case GL_DEBUG_TYPE_PORTABILITY:
+					writeln("System portability");
+					break;
+				case GL_DEBUG_TYPE_PERFORMANCE:
+					writeln("Performance Issues");
+					break;
+				case GL_DEBUG_TYPE_MARKER:
+					writeln("\"Command stream annotation\"");
+					break;
+				case GL_DEBUG_TYPE_PUSH_GROUP:
+					writeln("\"Group pushing\"");
+					break;
+				case GL_DEBUG_TYPE_POP_GROUP:
+					writeln("\"Group popping\"");
+					break;
+				case GL_DEBUG_TYPE_OTHER:
+					writeln("Miscellaneous");
+					break;
+				default:
+					assert(false);
 			}
 
 			write("\tSeverity: ");
 			switch (severity) {
-			case GL_DEBUG_SEVERITY_HIGH:
-				writeln("High");
-				break;
-			case GL_DEBUG_SEVERITY_MEDIUM:
-				writeln("Medium");
-				break;
-			case GL_DEBUG_SEVERITY_LOW:
-				writeln("Low");
-				break;
-			case GL_DEBUG_SEVERITY_NOTIFICATION:
-				writeln("Notification (Miscellaneous)");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_SEVERITY_HIGH:
+					writeln("High");
+					break;
+				case GL_DEBUG_SEVERITY_MEDIUM:
+					writeln("Medium");
+					break;
+				case GL_DEBUG_SEVERITY_LOW:
+					writeln("Low");
+					break;
+				case GL_DEBUG_SEVERITY_NOTIFICATION:
+					writeln("Notification (Miscellaneous)");
+					break;
+				default:
+					assert(false);
 			}
 
 			writeln("\tMessage: " ~ message.to!string);

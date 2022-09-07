@@ -7,28 +7,31 @@ import std.stdio;
 
 final class Buffer {
 	uint buffer;
-	size_t size = 0;
 	private GLenum type;
 	private bool modifiable;
+	ubyte[] content = [];
 
 public:
+	@property size_t size() {
+		return content.length;
+	}
+
 	this(bool modifiable = false) {
 		this.modifiable = modifiable;
 		this.type = modifiable ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
 		glCreateBuffers(1, &buffer);
-		writeln("Buffer(" ~ (modifiable ? "modifiable" : "unmodifiable") ~ ") created: " ~ buffer
-				.to!string);
+		writeln("Buffer(" ~ (modifiable ? "modifiable" : "unmodifiable") ~ ") created: " ~ buffer.to!string);
 	}
 
 	this(ubyte[] content, bool modifiable = false) {
 		this(modifiable);
-		setContent(content);
+		setContent(content.ptr, content.length);
 	}
 
 	this(void* content, size_t size, bool modifiable = false) {
 		this(modifiable);
-		setContent(content, size, 0);
+		setContent(content, size);
 	}
 
 	~this() {
@@ -38,39 +41,39 @@ public:
 		printf("Buffer removed: %u\n", buffer);
 	}
 
-	void setSize(size_t size) {
+	void reset(size_t size) {
 		glNamedBufferData(buffer, size, null, type);
-		this.size = size;
+		this.content = new ubyte[size];
 	}
 
-	void setContent(ubyte[] content, int offset = 0) {
-		setContent(content.ptr, content.length * ubyte.sizeof, offset);
+	void grow(size_t size, size_t ignoreOffset) {
+		ubyte[] oldContent = this.content;
+		reset(size);
+		changeContent(oldContent.ptr, 0, ignoreOffset);
+		// TODO: compare to glCopyNamedBufferSubData speed.
 	}
 
-	void setContent(void* content, size_t size, int offset = 0) {
-		assert(modifiable || this.size == 0, "Cannot edit content of unmodifiable buffer");
-		// assert(offset < size, "offset is larger than old size?");
+	void setContent(ubyte[] content) {
+		setContent(content.ptr, content.length);
+	}
 
-		if (size + offset > this.size) {
-			if (offset == 0) {
-				return glNamedBufferData(buffer, size, content, type);
-			}
-			Buffer copy = this.copy(0, offset, true);
-			setSize(size + offset);
-			setContentCopy(copy, 0, 0, offset);
-		}
+	void setContent(void* content, size_t size) {
+		glNamedBufferData(buffer, size, content, type);
+		this.content = (cast(ubyte*) content)[0 .. size].dup;
+	}
+
+	void changeContent(void* content, int offset, size_t size) {
+		if (size + offset > this.size)
+			grow(size + offset, offset);
 		glNamedBufferSubData(buffer, offset, size, content);
+		this.content[offset .. offset + size] = (cast(ubyte*) content)[0 .. size].dup;
 	}
 
-	void setContentCopy(Buffer source, int source_offset, int offset, size_t size) {
-		glCopyNamedBufferSubData(source.buffer, buffer, source_offset, offset, size);
-	}
-
-	Buffer copy(int offset = 0, size_t size = size, bool temporary = false) {
-		Buffer copy = new Buffer();
-		copy.type = temporary ? GL_STATIC_COPY : type;
-		copy.setSize(offset + size);
-		copy.setContentCopy(this, offset, 0, size);
-		return copy;
+	void cutContent(int offset, size_t size) {
+		size_t cutEnd = offset + size;
+		ubyte[] oldContent = this.content;
+		reset(this.size - size);
+		changeContent(oldContent.ptr, 0, offset);
+		changeContent(oldContent.ptr + cutEnd, cast(int) cutEnd, oldContent.length - cutEnd);
 	}
 }

@@ -8,9 +8,9 @@ import std.math : tan;
 
 class Camera : Node.Attribute {
 	struct CameraS {
-		Mat!4 projectionMatrix = Mat!4(1);
-		Mat!4 cameraMatrix = Mat!4(1);
-		Vec!3 location = Vec!3(0);
+		Mat!4 projectionMatrix = Mat!4(1); // 0-64
+		Mat!4 cameraMatrix = Mat!4(1); // 64-128
+		Vec!3 location = Vec!3(0); // 128-140 padding(140-144)
 	}
 
 	static Buffer uniformBuffer;
@@ -28,12 +28,12 @@ class Camera : Node.Attribute {
 	}
 
 	void update(World world, Node parent) {
-		this.location = Vec!3(parent.nodeMatrix.col(3)[0 .. 3]);
-		this.cameraMatrix = parent.nodeMatrix.inverse();
+		this.location = Vec!3(parent.modelMatrix.col(3)[0 .. 3]);
+		this.cameraMatrix = parent.modelMatrix.inverse();
 	}
 
 	void use() {
-		uniformBuffer.setContent(&cameraS, cameraS.sizeof);
+		uniformBuffer.changeContent(&cameraS, 0, cameraS.sizeof);
 	}
 
 	static Mat!4 perspectiveProjection(
