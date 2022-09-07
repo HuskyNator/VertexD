@@ -13,146 +13,132 @@ class Gltf {
 	@disable this();
 
 static:
-	PBR standard_pbr;
+	// Shader generateShader(Mesh.Attribute[] attributes, string[] names, Material material) {
+	// 	string[string] placeholders;
+	// 	// VERTEX_INPUT_OUTPUT
+	// 	string vertex_input_output;
+	// 	foreach (i; 0 .. attributes.length) {
+	// 		Mesh.Attribute e = attributes[i];
+	// 		vertex_input_output ~= `layout(location=` ~ i.to!string ~ `) in ` ~ typeString(
+	// 			e) ~ ` vertex_` ~ names[i] ~ ";\n";
+	// 		vertex_input_output ~= `out ` ~ typeString(
+	// 			e) ~ ` fragment_` ~ names[i] ~ ";\n";
+	// 	}
+	// 	placeholders["VERTEX_INPUT_OUTPUT"] = vertex_input_output;
 
-	Material standard_material;
-	static this() {
-		standard_pbr = PBR(Vec!4(1), 1, 1);
-		standard_material = Material(
-			"Standard Material",
-			standard_pbr,
-			Vec!3(0),
-			Material.AlphaBehaviour.OPAQUE,
-			cast(prec) 0.5,
-			false
-		);
-	}
+	// 	// FRAGMENT_INPUT
+	// 	string fragment_input;
+	// 	foreach (i; 0 .. attributes.length) {
+	// 		Mesh.Attribute e = attributes[i];
+	// 		fragment_input ~= `in ` ~ typeString(
+	// 			e) ~ ` fragment_` ~ names[i] ~ ";\n";
+	// 	}
+	// 	placeholders["FRAGMENT_INPUT"] = fragment_input;
 
-	Shader generateShader(Mesh.Attribute[] attributes, string[] names, Material material) {
-		string[string] placeholders;
-		// VERTEX_INPUT_OUTPUT
-		string vertex_input_output;
-		foreach (i; 0 .. attributes.length) {
-			Mesh.Attribute e = attributes[i];
-			vertex_input_output ~= `layout(location=` ~ i.to!string ~ `) in ` ~ typeString(
-				e) ~ ` vertex_` ~ names[i] ~ ";\n";
-			vertex_input_output ~= `out ` ~ typeString(
-				e) ~ ` fragment_` ~ names[i] ~ ";\n";
-		}
-		placeholders["VERTEX_INPUT_OUTPUT"] = vertex_input_output;
+	// 	// VERTEX_TO_FRAGMENT_INPUT
+	// 	// VERTEX_OUTPUT
+	// 	string vertex_to_fragment_input;
+	// 	foreach (i; 0 .. attributes.length) {
+	// 		vertex_to_fragment_input ~= "\tfragment_" ~ names[i] ~ " = " ~ "vertex_" ~ names[i] ~ ";\n";
+	// 	}
+	// 	placeholders["VERTEX_TO_FRAGMENT_INPUT"] = vertex_to_fragment_input;
 
-		// FRAGMENT_INPUT
-		string fragment_input;
-		foreach (i; 0 .. attributes.length) {
-			Mesh.Attribute e = attributes[i];
-			fragment_input ~= `in ` ~ typeString(
-				e) ~ ` fragment_` ~ names[i] ~ ";\n";
-		}
-		placeholders["FRAGMENT_INPUT"] = fragment_input;
+	// 	// Textures
+	// 	string texture_uniforms;
+	// 	uint location = 2;
 
-		// VERTEX_TO_FRAGMENT_INPUT
-		// VERTEX_OUTPUT
-		string vertex_to_fragment_input;
-		foreach (i; 0 .. attributes.length) {
-			vertex_to_fragment_input ~= "\tfragment_" ~ names[i] ~ " = " ~ "vertex_" ~ names[i] ~ ";\n";
-		}
-		placeholders["VERTEX_TO_FRAGMENT_INPUT"] = vertex_to_fragment_input;
+	// 	void addTextureTI(TextureInfo ti, string name) {
+	// 		texture_uniforms ~= `layout(binding = ` ~ location.to!string ~ `) uniform sampler2D u_` ~ name ~ ";\n";
+	// 		placeholders["u_" ~ name ~ "_textureCoord"] = "fragment_TEXCOORD_" ~ ti
+	// 			.texCoord.to!string;
+	// 		location += 1;
+	// 	}
 
-		// Textures
-		string texture_uniforms;
-		uint location = 2;
+	// 	void addTextureNTI(Nullable!TextureInfo ti, string name) {
+	// 		if (ti.isNull)
+	// 			return;
+	// 		addTextureTI(ti.get(), name);
+	// 	}
 
-		void addTextureTI(TextureInfo ti, string name) {
-			texture_uniforms ~= `layout(binding = ` ~ location.to!string ~ `) uniform sampler2D u_` ~ name ~ ";\n";
-			placeholders["u_" ~ name ~ "_textureCoord"] = "fragment_TEXCOORD_" ~ ti.textureCoord.to!string;
-			location += 1;
-		}
+	// 	void addTextureNNTI(Nullable!NormalTextureInfo ti, string name) {
+	// 		if (ti.isNull)
+	// 			return;
+	// 		addTextureTI(ti.get.textureInfo, name);
+	// 		texture_uniforms ~= "uniform precision u_normal_scale;\n";
+	// 	}
 
-		void addTextureNTI(Nullable!TextureInfo ti, string name) {
-			if (ti.isNull)
-				return;
-			addTextureTI(ti.get(), name);
-		}
+	// 	void addTextureNOTI(Nullable!OcclusionTextureInfo ti, string name) {
+	// 		if (ti.isNull)
+	// 			return;
+	// 		addTextureTI(ti.get.textureInfo, name);
+	// 		texture_uniforms ~= "uniform precision u_occlusion_strength;\n";
+	// 	}
 
-		void addTextureNNTI(Nullable!NormalTextureInfo ti, string name) {
-			if (ti.isNull)
-				return;
-			addTextureTI(ti.get.textureInfo, name);
-			texture_uniforms ~= "uniform precision u_normal_scale;\n";
-		}
+	// 	addTextureNTI(material.pbr.color_texture, "color_texture");
+	// 	addTextureNTI(material.pbr.metal_roughness_texture, "metal_roughness_texture");
+	// 	addTextureNNTI(material.normal_texture, "normal_textures");
+	// 	addTextureNOTI(material.occlusion_texture, "occlusion_textuur");
+	// 	addTextureNTI(material.emission_texture, "emission_texture");
+	// 	placeholders["TEXTURES"] = texture_uniforms;
 
-		void addTextureNOTI(Nullable!OcclusionTextureInfo ti, string name) {
-			if (ti.isNull)
-				return;
-			addTextureTI(ti.get.textureInfo, name);
-			texture_uniforms ~= "uniform precision u_occlusion_strength;\n";
-		}
+	// 	// TODO TEMPORARY
+	// 	if (!material.pbr.color_texture.isNull)
+	// 		placeholders["COLOR_IN"] = `texture(u_color_texture, u_color_texture_textureCoord) * u_color_factor;`;
+	// 	else
+	// 		placeholders["COLOR_IN"] = `vec4(0,0,0,0); discard;`;
 
-		addTextureNTI(material.pbr.color_texture, "color_texture");
-		addTextureNTI(material.pbr.metal_roughness_texture, "metal_roughness_texture");
-		addTextureNNTI(material.normal_texture, "normal_textures");
-		addTextureNOTI(material.occlusion_texture, "occlusion_textuur");
-		addTextureNTI(material.emission_texture, "emission_texture");
-		placeholders["TEXTURES"] = texture_uniforms;
+	// 	// if (!material.normal_texture.isNull)
+	// 	// placeholders["NORMAL_IN"]="normalize((texture(u_normal_texture,u_normal_texture_textureCoord).xyz*2.0-1.0)*vec3(u_normal_scale,u_normal_scale,1.0))";
+	// 	// else
+	// 	// placeholders["NORMAL_IN"] = "fragment_NORMAL";
 
-		// TODO TEMPORARY
-		if (!material.pbr.color_texture.isNull)
-			placeholders["COLOR_IN"] = `texture(u_color_texture, u_color_texture_textureCoord) * u_color_factor;`;
-		else
-			placeholders["COLOR_IN"] = `vec4(0,0,0,0); discard;`;
-
-		// if (!material.normal_texture.isNull)
-		// placeholders["NORMAL_IN"]="normalize((texture(u_normal_texture,u_normal_texture_textureCoord).xyz*2.0-1.0)*vec3(u_normal_scale,u_normal_scale,1.0))";
-		// else
-		// placeholders["NORMAL_IN"] = "fragment_NORMAL";
-
-		return Shader.load(standard_vertex, standard_fragment, placeholders);
-	}
+	// 	return Shader.load(standard_vertex, standard_fragment, placeholders);
+	// }
 
 	/**
- * Gives glsl inputname for vertex type.
- * Assumes types glTF supports.
- */
+		* Gives glsl inputname for vertex type.
+		* Assumes types glTF supports.
+		*/
 	private string typeString(Mesh.Attribute e) {
 		if (e.typeCount == 1) {
 			switch (e.type) {
-			case GL_BYTE, GL_SHORT:
-				return "int";
-			case GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT:
-				return "int";
-			case GL_FLOAT:
-				return "float";
-			default:
-				assert(0, "Type not supported for attributes: " ~ e.type.to!string);
+				case GL_BYTE, GL_SHORT:
+					return "int";
+				case GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT:
+					return "int";
+				case GL_FLOAT:
+					return "float";
+				default:
+					assert(0, "Type not supported for attributes: " ~ e.type.to!string);
 			}
 		}
 
 		if (e.matrix) {
 			assert(e.type == GL_FLOAT, "Matrix must be float");
 			switch (e.typeCount) {
-			case 4:
-				return "mat2";
-			case 9:
-				return "mat3";
-			case 16:
-				return "mat4";
-			default:
-				assert(0, "Matrix unexpected size: " ~ e.typeCount.to!string);
+				case 4:
+					return "mat2";
+				case 9:
+					return "mat3";
+				case 16:
+					return "mat4";
+				default:
+					assert(0, "Matrix unexpected size: " ~ e.typeCount.to!string);
 			}
 		}
 
 		string s;
 		switch (e.type) {
-		case GL_BYTE, GL_SHORT:
-			s ~= "i";
-			break;
-		case GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT:
-			s ~= "u";
-			break;
-		case GL_FLOAT:
-			break;
-		default:
-			assert(0, "Type not supported for attributes: " ~ e.type.to!string);
+			case GL_BYTE, GL_SHORT:
+				s ~= "i";
+				break;
+			case GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT:
+				s ~= "u";
+				break;
+			case GL_FLOAT:
+				break;
+			default:
+				assert(0, "Type not supported for attributes: " ~ e.type.to!string);
 		}
 		s ~= "vec";
 		s ~= e.typeCount.to!string;
@@ -164,58 +150,85 @@ static:
 private:
 	string standard_vertex = `#version 460
 
-VERTEX_INPUT_OUTPUT
+layout(location=0) in vec3 POSITION;
+layout(location=1) in vec3 NORMAL;
+layout(location=2) in vec3 TANGENT;
+layout(location=3) in vec2 TEXCOORD_0;
+layout(location=4) in vec2 TEXCOORD_1;
+layout(location=5) in vec4 COLOR_0;
+// layout(location=0) in vec4 JOINTS_0;
+// layout(location=0) in vec3 WEIGHTS_0;
+// Custom INPUT
 
-TEXTURES
-//// Materials
-// PBR
-uniform vec4 u_color_factor;
-uniform precision u_metal;
-uniform precision u_roughness;
-// Material
-uniform vec3 u_emission_factor;
+struct Texture {
+	sampler2D sampler;
+	int texCoord;
+	float factor;
+};
 
 layout(row_major, std140, binding=0) uniform Camera {
 	mat4 projectionMatrix;
 	mat4 cameraMatrix;
 	vec3 cameraLocation;
+};
+
+layout(row_major, std140, binding=1) uniform Lights {
+	uint lightCount;
+	vec3 lightLocations[512];
+};
+
+layout(row_major, std140, binding=2) uniform Material {
+	vec4 color_factor;
+	float metal_factor;
+	float roughness_factor;
+	vec3 emissive_factor;
+	Texture color_texture;
+	Texture metal_roughness_texture;
+	Texture normal_texture;
+	Texture occlusion_texture;
+	Texture emissive_texture;
 };
 
 uniform mat4 nodeMatrix;
 
 out vec4 gl_Position;
-out vec3 fragment_location;
+
+out vec3 frag_POSITION;
+out vec3 frag_NORMAL;
+out vec3 frag_TANGENT;
+out vec2 frag_TEXCOORD_0;
+out vec2 frag_TEXCOORD_1;
+out vec4 frag_COLOR_0;
 
 void main(){
-	VERTEX_TO_FRAGMENT_INPUT
+	frag_POSITION = POSITION;
+	frag_NORMAL = NORMAL;
+	frag_TANGENT = TANGENT;
+	frag_TEXCOORD_0 = TEXCOORD_0;
+	frag_TEXCOORD_1 = TEXCOORD_1;
+	frag_COLOR_0 = COLOR_0;
 
-	vec4 plek4 = nodeMatrix * vec4(vertex_POSITION, 1.0);
-	gl_Position = projectionMatrix * cameraMatrix * plek4;
-
-	fragment_location = plek4.xyz/plek4.w;
+	vec4 globalPosition = nodeMatrix * vec4(POSITION, 1.0);
+	gl_Position = projectionMatrix * cameraMatrix * globalPosition;
 }
 `;
 
 	string standard_fragment = `#version 460
 
-FRAGMENT_INPUT
+in vec4 gl_Position;
 
-in vec3 fragment_location;
+in vec3 frag_POSITION;
+in vec3 frag_NORMAL;
+in vec3 frag_TANGENT;
+in vec2 frag_TEXCOORD_0;
+in vec2 frag_TEXCOORD_1;
+in vec4 frag_COLOR_0;
 
-uniform vec4 u_color;
-precision u_occlusion = 0.1;
-precision u_diffuse = 0.7;
-precision u_specular = 0.2;
-precision u_specular_power = 50;
-
-TEXTURES
-//// Material
-// PBR
-uniform vec4 u_color_factor;
-uniform precision u_metal;
-uniform precision u_roughness;
-// Material
-uniform vec3 u_emission_factor;
+struct Texture {
+	sampler2D sampler;
+	int texCoord;
+	float factor;
+};
 
 layout(row_major, std140, binding=0) uniform Camera {
 	mat4 projectionMatrix;
@@ -223,10 +236,30 @@ layout(row_major, std140, binding=0) uniform Camera {
 	vec3 cameraLocation;
 };
 
-layout(row_major, std140, binding=1) uniform Lichts {
+layout(row_major, std140, binding=1) uniform Lights {
 	uint lightCount;
-	vec3 lichtLocations[MAX_LIGHTS];
+	vec3 lightLocations[512];
 };
+
+layout(row_major, std140, binding=2) uniform Material {
+	vec4 color_factor;
+	float metal_factor;
+	float roughness_factor;
+	vec3 emissive_factor;
+	Texture color_texture;
+	Texture metal_roughness_texture;
+	Texture normal_texture;
+	Texture occlusion_texture;
+	Texture emissive_texture;
+};
+
+uniform mat4 nodeMatrix;
+
+// uniform vec4 u_color;
+// precision u_occlusion = 0.1;
+// precision u_diffuse = 0.7;
+// precision u_specular = 0.2;
+// precision u_specular_power = 50;
 
 out vec4 out_color;
 
@@ -235,8 +268,12 @@ precision luminocity(vec3 light){
 }
 
 void main(){
-	vec4 color_in = COLOR_IN;
-	vec3 N = normalize(fragment_NORMAL);
+	vec4 color_in = frag_COLOR_0;
+	if (color_texture.sampler != 0)
+		color_in = normalize(
+			texture(color_texture.sampler, color_texture.texCoord).xyz
+			* vec3(color_texture.factor, color_texture.factor, 1));
+	vec3 N = frag_NORMAL;
 	vec3 Z = normalize(cameraLocation-fragment_location);
 
 	precision light_sum = 0;

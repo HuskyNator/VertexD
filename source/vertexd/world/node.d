@@ -28,7 +28,7 @@ class Node {
 	Attribute[] attributes = [];
 
 	Mat!4 localMatrix = Mat!4(1);
-	Mat!4 nodeMatrix = Mat!4(1);
+	Mat!4 modelMatrix = Mat!4(1);
 
 	private bool modified = true;
 
@@ -68,8 +68,7 @@ class Node {
 
 	void draw() {
 		foreach (Mesh mesh; meshes) {
-			// mesh.shader.setUniform("u_color", mesh.material.pbr.color);
-			mesh.material.use(mesh.shader);
+			mesh.material.use();
 			mesh.draw(this);
 		}
 		foreach (Node child; children)
@@ -104,7 +103,7 @@ class Node {
 		if (modified)
 			updateLocalMatrix();
 		if (update) {
-			nodeMatrix = (parent is null) ? localMatrix : parent.nodeMatrix.mult(localMatrix);
+			modelMatrix = (parent is null) ? localMatrix : parent.modelMatrix.mult(localMatrix);
 			foreach (Node.Attribute e; attributes)
 				e.update(world, this);
 		}

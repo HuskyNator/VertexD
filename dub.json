@@ -9,6 +9,9 @@
 	"sourceFiles-windows": [
 		"logo/logo.res"
 	],
+	"stringImportPaths": [
+		"source/vertexd"
+	],
 	"libs": [
 		"user32",
 		"glfw3dll"
@@ -22,7 +25,8 @@
 		"BindGLFW_Static",
 		"GLFW_33",
 		"GL_46",
-		"GL_ARB"
+		"GL_ARB",
+		"GL_ARB_gpu_shader_int64"
 	],
 	"configurations": [
 		{
@@ -33,7 +37,7 @@
 			"name": "unittest",
 			"targetType": "executable",
 			"sourceFiles": [
-				"test/legeMain.d"
+				"test/emptymain.d"
 			]
 		}
 	]

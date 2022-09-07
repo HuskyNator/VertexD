@@ -9,7 +9,7 @@ import std.uni;
 alias Json = JsonVal[string];
 
 enum JsonType {
-	NODE,
+	object,
 	LIST,
 	STRING,
 	DOUBLE,
@@ -21,7 +21,7 @@ enum JsonType {
 struct JsonVal {
 	JsonType type;
 	union {
-		Json node;
+		Json object;
 		JsonVal[] list;
 		string string_;
 		double double_;
@@ -54,15 +54,15 @@ struct JsonVal {
 		this.list = list;
 	}
 
-	this(Json node) {
-		this.type = JsonType.NODE;
-		this.node = node;
+	this(Json object) {
+		this.type = JsonType.object;
+		this.object = object;
 	}
 
 	static JsonVal NULL() {
 		JsonVal v;
 		v.type = JsonType.NULL;
-		v.node = null; //?
+		v.object = null; //?
 		return v;
 	}
 
@@ -163,7 +163,7 @@ private:
 	Json read() {
 		enforce(content.length >= 2, "Json incorrect");
 		stepw();
-		Json json = readNode();
+		Json json = readobject();
 		if (!end())
 			stepw();
 		enforce(end(), "End of text expected on line " ~ line
@@ -171,7 +171,7 @@ private:
 		return json;
 	}
 
-	Json readNode() {
+	Json readobject() {
 		require!'{';
 		Json json;
 		stepw();
@@ -320,7 +320,7 @@ private:
 		switch (c) {
 			case '{':
 				JsonVal j = JsonVal(
-					readNode());
+					readobject());
 				return j;
 			case '[':
 				JsonVal j = JsonVal(
@@ -362,9 +362,9 @@ unittest {
 	JsonVal testval = json["test"];
 	assert(
 		testval.type == JsonType
-			.NODE);
+			.object);
 	Json test = testval
-		.node;
+		.object;
 	assert("values" in test);
 	JsonVal vals = test["values"];
 	assert(

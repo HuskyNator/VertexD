@@ -6,31 +6,31 @@ import std.typecons : Nullable;
 
 class Sampler {
 	string name;
-	uint sampler;
+	uint id;
 
 	@disable this();
 
 	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT,
 		uint minFilter = GL_NEAREST_MIPMAP_LINEAR, uint magFilter = GL_NEAREST) {
 		this.name = name;
-		glCreateSamplers(1, &sampler);
-		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, wrapS);
-		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, wrapT);
-		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, minFilter);
-		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, magFilter);
+		glCreateSamplers(1, &id);
+		glSamplerParameteri(id, GL_TEXTURE_WRAP_S, wrapS);
+		glSamplerParameteri(id, GL_TEXTURE_WRAP_T, wrapT);
+		glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, minFilter);
+		glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, magFilter);
 
-		writeln("Sampler created: " ~ sampler.to!string);
+		writeln("Sampler created: " ~ id.to!string);
 	}
 
 	~this() {
 		import core.stdc.stdio : printf;
 
-		glDeleteSamplers(1, &sampler);
-		printf("Sampler removed: %u\n", sampler);
+		glDeleteSamplers(1, &id);
+		printf("Sampler removed: %u\n", id);
 	}
 
 	void use(uint location) {
-		glBindSampler(location, sampler);
+		glBindSampler(location, id);
 	}
 
 }

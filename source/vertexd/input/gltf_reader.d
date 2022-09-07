@@ -20,8 +20,8 @@ class GltfReader {
 	Node[] nodes;
 	Material[] materials;
 
-	Texture[] textures;
-	Image[] images;
+	TextureHandle[] textureHandles;
+	TextureBase[] textureBases;
 	Sampler[] samplers;
 
 	Light[] lights;
@@ -34,23 +34,20 @@ class GltfReader {
 
 	Camera[] cameras;
 
-	private ulong[] sought_stride;
-
 	this(string file) {
 		string dir = dirName(file);
 		this.json = JsonReader.readJsonFile(file);
-		enforce(json["asset"].node["version"].string_ == "2.0");
+		enforce(json["asset"].object["version"].string_ == "2.0");
 
 		readBuffers(dir);
 		readBindings();
 		readAttributes();
-		determineStrides();
 
 		readLights(); // KHR_lights_punctual extension
 
 		readSamplers();
-		readImages(dir);
-		readTextures();
+		readTextureBases(dir);
+		readTextureHandles();
 
 		readMaterials();
 		readMeshes();
@@ -62,7 +59,7 @@ class GltfReader {
 	private void readWorlds() {
 		JsonVal[] worlds_json = json["scenes"].list;
 		foreach (JsonVal world; worlds_json)
-			worlds ~= readWorld(world.node);
+			worlds ~= readWorld(world.object);
 
 		if (JsonVal* j = "scene" in json)
 			main_world = worlds[j.long_];
@@ -78,7 +75,7 @@ class GltfReader {
 		void addAttribute(Node v) {
 			foreach (Node.Attribute e; v.attributes) {
 				if (Light l = cast(Light) e) {
-					world.lightSet += l;
+					world.lightSet.add(l);
 				}
 			}
 			foreach (Node child; v.children)
@@ -96,7 +93,7 @@ class GltfReader {
 	private void readNodes() {
 		JsonVal[] nodes_json = json["nodes"].list;
 		foreach (JsonVal node; nodes_json)
-			nodes ~= readNode(node.node);
+			nodes ~= readNode(node.object);
 	}
 
 	private Node readNode(Json node_json) {
@@ -116,8 +113,8 @@ class GltfReader {
 		}
 
 		if (JsonVal* e = "extensions" in node_json)
-			if (JsonVal* el = "KHR_lights_punctual" in e.node) {
-				long l = el.node["light"].long_;
+			if (JsonVal* el = "KHR_lights_punctual" in e.object) {
+				long l = el.object["light"].long_;
 				node.attributes ~= lights[l];
 			}
 
@@ -148,7 +145,7 @@ class GltfReader {
 		if (JsonVal* j = "cameras" in json) {
 			JsonVal[] cameras_json = json["cameras"].list;
 			foreach (JsonVal camera; cameras_json)
-				cameras ~= readCamera(camera.node);
+				cameras ~= readCamera(camera.object);
 		}
 	}
 
@@ -159,7 +156,7 @@ class GltfReader {
 
 		string type = camera_json["type"].string_;
 		if (type == "perspective") {
-			Json setting = camera_json["perspective"].node;
+			Json setting = camera_json["perspective"].object;
 			precision aspect = 1 / setting["aspectRatio"].double_;
 
 			double yfov = setting["yfov"].double_;
@@ -180,7 +177,7 @@ class GltfReader {
 	private void readMeshes() {
 		JsonVal[] meshes_json = json["meshes"].list;
 		foreach (JsonVal mesh; meshes_json)
-			meshes ~= readMesh(mesh.node);
+			meshes ~= readMesh(mesh.object);
 	}
 
 	private Mesh[] readMesh(Json mesh_json) {
@@ -189,77 +186,58 @@ class GltfReader {
 		Mesh[] meshes;
 		JsonVal[] primitives = mesh_json["primitives"].list;
 		foreach (i; 0 .. primitives.length) {
-			meshes ~= readPrimitive(primitives[i].node, name ~ "#" ~ i.to!string);
+			meshes ~= readPrimitive(primitives[i].object, name ~ "#" ~ i.to!string);
 		}
 
 		return meshes;
 	}
 
 	private Mesh readPrimitive(Json primitive, string name) {
-		Mesh.Binding translateBinding(Mesh.Binding k) {
-			k.buffer = this.buffers[k.buffer].buffer;
-			return k;
-		}
+		Json attributes = primitive["attributes"].object;
+		enforce("POSITION" in attributes, "Presence of POSITION attribute assumed");
 
-		Json attributes = primitive["attributes"].node;
-		enforce("POSITION" in attributes && "NORMAL" in attributes,
-			"Presence of POSITION/NORMAL attribute assumed");
+		Mesh.AttributeSet mesh_attributes;
+		mesh_attributes.position = this.attributes[attributes["POSITION"].long_];
+		if (JsonVal* js = "NORMAL" in attributes)
+			mesh_attributes.normal = this.attributes[js.long_];
+		if (JsonVal* js = "TANGENT" in attributes)
+			mesh_attributes.tangent = this.attributes[js.long_];
 
-		Mesh.Attribute[] mesh_attributes;
-		string[] mesh_attribute_names;
-		mesh_attributes ~= this.attributes[attributes["POSITION"].long_];
-		mesh_attributes ~= this.attributes[attributes["NORMAL"].long_];
-		mesh_attribute_names ~= "POSITION";
-		mesh_attribute_names ~= "NORMAL";
-		for (uint i = 0; 16u; i++) {
+		for (uint i = 0; 16u; i++) { // TODO: decide on max #coords
 			string s = "TEXCOORD_" ~ i.to!string;
 			if (s !in attributes)
 				break;
-			mesh_attributes ~= this.attributes[attributes[s].long_];
-			mesh_attribute_names ~= s;
+			mesh_attributes.texCoord[i] = this.attributes[attributes[s].long_];
 		}
-		for (uint i = 0; 16u; i++) {
+		for (uint i = 0; 16u; i++) { // TODO: idem
 			string s = "COLOR_" ~ i.to!string;
 			if (s !in attributes)
 				break;
-			mesh_attributes ~= this.attributes[attributes[s].long_];
-			mesh_attribute_names ~= s;
-		}
-
-		Mesh.Binding[] mesh_binding;
-		uint[uint] binding_translations;
-		foreach (ref Mesh.Attribute attribute; mesh_attributes) {
-			uint i = attribute.binding;
-			if (i !in binding_translations) {
-				binding_translations[i] = cast(uint) binding_translations.length;
-				mesh_binding ~= translateBinding(this.bindings[i]);
-			}
-			attribute.binding = binding_translations[i];
+			enforce(i == 0, "COLOR_n only supports n = 0"); //TODO: properly use COLOR_0 & determine what to do with more
+			auto colorAttribute = this.attributes[attributes[s].long_];
+			enforce(colorAttribute.typeCount == 4, "COLOR_n attribute only supports typecount 4"); // TODO support 3.
+			mesh_attributes.color[i] = colorAttribute;
 		}
 
 		Mesh.VertexIndex vertexIndex;
 		if ("indices" !in primitive) {
-			vertexIndex.buffer.nullify();
-			vertexIndex.vertexCount = cast(int) mesh_attributes[0].elementCount;
+			vertexIndex.indexCount = cast(size_t) mesh_attributes.position.elementCount;
 			vertexIndex.beginning = 0;
 		} else {
-			Mesh.Attribute attribute = this.attributes[primitive["indices"].long_];
-			Mesh.Binding binding = translateBinding(
-				this.bindings[attribute.binding]);
-
-			vertexIndex.buffer = binding.buffer;
-			vertexIndex.vertexCount = cast(int) attribute.elementCount;
-			vertexIndex.beginning = cast(uint)(attribute.beginning + binding.beginning);
-			vertexIndex.type = attribute.type;
+			Mesh.Attribute indexAttr = this.attributes[primitive["indices"].long_];
+			vertexIndex.buffer = indexAttr.binding.buffer;
+			vertexIndex.indexCount = indexAttr.elementCount;
+			vertexIndex.beginning = cast(int)(indexAttr.beginning + indexAttr.binding.beginning);
+			vertexIndex.type = indexAttr.type;
 		}
 
-		Material material = Gltf.standard_material;
+		Material material;
 		if (JsonVal* j = "material" in primitive)
 			material = this.materials[j.long_];
+		else
+			material = Material.defaultMaterial;
 
-		Shader shader = Gltf.generateShader(mesh_attributes, mesh_attribute_names, material);
-
-		return new Mesh(name, mesh_attributes, mesh_binding, vertexIndex, shader, material);
+		return new Mesh(name, mesh_attributes, vertexIndex, Shader.standardShader, material);
 	}
 
 	private void readSamplers() {
@@ -267,7 +245,7 @@ class GltfReader {
 			JsonVal[] ss = ss_json.list;
 			samplers = new Sampler[ss.length + 1];
 			foreach (long i; 0 .. ss.length)
-				samplers[i] = readSampler(ss[i].node);
+				samplers[i] = readSampler(ss[i].object);
 		}
 	}
 
@@ -288,73 +266,77 @@ class GltfReader {
 
 	private uint gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
-		case 33071:
-			return GL_CLAMP_TO_EDGE;
-		case 33648:
-			return GL_MIRRORED_REPEAT;
-		case 10497:
-			return GL_REPEAT;
-		default:
-			assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
+			case 33071:
+				return GL_CLAMP_TO_EDGE;
+			case 33648:
+				return GL_MIRRORED_REPEAT;
+			case 10497:
+				return GL_REPEAT;
+			default:
+				assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
 		}
 	}
 
 	private uint gltfToGlFilter(long gltfFilter, bool isMinFilter) {
 		switch (gltfFilter) {
-		case 9728:
-			return GL_NEAREST;
-		case 9729:
-			return GL_LINEAR;
-		default:
+			case 9728:
+				return GL_NEAREST;
+			case 9729:
+				return GL_LINEAR;
+			default:
 		}
 		enforce(isMinFilter, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
 		switch (gltfFilter) {
-		case 9984:
-			return GL_NEAREST_MIPMAP_NEAREST;
-		case 9985:
-			return GL_LINEAR_MIPMAP_NEAREST;
-		case 9986:
-			return GL_NEAREST_MIPMAP_LINEAR;
-		case 9987:
-			return GL_LINEAR_MIPMAP_LINEAR;
-		default:
-			assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
+			case 9984:
+				return GL_NEAREST_MIPMAP_NEAREST;
+			case 9985:
+				return GL_LINEAR_MIPMAP_NEAREST;
+			case 9986:
+				return GL_NEAREST_MIPMAP_LINEAR;
+			case 9987:
+				return GL_LINEAR_MIPMAP_LINEAR;
+			default:
+				assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
 		}
 	}
 
-	private void readImages(string dir) {
+	private void readTextureBases(string dir) {
 		if (JsonVal* j = "images" in json)
 			foreach (JsonVal a_json; j.list)
-				images ~= readImage(a_json.node, dir);
+				textureBases ~= readTextureBase(a_json.object, dir);
 	}
 
-	private Image readImage(Json a_json, string dir) {
+	private TextureBase readTextureBase(Json a_json, string dir) {
 		ubyte[] content;
 		if (JsonVal* uri_json = "uri" in a_json) {
 			assert("bufferView" !in a_json);
 			content = readURI(uri_json.string_, dir);
 		} else {
-			content = readBindingContent(cast(uint) a_json["bufferView"].long_);
+			content = this.bindings[a_json["bufferView"].long_].getContent(0); // Should not use stride.
 		}
 		string name = a_json.get("name", JsonVal("")).string_;
-		return new Image(content, name);
+		return new TextureBase(content, name);
 	}
 
-	private void readTextures() {
+	private void readTextureHandles() {
 		if (JsonVal* ts_json = "textures" in json) {
 			JsonVal[] ts = ts_json.list;
-			textures = new Texture[ts.length];
+			textureHandles = new TextureHandle[ts.length];
 			foreach (long i; 0 .. ts.length) {
-				Json t_json = ts[i].node;
-				Texture t;
-				t.name = t_json.get("sampler", JsonVal("")).string_;
-				if (JsonVal* s = "sampler" in t_json)
-					t.sampler = samplers[s.long_];
-				else
-					t.sampler = samplers[$ - 1];
+				Json t_json = ts[i].object;
+
+				string name = t_json.get("name", JsonVal("")).string_;
+
 				assert("source" in t_json, "Texture has no image");
-				t.image = images[t_json["source"].long_];
-				textures[i] = t;
+				TextureBase base = textureBases[t_json["source"].long_];
+
+				Sampler sampler;
+				if (JsonVal* s = "sampler" in t_json)
+					sampler = samplers[s.long_];
+				else
+					sampler = samplers[$ - 1];
+
+				textureHandles[i] = new TextureHandle(name, base, sampler);
 			}
 		}
 	}
@@ -362,57 +344,65 @@ class GltfReader {
 	private void readMaterials() {
 		if (JsonVal* j = "materials" in json)
 			foreach (JsonVal m_json; j.list)
-				materials ~= readMaterial(m_json.node);
+				materials ~= readMaterial(m_json.object);
 	}
 
-	private TextureInfo readTextureInfo(Json ti_json) {
-		TextureInfo ti;
-		ti.texture = textures[ti_json["index"].long_];
-		ti.textureCoord = cast(uint) ti_json.get("texCoord", JsonVal(0)).long_;
-		return ti;
+	private Texture readTexture(Json t_json) {
+		Texture t;
+		t.handle = textureHandles[t_json["index"].long_];
+		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
+		return t;
 	}
 
-	private NormalTextureInfo readNormalTextureInfo(Json ti_json) {
-		NormalTextureInfo ti;
-		ti.textureInfo = readTextureInfo(ti_json);
-		ti.normal_scale = cast(prec) ti_json.get("scale", JsonVal(1.0)).double_;
-		return ti;
+	private Texture readNormalTexture(Json t_json) {
+		Texture t = readTexture(t_json);
+		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).double_;
+		return t;
 	}
 
-	private OcclusionTextureInfo readOcclusionTextureInfo(Json ti_json) {
-		OcclusionTextureInfo ti;
-		ti.textureInfo = readTextureInfo(ti_json);
-		ti.occlusion_strength = cast(prec) ti_json.get("strength", JsonVal(1.0)).double_;
-		return ti;
+	private Texture readOcclusionTexture(Json t_json) {
+		Texture t = readTexture(t_json);
+		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).double_;
+		return t;
 	}
 
 	private Material readMaterial(Json m_json) {
 		Material.AlphaBehaviour translateAlphaBehaviour(string behaviour) {
 			switch (behaviour) {
-			case "OPAQUE":
-				return Material.AlphaBehaviour.OPAQUE;
-			case "MASK":
-				return Material.AlphaBehaviour.MASK;
-			case "BLEND":
-				return Material.AlphaBehaviour.BLEND;
-			default:
-				assert(0, "Invalid alphabehaviour: " ~ behaviour);
+				case "OPAQUE":
+					return Material.AlphaBehaviour.OPAQUE;
+				case "MASK":
+					return Material.AlphaBehaviour.MASK;
+				case "BLEND":
+					return Material.AlphaBehaviour.BLEND;
+				default:
+					assert(0, "Invalid alphabehaviour: " ~ behaviour);
 			}
 		}
 
-		Material material = Gltf.standard_material;
+		Material material = new Material();
 		material.name = m_json.get("name", JsonVal("")).string_;
 
-		material.pbr = Gltf.standard_pbr;
-		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json)
-			material.pbr = readPBR(pbr_jval.node);
+		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json) {
+			Json pbr_j = pbr_jval.object;
+			if (JsonVal* j = "baseColorFactor" in pbr_j)
+				material.baseColor_factor = j.vec!(4, precision);
+			if (JsonVal* j = "baseColorTexture" in pbr_j)
+				material.baseColor_texture = readTexture(j.object);
+			if (JsonVal* j = "metallicFactor" in pbr_j)
+				material.metalFactor = j.double_;
+			if (JsonVal* j = "roughnessFactor" in pbr_j)
+				material.roughnessFactor = j.double_;
+			if (JsonVal* j = "metallicRoughnessTexture" in pbr_j)
+				material.metal_roughness_texture = readTexture(j.object);
+		}
 
 		if (JsonVal* j = "normalTexture" in m_json)
-			material.normal_texture = readNormalTextureInfo(j.node);
+			material.normal_texture = readNormalTexture(j.object);
 		if (JsonVal* j = "occlusionTexture" in m_json)
-			material.occlusion_texture = readOcclusionTextureInfo(j.node);
+			material.occlusion_texture = readOcclusionTexture(j.object);
 		if (JsonVal* j = "emissiveTexture" in m_json)
-			material.emission_texture = readTextureInfo(j.node);
+			material.emission_texture = readTexture(j.object);
 		if (JsonVal* j = "emissiveFactor" in m_json)
 			material.emission_factor = j.vec!(3, prec);
 		if (JsonVal* j = "alphaMode" in m_json)
@@ -421,29 +411,16 @@ class GltfReader {
 			material.alpha_threshold = cast(prec) j.double_;
 		if (JsonVal* j = "doubleSided" in m_json)
 			material.twosided = j.bool_;
-		return material;
-	}
 
-	private PBR readPBR(Json pbr_j) {
-		PBR pbr = Gltf.standard_pbr;
-		if (JsonVal* j = "baseColorFactor" in pbr_j)
-			pbr.color_factor = j.vec!(4, precision);
-		if (JsonVal* j = "baseColorTexture" in pbr_j)
-			pbr.color_texture = readTextureInfo(j.node);
-		if (JsonVal* j = "metallicFactor" in pbr_j)
-			pbr.metalFactor = j.double_;
-		if (JsonVal* j = "roughnessFactor" in pbr_j)
-			pbr.roughness = j.double_;
-		if (JsonVal* j = "metallicRoughnessTexture" in pbr_j)
-			pbr.metal_roughness_texture = readTextureInfo(j.node);
-		return pbr;
+		material.initialize();
+		return material;
 	}
 
 	private void readLights() {
 		if (JsonVal* e = "extensions" in json)
-			if (JsonVal* el = "KHR_lights_punctual" in e.node) {
-				foreach (JsonVal l_jv; el.node["lights"].list) {
-					lights ~= readLight(l_jv.node);
+			if (JsonVal* el = "KHR_lights_punctual" in e.object) {
+				foreach (JsonVal l_jv; el.object["lights"].list) {
+					lights ~= readLight(l_jv.object);
 				}
 			}
 	}
@@ -464,31 +441,17 @@ class GltfReader {
 
 		string type = lj["type"].string_;
 		switch (type) {
-		case "directional":
-			return new Light(Light.Type.DIRECTIONAL, color, strength, range);
-		case "point":
-			return new Light(Light.Type.FRAGMENT, color, strength, range);
-		case "spot":
-			Json spotj = lj["spot"].node;
-			precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).double_;
-			precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).double_;
-			return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
-		default:
-			assert(0, "Light type unknown: " ~ type);
-		}
-	}
-
-	private void determineStrides() {
-		stride_loop: foreach (ulong i; 0 .. sought_stride.length) {
-			foreach (Mesh.Attribute e; attributes) {
-				if (e.binding != i)
-					continue;
-				bindings[i].stride = cast(int) determineStride(e);
-				continue stride_loop;
-			}
-			bindings[i].stride = 0;
-			writeln(
-				"Could not find accessor to determine stride of binding#" ~ i.to!string ~ " ");
+			case "directional":
+				return new Light(Light.Type.DIRECTIONAL, color, strength, range);
+			case "point":
+				return new Light(Light.Type.FRAGMENT, color, strength, range);
+			case "spot":
+				Json spotj = lj["spot"].object;
+				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).double_;
+				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).double_;
+				return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
+			default:
+				assert(0, "Light type unknown: " ~ type);
 		}
 	}
 
@@ -496,68 +459,49 @@ class GltfReader {
 		return e.typeCount * attributeTypeSize(e.type);
 	}
 
-	private size_t attributeTypeSize(GLenum type) {
-		switch (type) {
-		case GL_UNSIGNED_BYTE:
-			return ubyte.sizeof;
-		case GL_BYTE:
-			return byte.sizeof;
-		case GL_UNSIGNED_SHORT:
-			return ushort.sizeof;
-		case GL_SHORT:
-			return short.sizeof;
-		case GL_UNSIGNED_INT:
-			return uint.sizeof;
-		case GL_FLOAT:
-			return float.sizeof;
-		default:
-			assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
-		}
-	}
-
 	private void readAttributes() {
 		JsonVal[] attributes_json = json["accessors"].list;
 		foreach (JsonVal attribute_json; attributes_json)
-			attributes ~= readAttribute(attribute_json.node);
+			attributes ~= readAttribute(attribute_json.object);
 	}
 
 	private uint translateAttributeType(int type) {
 		switch (type) {
-		case 5120:
-			return GL_BYTE;
-		case 5121:
-			return GL_UNSIGNED_BYTE;
-		case 5122:
-			return GL_SHORT;
-		case 5123:
-			return GL_UNSIGNED_SHORT;
-		case 5125:
-			return GL_UNSIGNED_INT;
-		case 5126:
-			return GL_FLOAT;
-		default:
-			assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
+			case 5120:
+				return GL_BYTE;
+			case 5121:
+				return GL_UNSIGNED_BYTE;
+			case 5122:
+				return GL_SHORT;
+			case 5123:
+				return GL_UNSIGNED_SHORT;
+			case 5125:
+				return GL_UNSIGNED_INT;
+			case 5126:
+				return GL_FLOAT;
+			default:
+				assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
 		}
 	}
 
 	private ubyte translateAttribyteTypeCount(string type) {
 		switch (type) {
-		case "SCALAR":
-			return 1;
-		case "VEC2":
-			return 2;
-		case "VEC3":
-			return 3;
-		case "VEC4":
-			return 4;
-		case "MAT2":
-			return 4;
-		case "MAT3":
-			return 9;
-		case "MAT4":
-			return 16;
-		default:
-			assert(0, "Unsupported accessor.type: " ~ type);
+			case "SCALAR":
+				return 1;
+			case "VEC2":
+				return 2;
+			case "VEC3":
+				return 3;
+			case "VEC4":
+				return 4;
+			case "MAT2":
+				return 4;
+			case "MAT3":
+				return 9;
+			case "MAT4":
+				return 16;
+			default:
+				assert(0, "Unsupported accessor.type: " ~ type);
 		}
 	}
 
@@ -565,46 +509,50 @@ class GltfReader {
 		Mesh.Attribute attribute;
 		if ("sparse" in attribute_json || "bufferView" !in attribute_json)
 			assert(0, "Sparse accessor / empty bufferview not implemented");
-		attribute.binding = cast(uint) attribute_json["bufferView"].long_;
-		attribute.type = translateAttributeType(
-			cast(int) attribute_json["componentType"].long_);
+
+		attribute.type = translateAttributeType(cast(int) attribute_json["componentType"].long_);
 		attribute.typeCount = translateAttribyteTypeCount(attribute_json["type"].string_);
 		attribute.matrix = (attribute_json["type"].string_[0 .. 3] == "MAT");
 		attribute.normalised = attribute_json.get("normalized", JsonVal(false)).bool_;
 		attribute.elementCount = attribute_json["count"].long_;
-		attribute.beginning = cast(uint) attribute_json.get("byteOffset", JsonVal(0L)).long_;
+		attribute.beginning = attribute_json.get("byteOffset", JsonVal(0L)).long_.to!size_t;
+
+		Mesh.Binding* binding = &this.bindings[attribute_json["bufferView"].long_];
+		if (binding.stride == 0)
+			binding.stride = cast(int) determineStride(attribute);
+		attribute.binding = *binding;
+
 		return attribute;
 	}
 
 	private void readBindings() {
 		JsonVal[] bindings_json = json["bufferViews"].list;
 		bindings = new Mesh.Binding[bindings_json.length];
-		for (int i = 0; i < bindings_json.length; i++) {
-			Json binding_json = bindings_json[i].node;
+		for (uint i = 0; i < bindings_json.length; i++) {
+			Json binding_json = bindings_json[i].object;
 			Mesh.Binding binding;
-			binding.buffer = cast(uint) binding_json["buffer"].long_;
+			binding.buffer = this.buffers[binding_json["buffer"].long_];
 			binding.size = binding_json["byteLength"].long_;
 			binding.beginning = binding_json.get("byteOffset", JsonVal(0L)).long_;
 			if (JsonVal* j = "byteStride" in binding_json)
 				binding.stride = cast(int) j.long_;
-			else
-				sought_stride ~= i;
+			// else determined when attribute is read.
 			bindings[i] = binding;
 		}
 	}
 
-	private void readBuffers(string dir) {
+	private void readBuffers(string dir) { //TODO: support GLB files
 		JsonVal[] list = json["buffers"].list;
 		buffers = new Buffer[list.length];
 		buffers_content = new ubyte[][list.length];
 		for (uint i = 0; i < list.length; i++) {
-			Json buffer = list[i].node;
+			Json buffer = list[i].object;
 			const long size = buffer["byteLength"].long_;
 			string uri = buffer["uri"].string_;
 			ubyte[] content = readURI(uri, dir);
 
-			enforce(content.length == size, "Buffer size incorrect: "
-					~ content.length.to!string ~ " in stead of " ~ size.to!string);
+			enforce(content.length == size,
+				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size.to!string); // May result in padding issues (GLB).
 
 			buffers[i] = new Buffer(content);
 			buffers_content[i] = content;
@@ -628,13 +576,5 @@ class GltfReader {
 			string uri_decoded = dir ~ `\` ~ decode(uri);
 			return cast(ubyte[]) read(uri_decoded);
 		}
-	}
-
-	private ubyte[] readBindingContent(uint binding_index) {
-		Mesh.Binding binding = bindings[binding_index];
-		ubyte[] source = buffers_content[binding.buffer];
-		assert(binding.stride == 0 || binding.stride == 1,
-			"Stride problem with reading from binding");
-		return source[binding.beginning .. binding.beginning + binding.size].dup;
 	}
 }
