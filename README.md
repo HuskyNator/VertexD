@@ -1,12 +1,12 @@
 ![](logo/logo.ico)
 
-#### _HoekjeD is een glTF renderer / graphics engine in aanbouw ter lering en vermaak_
+#### _VertexD is a hobby glTF renderer / graphics engine created to learn more OpengL & Dlang_
 
 ---
 
-#### Vereisten:
+#### Requirements:
 - Dlang compiler [dmd](https://dlang.org/).
-- Pakketbeheerder [dub](https://dub.pm/getting_started) (oa. geleverd met dmd).
-- [GLFW library files](https://www.glfw.org/); `glfw3dll.lib` om te bouwen, `glfw3.dll` om te draaien.
+- Package manager [dub](https://dub.pm/getting_started) (included with dmd compiler).
+- [GLFW library files](https://www.glfw.org/); `glfw3dll.lib` to build, `glfw3.dll` to run.
 
-Dmd kan ook via [chocolatey](https://chocolatey.org/) geïnstalleerd worden door middel van `choco install dmd`.
+Dmd can also be installed using [chocolatey](https://chocolatey.org/) with `choco install dmd`.
