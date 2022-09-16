@@ -216,7 +216,6 @@ final class Mesh {
 		if (vertexIndex.buffer is null) { // Tightly packed flat tangents
 			Vec!3[3][] positions = cast(Vec!3[3][]) attributes.position.getContent();
 			Vec!2[3][] texCoords = cast(Vec!2[3][]) attributes.texCoord[material.normal_texture.texCoord].getContent();
-			Vec!4[3][] colors;
 
 			tangents.reserve(vertexCount);
 			foreach (i; 0 .. vertexCount) {
@@ -243,20 +242,16 @@ final class Mesh {
 
 				Vec!4 tangent = T ~ sign;
 				tangents ~= [tangent, tangent, tangent];
-				Vec!4 color = Vec!4([0, 1, 0, 1]);
-				colors ~= [color, color, color];
 			}
 		} else {
 			uint[3][] indices = vertexIndex.getContent();
 			Vec!3[] positions = cast(Vec!3[]) attributes.position.getContent();
 			Vec!3[] normals = cast(Vec!3[]) attributes.normal.getContent();
 			Vec!2[] texCoord = cast(Vec!2[]) attributes.texCoord[material.normal_texture.texCoord].getContent();
-			Vec!4[] colors = new Vec!4[positions.length];
+			assert(vertexCount == normals.length);
 			assert(vertexCount == texCoord.length);
 
 			tangents = new Vec!4[vertexCount];
-			writeln(vertexIndex);
-			writeln(attributes.position);
 			foreach (uint[3] triangle; indices) {
 				Vec!3[3] pos = [
 					positions[triangle[0]], positions[triangle[1]], positions[triangle[2]]
@@ -271,15 +266,9 @@ final class Mesh {
 				Mat!2 deltaUVM = [ABUV, ACUV];
 				try {
 					deltaUVM = deltaUVM.inverse();
-					colors[triangle[0]] = Vec!4([1, 1, 0, 1]);
-					colors[triangle[1]] = Vec!4([1, 1, 0, 1]);
-					colors[triangle[2]] = Vec!4([1, 1, 0, 1]);
 				} catch (Exception e) {
 					writeln("Coult not invert triangle delta UV matrix:" ~ triangle.to!string);
 					writeln("Matrix:" ~ deltaUVM.to!string);
-					colors[triangle[0]] = Vec!4([0, 1, 0, 1]);
-					colors[triangle[1]] = Vec!4([0, 1, 0, 1]);
-					colors[triangle[2]] = Vec!4([0, 1, 0, 1]);
 					continue;
 				}
 
@@ -296,9 +285,9 @@ final class Mesh {
 					if (oldT.w == 0)
 						oldT.w = newT.w;
 					// assert(oldT.w == newT.w, "Can't average across tangents with opposite handedness");
-					if(oldT.w!=newT.w){
-						writeln("Can't average across tangents with opposite handedness");
-						colors[index] = Vec!4([0,1,0,1]);
+					if (oldT.w != newT.w) {
+						// writeln("Can't average across tangents with opposite handedness");
+						// ?
 					}
 					oldT[0 .. 3] += newT[0 .. 3];
 				}
@@ -314,10 +303,6 @@ final class Mesh {
 				tangent = tangent - normal * normal.dot(tangent);
 				tangents[i][0 .. 3] = tangent.normalize();
 			}
-
-			Buffer newColor = new Buffer(colors.ptr, colors.length * Vec!4.sizeof);
-			Binding binding = Binding(newColor, colors.length * Vec!4.sizeof, 0, Vec!4.sizeof);
-			this.attributes.color[0] = Attribute(binding, GL_FLOAT, 4, false, false, colors.length, 0);
 		}
 
 		size_t size = tangents.length * Vec!4.sizeof;
