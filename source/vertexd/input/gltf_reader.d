@@ -2,7 +2,6 @@ module vertexd.input.gltf_reader;
 
 import bindbc.opengl;
 import vertexd;
-import vertexd.input.gltf;
 import std.algorithm.searching : countUntil;
 import std.array : array;
 import std.conv : to;
@@ -30,7 +29,7 @@ class GltfReader {
 	ubyte[][] buffers_content;
 	Mesh.Binding[] bindings;
 	Mesh.Attribute[] attributes;
-	Mesh[][] meshes;
+	GltfMesh[][] meshes;
 
 	Camera[] cameras;
 
@@ -101,11 +100,11 @@ class GltfReader {
 		if (JsonVal* j = "name" in node_json)
 			name = j.string_;
 
-		Mesh[] meshes = [];
+		GltfMesh[] meshes = [];
 		if (JsonVal* j = "mesh" in node_json)
 			meshes = this.meshes[j.long_];
 
-		Node node = new Node(name, meshes);
+		Node node = new Node(name, cast(Mesh[]) meshes);
 
 		if (JsonVal* j = "camera" in node_json) {
 			long z = j.long_;
@@ -180,23 +179,22 @@ class GltfReader {
 			meshes ~= readMesh(mesh.object);
 	}
 
-	private Mesh[] readMesh(Json mesh_json) {
+	private GltfMesh[] readMesh(Json mesh_json) {
 		string name = mesh_json.get("name", JsonVal("")).string_;
 
-		Mesh[] meshes;
+		GltfMesh[] meshes;
 		JsonVal[] primitives = mesh_json["primitives"].list;
 		foreach (i; 0 .. primitives.length) {
-			meshes ~= readPrimitive(primitives[i].object, name ~ "#" ~ i.to!string);
+			meshes ~= readPrimitive(primitives[i].object, name);
 		}
-
 		return meshes;
 	}
 
-	private Mesh readPrimitive(Json primitive, string name) {
+	private GltfMesh readPrimitive(Json primitive, string name) {
 		Json attributes = primitive["attributes"].object;
 		enforce("POSITION" in attributes, "Presence of POSITION attribute assumed");
 
-		Mesh.AttributeSet mesh_attributes;
+		GltfMesh.AttributeSet mesh_attributes;
 		mesh_attributes.position = this.attributes[attributes["POSITION"].long_];
 		if (JsonVal* js = "NORMAL" in attributes)
 			mesh_attributes.normal = this.attributes[js.long_];
@@ -219,16 +217,16 @@ class GltfReader {
 			mesh_attributes.color[i] = colorAttribute;
 		}
 
-		Mesh.VertexIndex vertexIndex;
+		Mesh.IndexAttribute indexAttribute;
 		if ("indices" !in primitive) {
-			vertexIndex.indexCount = cast(size_t) mesh_attributes.position.elementCount;
-			vertexIndex.beginning = 0;
+			indexAttribute.indexCount = cast(size_t) mesh_attributes.position.elementCount;
+			indexAttribute.beginning = 0;
 		} else {
 			Mesh.Attribute indexAttr = this.attributes[primitive["indices"].long_];
-			vertexIndex.buffer = indexAttr.binding.buffer;
-			vertexIndex.indexCount = indexAttr.elementCount;
-			vertexIndex.beginning = cast(int)(indexAttr.beginning + indexAttr.binding.beginning);
-			vertexIndex.type = indexAttr.type;
+			indexAttribute.buffer = indexAttr.binding.buffer;
+			indexAttribute.indexCount = indexAttr.elementCount;
+			indexAttribute.beginning = cast(int)(indexAttr.beginning + indexAttr.binding.beginning);
+			indexAttribute.type = indexAttr.type;
 		}
 
 		Material material;
@@ -237,7 +235,7 @@ class GltfReader {
 		else
 			material = Material.defaultMaterial;
 
-		return new Mesh(name, mesh_attributes, vertexIndex, Shader.standardShader, material);
+		return new GltfMesh(material, mesh_attributes, indexAttribute, name);
 	}
 
 	private void readSamplers() {
@@ -455,10 +453,6 @@ class GltfReader {
 		}
 	}
 
-	private size_t determineStride(Mesh.Attribute e) {
-		return e.typeCount * attributeTypeSize(e.type);
-	}
-
 	private void readAttributes() {
 		JsonVal[] attributes_json = json["accessors"].list;
 		foreach (JsonVal attribute_json; attributes_json)
@@ -519,7 +513,7 @@ class GltfReader {
 
 		Mesh.Binding* binding = &this.bindings[attribute_json["bufferView"].long_];
 		if (binding.stride == 0)
-			binding.stride = cast(int) determineStride(attribute);
+			binding.stride = cast(int)(attribute.elementSize);
 		attribute.binding = *binding;
 
 		return attribute;
