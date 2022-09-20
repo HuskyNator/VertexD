@@ -68,7 +68,6 @@ class Node {
 
 	void draw() {
 		foreach (Mesh mesh; meshes) {
-			mesh.material.use();
 			mesh.draw(this);
 		}
 		foreach (Node child; children)
