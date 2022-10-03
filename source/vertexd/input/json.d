@@ -68,8 +68,7 @@ struct JsonVal {
 
 	Vec!(L, S) vec(uint L, S)() {
 		enforce(type == JsonType.LIST, "Type must be list");
-		enforce(L == list.length, "Expected list of length " ~ L.to!string ~
-				" but got " ~ list.length.to!string);
+		enforce(L == list.length, "Expected list of length " ~ L.to!string ~ " but got " ~ list.length.to!string);
 		import std.traits;
 
 		Vec!(L, S) v;
@@ -143,13 +142,10 @@ private:
 	}
 
 	void require(char expected)() {
-		enforce(c == expected, "Expected '" ~ expected ~ "' but found '" ~ c ~ "' on line " ~ line
-				.to!string);
+		enforce(c == expected, "Expected '" ~ expected ~ "' but found '" ~ c ~ "' on line " ~ line.to!string);
 	}
 
-	static char[] whitespace_characters = [
-		' ', '\n', '\r', '\t'
-	];
+	static char[] whitespace_characters = [' ', '\n', '\r', '\t'];
 	void whitespace() {
 		while (whitespace_characters.canFind(c) && !end()) {
 			step();
@@ -166,8 +162,7 @@ private:
 		Json json = readobject();
 		if (!end())
 			stepw();
-		enforce(end(), "End of text expected on line " ~ line
-				.to!string);
+		enforce(end(), "End of text expected on line " ~ line.to!string);
 		return json;
 	}
 
@@ -196,8 +191,7 @@ private:
 
 	JsonVal[] readList() {
 		require!'[';
-		JsonVal[] list = [
-		];
+		JsonVal[] list = [];
 		stepw();
 		if (c == ']')
 			return list;
@@ -215,10 +209,7 @@ private:
 		return list;
 	}
 
-	static char[] string_characters = [
-		'"', '\\', '/', 'b',
-		'f', 'n', 'r', 't'
-	];
+	static char[] string_characters = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't'];
 	string readString() {
 		require!'"';
 		size_t p_start = p;
@@ -229,21 +220,18 @@ private:
 				if (c == 'u') {
 					static foreach (_; 0 .. 4) {
 						step();
-						enforce(isHex(c), "Expected hecadecimal number but got " ~ c ~ " on line " ~ line
-								.to!string);
+						enforce(isHex(c), "Expected hecadecimal number but got " ~ c ~ " on line " ~ line.to!string);
 					}
 				} else {
-					enforce(string_characters.canFind(c), "Illegal character in string " ~ c ~ " on line " ~ line
-							.to!string);
+					enforce(string_characters.canFind(c),
+						"Illegal character in string " ~ c ~ " on line " ~ line.to!string);
 				}
 			} else {
-				enforce(!isControl(c), "Control character in string on line " ~ line
-						.to!string);
+				enforce(!isControl(c), "Control character in string on line " ~ line.to!string);
 			}
 			step();
 		}
-		return content[p_start .. (p - 1)]
-			.idup;
+		return content[p_start .. (p - 1)].idup;
 	}
 
 	JsonVal readNumber() {
@@ -255,20 +243,17 @@ private:
 
 		if (c >= '1' && c <= '9') {
 			step();
-			while (
-				isNumber(c))
+			while (isNumber(c))
 				step();
 		} else {
-			enforce(c == '0', "Expected number but got '" ~ c ~ "' on line " ~ line
-					.to!string);
+			enforce(c == '0', "Expected number but got '" ~ c ~ "' on line " ~ line.to!string);
 			step();
 		}
 
 		if (c == '.') {
 			isFloat = true;
 			step();
-			enforce(isNumber(c), "Expected number but got '" ~ c ~ "' on line " ~ line
-					.to!string);
+			enforce(isNumber(c), "Expected number but got '" ~ c ~ "' on line " ~ line.to!string);
 			step();
 			while (isNumber(c))
 				step();
@@ -278,8 +263,7 @@ private:
 			step();
 			if (c == '-' || c == '+')
 				step();
-			enforce(isNumber(c), "Expected number but got " ~ c ~ "' on line " ~ line
-					.to!string);
+			enforce(isNumber(c), "Expected number but got " ~ c ~ "' on line " ~ line.to!string);
 			step();
 			while (isNumber(c))
 				step();
@@ -290,11 +274,9 @@ private:
 		JsonVal j;
 		j.type = isFloat ? JsonType.DOUBLE : JsonType.LONG;
 		if (isFloat)
-			j.double_ = content[p_start - 1 .. p]
-				.to!double;
+			j.double_ = content[p_start - 1 .. p].to!double;
 		else
-			j.long_ = content[p_start - 1 .. p]
-				.to!long;
+			j.long_ = content[p_start - 1 .. p].to!long;
 		return j;
 	}
 
@@ -316,27 +298,23 @@ private:
 		}
 	}
 
-	JsonVal readVal() {
+	JsonVal  readVal() {
 		switch (c) {
 			case '{':
-				JsonVal j = JsonVal(
-					readobject());
+				JsonVal j = JsonVal(readobject());
 				return j;
 			case '[':
-				JsonVal j = JsonVal(
-					readList());
+				JsonVal j = JsonVal(readList());
 				return j;
 			case 't', 'f':
-				JsonVal j = JsonVal(
-					readBool());
+				JsonVal j = JsonVal(readBool());
 				return j;
 			case 'n':
 				JsonVal j = JsonVal.NULL();
 				read!"null";
 				return j;
 			case '"':
-				JsonVal j = JsonVal(
-					readString());
+				JsonVal j = JsonVal(readString());
 				return j;
 			default:
 				// Last possibility
@@ -350,54 +328,35 @@ unittest {
 	{
 		"test": {
 			"values": [
-				"true",
-				"false"
+				true,
+				false
 			]
 		},
-		"getal": 0,
-		"getal2": 1.2e+20
+		"number": 0,
+		"number2": 1.2e+20
 	}`;
 	Json json = JsonReader.readJson(json_string);
 	assert("test" in json);
 	JsonVal testval = json["test"];
-	assert(
-		testval.type == JsonType
-			.object);
-	Json test = testval
-		.object;
+	assert(testval.type == JsonType.object);
+	Json test = testval.object;
 	assert("values" in test);
 	JsonVal vals = test["values"];
-	assert(
-		vals.type == JsonType
-			.LIST);
-	JsonVal[] list = vals
-		.list;
+	assert(vals.type == JsonType.LIST);
+	JsonVal[] list = vals.list;
 	assert(list.length == 2);
-	assert(
-		list[0].type == JsonType
-			.BOOL);
-	assert(
-		list[0].bool_ == true);
-	assert(
-		list[1].type == JsonType
-			.BOOL);
-	assert(
-		list[1].bool_ == false);
+	assert(list[0].type == JsonType.BOOL);
+	assert(list[0].bool_ == true);
+	assert(list[1].type == JsonType.BOOL);
+	assert(list[1].bool_ == false);
 	assert("number" in json);
 	JsonVal number = json["number"];
-	assert(
-		number.type == JsonType
-			.LONG);
-	long number_i = number
-		.long_;
+	assert(number.type == JsonType.LONG);
+	long number_i = number.long_;
 	assert(number_i == 0);
 	assert("number2" in json);
 	JsonVal number2 = json["number2"];
-	assert(
-		number2.type == JsonType
-			.DOUBLE);
-	double number2_d = number2
-		.double_;
-	assert(
-		number2_d == 1.2e+20);
+	assert(number2.type == JsonType.DOUBLE);
+	double number2_d = number2.double_;
+	assert(number2_d == 1.2e+20);
 }

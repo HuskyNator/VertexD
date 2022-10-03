@@ -61,7 +61,7 @@ size_t getGLenumTypeSize(GLenum type) {
 }
 
 GLenum getGLenum(T)() {
-	static if (is(T == ubyte))
+	static if (is(T == bool))
 		return GL_BOOL;
 	// else static if (is(T == char))
 	// 	return GLchar;
