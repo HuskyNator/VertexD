@@ -6,6 +6,7 @@ import std.exception : enforce;
 import std.math : signbit;
 import std.stdio : writeln;
 import std.typecons : Nullable;
+import std.traits : isIntegral;
 import vertexd;
 
 abstract class Mesh {
@@ -18,12 +19,17 @@ abstract class Mesh {
 		size_t elementCount = 0; // must be >= 1 (initialized)
 		size_t beginning = 0; // byte offset
 
-		static Attribute create(uint R, uint C, T, M:
-			Mat!(R, C, T))(M[] content, bool normalised = false) {
+		static Attribute create(M : T[R], T, uint R)(M[] content, bool normalized = false)
+				if (!isList!T) {
+			return create(cast(T[1][R][]) content, normalized);
+		}
+
+		static Attribute create(M : T[C][R], T, uint R, uint C)(M[] content, bool normalized = false)
+				if (!isList!T) {
 			size_t size = content.length * M.sizeof;
 			Buffer buffer = new Buffer(content.ptr, size);
 			Binding binding = Binding(buffer, size, 0, M.sizeof);
-			return Attribute(binding, getGLenum!(T), R * C, M.isVec, normalised, content.length, 0);
+			return Attribute(binding, getGLenum!(T), R * C, C > 1, normalized, content.length, 0);
 		}
 
 		bool present() {
@@ -65,10 +71,17 @@ abstract class Mesh {
 	}
 
 	struct IndexAttribute {
-		Buffer buffer = null;
 		size_t indexCount;
-		int beginning; // bytes
+		int beginning = 0; // bytes
+		Buffer buffer = null;
 		GLenum type; // ubyte/ushort/uint
+
+		static IndexAttribute create(T)(T[] content, bool normalized = false)
+				if (__traits(compiles, (getGLenum!T))) { // not isIntegral!T
+			size_t size = content.length * T.sizeof;
+			Buffer buffer = new Buffer(content.ptr, size);
+			return IndexAttribute(content.length, 0, buffer, getGLenum!(T));
+		}
 
 		bool present() {
 			return buffer !is null;
@@ -92,11 +105,11 @@ abstract class Mesh {
 	string name;
 	Shader shader;
 	protected uint vao;
-	protected IndexAttribute indexAttribute;
-	protected Attribute[uint] attributes; // Must match shader usage!
-	protected uint[Binding] bindings;
+	IndexAttribute indexAttribute;
+	Attribute[uint] attributes; // Must match shader usage!
+	uint[Binding] bindings;
 
-	public this(string name, Shader shader, IndexAttribute indexAttribute = IndexAttribute()) {
+	public this(string name, Shader shader, IndexAttribute indexAttribute) {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
@@ -211,8 +224,8 @@ abstract class Mesh {
 				deltaUVM = deltaUVM.inverse();
 
 				Mat!(2, 3) TBM = deltaUVM.mult(deltaPosM);
-				Vec!3 T = TBM[0];
-				Vec!3 B = TBM[1];
+				Vec!3 T = Vec!3(TBM[0]);
+				Vec!3 B = Vec!3(TBM[1]);
 				assert(T.length == 1, T.toString);
 				assert(B.length == 1, B.toString);
 

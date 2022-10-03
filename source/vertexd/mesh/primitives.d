@@ -12,9 +12,14 @@ class Primitive(GLenum type) : Mesh {
 	float size;
 	bool antiAliasing, wireframe;
 
-	public this(Vec!3[] positions, Vec!4[] colors = [Vec!4([0, 1, 0, 1])], string name = "",
+	public this(float[3][] positions, float[4][] colors = [[0, 1, 0, 1]], string name = "",
 		Shader shader = Shader.flatColorShader(), float size = 1, bool antiAliasing = false, bool wireframe = false) {
-		super(name, shader);
+		static if (type == GL_TRIANGLES)
+			assert(positions.length % 3 == 0);
+		else static if (type == GL_LINES)
+			assert(positions.length % 2 == 0);
+
+		super(name, shader, IndexAttribute(positions.length));
 		if (name.length == 0)
 			this.name = type.stringof ~ "#" ~ vao.to!string;
 
@@ -22,13 +27,18 @@ class Primitive(GLenum type) : Mesh {
 		this.antiAliasing = antiAliasing;
 		this.wireframe = wireframe;
 
-		setAttribute(Mesh.Attribute.create(positions), 0);
+		size_t pos_size = positions.length * Vec!3.sizeof;
+		Buffer buffer = new Buffer(positions.ptr, pos_size);
+		Binding binding = Binding(buffer, pos_size, 0, Vec!3.sizeof);
+		Attribute posAttr = Attribute(binding, GL_FLOAT, 3, false, false, positions.length, 0);
+		// setAttribute(Mesh.Attribute.create(positions), 0);
+		setAttribute(posAttr, 0);
 
 		if (colors.length > 1) {
 			assert(positions.length == colors.length);
 			setAttribute(Mesh.Attribute.create(colors), 1);
 		} else
-			this.singleColor = colors[0];
+			this.singleColor = Vec!4(colors[0]);
 	}
 
 	override GLenum drawMode() {

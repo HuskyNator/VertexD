@@ -1,11 +1,12 @@
 module vertexd.world.node;
 
+import std.conv : to;
+import std.datetime : Duration;
 import vertexd.core.mat;
 import vertexd.core.quaternions;
 import vertexd.mesh.mesh;
-import vertexd.world.world;
 import vertexd.misc;
-import std.datetime : Duration;
+import vertexd.world.world;
 
 struct Pose {
 	Vec!3 location = Vec!3([0, 0, 0]);
@@ -15,6 +16,7 @@ struct Pose {
 }
 
 class Node {
+	static ulong nodeCount = 0;
 	interface Attribute {
 		void update(World world, Node parent);
 	}
@@ -32,9 +34,13 @@ class Node {
 
 	private bool modified = true;
 
-	this(string name, Mesh[] meshes = []) {
-		this.name = name;
+	this(Mesh[] meshes = [], string name = "") {
+		if (name.length == 0)
+			this.name = "Node#" ~ nodeCount.to!string;
+		else
+			this.name = name;
 		this.meshes = meshes;
+		Node.nodeCount += 1;
 	}
 
 	public @property {
@@ -64,6 +70,10 @@ class Node {
 			pose.size = size;
 			modified = true;
 		}
+	}
+
+	Vec!3 worldLocation(){
+		return Vec!3([modelMatrix[0][3], modelMatrix[1][3], modelMatrix[2][3]]);
 	}
 
 	void draw() {

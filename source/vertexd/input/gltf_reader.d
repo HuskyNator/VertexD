@@ -104,7 +104,7 @@ class GltfReader {
 		if (JsonVal* j = "mesh" in node_json)
 			meshes = this.meshes[j.long_];
 
-		Node node = new Node(name, cast(Mesh[]) meshes);
+		Node node = new Node(cast(Mesh[]) meshes, name);
 
 		if (JsonVal* j = "camera" in node_json) {
 			long z = j.long_;
