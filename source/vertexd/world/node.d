@@ -25,7 +25,7 @@ class Node {
 	Node parent;
 	Node[] children = [];
 	Pose pose;
-	Mesh[] meshes;
+	Mesh[] meshes = [];
 
 	Attribute[] attributes = [];
 
@@ -34,13 +34,8 @@ class Node {
 
 	private bool modified = true;
 
-	this(Mesh[] meshes = [], string name = "") {
-		if (name.length == 0)
-			this.name = "Node#" ~ nodeCount.to!string;
-		else
-			this.name = name;
-		this.meshes = meshes;
-		Node.nodeCount += 1;
+	this() {
+		this.name = "Node#" ~ nodeCount.to!string;
 	}
 
 	public @property {
@@ -72,7 +67,7 @@ class Node {
 		}
 	}
 
-	Vec!3 worldLocation(){
+	Vec!3 worldLocation() {
 		return Vec!3([modelMatrix[0][3], modelMatrix[1][3], modelMatrix[2][3]]);
 	}
 
@@ -106,7 +101,6 @@ class Node {
 	}
 
 	void update(World world, bool parentModified) {
-		assert(!(parentModified && parent is null));
 		bool update = modified || parentModified;
 
 		if (modified)

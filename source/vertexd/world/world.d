@@ -4,6 +4,7 @@ import std.datetime : Duration;
 import vertexd.world.light;
 import vertexd.world.node;
 import vertexd.world.camera;
+import std.conv : to;
 
 class World {
 	static World[] worlds;
@@ -13,8 +14,8 @@ class World {
 	Camera camera;
 	LightSet lightSet;
 
-	this(string name) {
-		this.name = name;
+	this() {
+		this.name = "World#" ~ worlds.length.to!string;
 		worlds ~= this;
 		lightSet = new LightSet();
 	}
@@ -30,8 +31,8 @@ class World {
 			child.logicStep(deltaT);
 	}
 
-	public void update() {
+	public void update(bool force = false) {
 		foreach (Node child; children)
-			child.update(this, false);
+			child.update(this, force);
 	}
 }

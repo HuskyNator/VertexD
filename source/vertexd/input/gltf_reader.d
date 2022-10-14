@@ -67,9 +67,10 @@ class GltfReader {
 	}
 
 	private World readWorld(Json world_json) {
-		string name = world_json["name"].string_;
-		World world = new World(name);
-		JsonVal[] children = world_json["nodes"].list;
+		World world = new World();
+		if (JsonVal* j = "name" in world_json)
+			world.name = j.string_;
+		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[]) [])).list;
 
 		void addAttribute(Node v) {
 			foreach (Node.Attribute e; v.attributes) {
@@ -91,20 +92,22 @@ class GltfReader {
 
 	private void readNodes() {
 		JsonVal[] nodes_json = json["nodes"].list;
-		foreach (JsonVal node; nodes_json)
-			nodes ~= readNode(node.object);
+		nodes = new Node[nodes_json.length];
+
+		foreach (i; 0 .. nodes_json.length)
+			nodes[i] = new Node(); // Preinitialize to permit child references
+
+		foreach (i, JsonVal node; nodes_json)
+			readNode(nodes[i], node.object);
 	}
 
-	private Node readNode(Json node_json) {
+	private Node readNode(ref Node node, Json node_json) {
 		string name = "";
 		if (JsonVal* j = "name" in node_json)
-			name = j.string_;
+			node.name = j.string_;
 
-		GltfMesh[] meshes = [];
 		if (JsonVal* j = "mesh" in node_json)
-			meshes = this.meshes[j.long_];
-
-		Node node = new Node(cast(Mesh[]) meshes, name);
+			node.meshes = cast(Mesh[]) this.meshes[j.long_];
 
 		if (JsonVal* j = "camera" in node_json) {
 			long z = j.long_;
@@ -509,7 +512,7 @@ class GltfReader {
 		attribute.matrix = (attribute_json["type"].string_[0 .. 3] == "MAT");
 		attribute.normalised = attribute_json.get("normalized", JsonVal(false)).bool_;
 		attribute.elementCount = attribute_json["count"].long_;
-		attribute.beginning = attribute_json.get("byteOffset", JsonVal(0L)).long_.to!size_t;
+		attribute.beginning = attribute_json.get("byteOffset", JsonVal(0L)).long_.to!uint;
 
 		Mesh.Binding* binding = &this.bindings[attribute_json["bufferView"].long_];
 		if (binding.stride == 0)
