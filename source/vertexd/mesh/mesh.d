@@ -4,7 +4,7 @@ import bindbc.opengl;
 import std.conv : to;
 import std.exception : enforce;
 import std.math : signbit;
-import std.stdio : writeln;
+import std.stdio : write, writeln;
 import std.typecons : Nullable;
 import std.traits : isIntegral;
 import vertexd;
@@ -17,7 +17,7 @@ abstract class Mesh {
 		bool matrix;
 		bool normalised = false;
 		size_t elementCount = 0; // must be >= 1 (initialized)
-		size_t beginning = 0; // byte offset
+		uint beginning = 0; // byte offset
 
 		static Attribute create(M : T[R], T, uint R)(M[] content, bool normalized = false)
 				if (!isList!T) {
@@ -148,7 +148,7 @@ abstract class Mesh {
 
 		glEnableVertexArrayAttrib(vao, attribIndex);
 		glVertexArrayAttribFormat(vao, attribIndex, attrib.typeCount, attrib.type,
-			attrib.normalised, cast(uint) attrib.beginning);
+			attrib.normalised, attrib.beginning);
 		glVertexArrayAttribBinding(vao, attribIndex, bindingIndex);
 		return true;
 	}
