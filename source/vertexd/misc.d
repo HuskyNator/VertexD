@@ -35,7 +35,7 @@ bool isList(T, uint n = 1)() if (n > 0) {
 }
 
 // OpenGL type enum to size
-size_t getGLenumTypeSize(GLenum type) {
+GLsizei getGLenumTypeSize(GLenum type) {
 	switch (type) {
 		case GL_BOOL:
 			return ubyte.sizeof;

@@ -12,11 +12,12 @@ import std.path : dirName;
 import std.stdio;
 import std.typecons : Nullable;
 
-class GltfReader {
-	Json json;
+final class GltfReader {
 	World main_world;
 	World[] worlds;
 	Node[] nodes;
+
+	GltfMesh[][] meshes;
 	Material[] materials;
 
 	TextureHandle[] textureHandles;
@@ -24,23 +25,30 @@ class GltfReader {
 	Sampler[] samplers;
 
 	Light[] lights;
-
-	Buffer[] buffers;
-	ubyte[][] buffers_content;
-	Mesh.Binding[] bindings;
-	Mesh.Attribute[] attributes;
-	GltfMesh[][] meshes;
-
 	Camera[] cameras;
 
-	this(string file) {
+private:
+	Json json;
+
+	ubyte[][] buffers;
+	BufferView[] gltfBufferViews;
+	Accessor[] gltfAccessors;
+
+	struct BufferView {
+		ubyte[] content;
+		size_t stride;
+	}
+
+	alias Accessor = Attribute;
+
+	public this(string file) {
 		string dir = dirName(file);
 		this.json = JsonReader.readJsonFile(file);
 		enforce(json["asset"].object["version"].string_ == "2.0");
 
 		readBuffers(dir);
-		readBindings();
-		readAttributes();
+		readBufferViews();
+		readAccessors();
 
 		readLights(); // KHR_lights_punctual extension
 
@@ -55,7 +63,7 @@ class GltfReader {
 		readWorlds();
 	}
 
-	private void readWorlds() {
+	void readWorlds() {
 		JsonVal[] worlds_json = json["scenes"].list;
 		foreach (JsonVal world; worlds_json)
 			worlds ~= readWorld(world.object);
@@ -66,11 +74,11 @@ class GltfReader {
 			main_world = null;
 	}
 
-	private World readWorld(Json world_json) {
+	World readWorld(Json world_json) {
 		World world = new World();
 		if (JsonVal* j = "name" in world_json)
 			world.name = j.string_;
-		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[]) [])).list;
+		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[])[])).list;
 
 		void addAttribute(Node v) {
 			foreach (Node.Attribute e; v.attributes) {
@@ -90,7 +98,7 @@ class GltfReader {
 		return world;
 	}
 
-	private void readNodes() {
+	void readNodes() {
 		JsonVal[] nodes_json = json["nodes"].list;
 		nodes = new Node[nodes_json.length];
 
@@ -101,7 +109,7 @@ class GltfReader {
 			readNode(nodes[i], node.object);
 	}
 
-	private Node readNode(ref Node node, Json node_json) {
+	Node readNode(ref Node node, Json node_json) {
 		string name = "";
 		if (JsonVal* j = "name" in node_json)
 			node.name = j.string_;
@@ -143,7 +151,7 @@ class GltfReader {
 		return node;
 	}
 
-	private void readCameras() {
+	void readCameras() {
 		if (JsonVal* j = "cameras" in json) {
 			JsonVal[] cameras_json = json["cameras"].list;
 			foreach (JsonVal camera; cameras_json)
@@ -151,7 +159,7 @@ class GltfReader {
 		}
 	}
 
-	private Camera readCamera(Json camera_json) {
+	Camera readCamera(Json camera_json) {
 		string name = "";
 		if (JsonVal* j = "name" in camera_json)
 			name = j.string_;
@@ -176,60 +184,78 @@ class GltfReader {
 		}
 	}
 
-	private void readMeshes() {
+	void readMeshes() {
 		JsonVal[] meshes_json = json["meshes"].list;
-		foreach (JsonVal mesh; meshes_json)
-			meshes ~= readMesh(mesh.object);
-	}
+		this.meshes.reserve(meshes_json.length);
 
-	private GltfMesh[] readMesh(Json mesh_json) {
-		string name = mesh_json.get("name", JsonVal("")).string_;
+		foreach (JsonVal mesh; meshes_json) {
+			Json mesh_json = mesh.object;
+			string name = mesh_json.get("name", JsonVal("")).string_;
 
-		GltfMesh[] meshes;
-		JsonVal[] primitives = mesh_json["primitives"].list;
-		foreach (i; 0 .. primitives.length) {
-			meshes ~= readPrimitive(primitives[i].object, name);
+			GltfMesh[] primitives;
+			JsonVal[] primitives_json = mesh_json["primitives"].list;
+			foreach (i; 0 .. primitives_json.length)
+				primitives ~= readPrimitive(primitives_json[i].object, name);
+
+			this.meshes ~= primitives;
 		}
-		return meshes;
 	}
 
-	private GltfMesh readPrimitive(Json primitive, string name) {
-		Json attributes = primitive["attributes"].object;
-		enforce("POSITION" in attributes, "Presence of POSITION attribute assumed");
+	GltfMesh readPrimitive(Json primitive, string name) {
+		Json attributes_json = primitive["attributes"].object;
+		enforce("POSITION" in attributes_json, "Presence of POSITION attribute assumed");
 
-		GltfMesh.AttributeSet mesh_attributes;
-		mesh_attributes.position = this.attributes[attributes["POSITION"].long_];
-		if (JsonVal* js = "NORMAL" in attributes)
-			mesh_attributes.normal = this.attributes[js.long_];
-		if (JsonVal* js = "TANGENT" in attributes)
-			mesh_attributes.tangent = this.attributes[js.long_];
+		GltfMesh.AttributeSet attributeSet;
+		attributeSet.position = this.gltfAccessors[attributes_json["POSITION"].long_];
+		assert(attributeSet.position.typeCount == 3);
+		assert(attributeSet.position.type == GL_FLOAT);
+
+		if (JsonVal* js = "NORMAL" in attributes_json) {
+			attributeSet.normal = this.gltfAccessors[js.long_];
+			assert(attributeSet.normal.typeCount == 3);
+			assert(attributeSet.normal.type == GL_FLOAT);
+		}
+
+		if (JsonVal* js = "TANGENT" in attributes_json) {
+			attributeSet.tangent = this.gltfAccessors[js.long_];
+			assert(attributeSet.tangent.typeCount == 4);
+			assert(attributeSet.tangent.type == GL_FLOAT);
+		}
 
 		for (uint i = 0; 16u; i++) { // TODO: decide on max #coords
 			string s = "TEXCOORD_" ~ i.to!string;
-			if (s !in attributes)
+			if (s !in attributes_json)
 				break;
-			mesh_attributes.texCoord[i] = this.attributes[attributes[s].long_];
-		}
-		for (uint i = 0; 16u; i++) { // TODO: idem
-			string s = "COLOR_" ~ i.to!string;
-			if (s !in attributes)
-				break;
-			enforce(i == 0, "COLOR_n only supports n = 0"); //TODO: properly use COLOR_0 & determine what to do with more
-			auto colorAttribute = this.attributes[attributes[s].long_];
-			enforce(colorAttribute.typeCount == 4, "COLOR_n attribute only supports typecount 4"); // TODO support 3.
-			mesh_attributes.color[i] = colorAttribute;
+			Attribute attr = this.gltfAccessors[attributes_json[s].long_];
+			attributeSet.texCoord[i] = attr;
+			assert(attr.typeCount == 2);
+			assert(attr.type == GL_FLOAT || ((attr.type == GL_UNSIGNED_BYTE
+					|| attr.type == GL_UNSIGNED_SHORT) && attr.normalised));
 		}
 
-		Mesh.IndexAttribute indexAttribute;
+		for (uint i = 0; 16u; i++) { // TODO: idem
+			string s = "COLOR_" ~ i.to!string;
+			if (s !in attributes_json)
+				break;
+			enforce(i == 0, "COLOR_n only supports n = 0"); //TODO: properly use COLOR_0 & determine what to do with more
+
+			Attribute colorAttribute = this.gltfAccessors[attributes_json[s].long_];
+			enforce(colorAttribute.typeCount == 4, "COLOR_n attribute only supports typecount 4"); // TODO support 3.
+			assert(colorAttribute.typeCount == 3 || colorAttribute.typeCount == 4);
+			assert(colorAttribute.type == GL_FLOAT || ((colorAttribute.type == GL_UNSIGNED_BYTE
+					|| colorAttribute.type == GL_UNSIGNED_SHORT) && colorAttribute.normalised));
+			attributeSet.color[i] = colorAttribute;
+		}
+
+		//TODO: Joints & Weights
+
+		IndexAttribute indexAttribute;
 		if ("indices" !in primitive) {
-			indexAttribute.indexCount = cast(size_t) mesh_attributes.position.elementCount;
-			indexAttribute.beginning = 0;
+			assert(attributeSet.position.elementCount % 3 == 0);
+			indexAttribute.indexCount = attributeSet.position.elementCount;
+			indexAttribute.offset = 0;
 		} else {
-			Mesh.Attribute indexAttr = this.attributes[primitive["indices"].long_];
-			indexAttribute.buffer = indexAttr.binding.buffer;
-			indexAttribute.indexCount = indexAttr.elementCount;
-			indexAttribute.beginning = cast(int)(indexAttr.beginning + indexAttr.binding.beginning);
-			indexAttribute.type = indexAttr.type;
+			indexAttribute = IndexAttribute(this.gltfAccessors[primitive["indices"].long_]);
 		}
 
 		Material material;
@@ -238,10 +264,10 @@ class GltfReader {
 		else
 			material = Material.defaultMaterial;
 
-		return new GltfMesh(material, mesh_attributes, indexAttribute, name);
+		return new GltfMesh(material, attributeSet, indexAttribute, name);
 	}
 
-	private void readSamplers() {
+	void readSamplers() {
 		if (JsonVal* ss_json = "samplers" in json) {
 			JsonVal[] ss = ss_json.list;
 			samplers = new Sampler[ss.length + 1];
@@ -250,7 +276,7 @@ class GltfReader {
 		}
 	}
 
-	private Sampler readSampler(Json s_json) {
+	Sampler readSampler(Json s_json) {
 		uint minFilter = GL_NEAREST_MIPMAP_LINEAR;
 		uint magFilter = GL_NEAREST;
 		if (JsonVal* j = "minFilter" in s_json)
@@ -265,7 +291,7 @@ class GltfReader {
 		return new Sampler(name, wrapS, wrapT, minFilter, magFilter);
 	}
 
-	private uint gltfToGLWrap(long gltfWrap) {
+	uint gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
 			case 33071:
 				return GL_CLAMP_TO_EDGE;
@@ -278,7 +304,7 @@ class GltfReader {
 		}
 	}
 
-	private uint gltfToGlFilter(long gltfFilter, bool isMinFilter) {
+	uint gltfToGlFilter(long gltfFilter, bool isMinFilter) {
 		switch (gltfFilter) {
 			case 9728:
 				return GL_NEAREST;
@@ -301,25 +327,25 @@ class GltfReader {
 		}
 	}
 
-	private void readTextureBases(string dir) {
+	void readTextureBases(string dir) {
 		if (JsonVal* j = "images" in json)
 			foreach (JsonVal a_json; j.list)
 				textureBases ~= readTextureBase(a_json.object, dir);
 	}
 
-	private TextureBase readTextureBase(Json a_json, string dir) {
+	TextureBase readTextureBase(Json a_json, string dir) {
 		ubyte[] content;
 		if (JsonVal* uri_json = "uri" in a_json) {
 			assert("bufferView" !in a_json);
 			content = readURI(uri_json.string_, dir);
 		} else {
-			content = this.bindings[a_json["bufferView"].long_].getContent(0); // Should not use stride.
+			content = this.gltfBufferViews[a_json["bufferView"].long_].content;
 		}
 		string name = a_json.get("name", JsonVal("")).string_;
 		return new TextureBase(content, name);
 	}
 
-	private void readTextureHandles() {
+	void readTextureHandles() {
 		if (JsonVal* ts_json = "textures" in json) {
 			JsonVal[] ts = ts_json.list;
 			textureHandles = new TextureHandle[ts.length];
@@ -342,32 +368,32 @@ class GltfReader {
 		}
 	}
 
-	private void readMaterials() {
+	void readMaterials() {
 		if (JsonVal* j = "materials" in json)
 			foreach (JsonVal m_json; j.list)
 				materials ~= readMaterial(m_json.object);
 	}
 
-	private Texture readTexture(Json t_json) {
+	Texture readTexture(Json t_json) {
 		Texture t;
 		t.handle = textureHandles[t_json["index"].long_];
 		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
 		return t;
 	}
 
-	private Texture readNormalTexture(Json t_json) {
+	Texture readNormalTexture(Json t_json) {
 		Texture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).double_;
 		return t;
 	}
 
-	private Texture readOcclusionTexture(Json t_json) {
+	Texture readOcclusionTexture(Json t_json) {
 		Texture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).double_;
 		return t;
 	}
 
-	private Material readMaterial(Json m_json) {
+	Material readMaterial(Json m_json) {
 		Material.AlphaBehaviour translateAlphaBehaviour(string behaviour) {
 			switch (behaviour) {
 				case "OPAQUE":
@@ -417,7 +443,7 @@ class GltfReader {
 		return material;
 	}
 
-	private void readLights() {
+	void readLights() {
 		if (JsonVal* e = "extensions" in json)
 			if (JsonVal* el = "KHR_lights_punctual" in e.object) {
 				foreach (JsonVal l_jv; el.object["lights"].list) {
@@ -426,7 +452,7 @@ class GltfReader {
 			}
 	}
 
-	private Light readLight(Json lj) {
+	Light readLight(Json lj) {
 		string name = "";
 		Vec!3 color = Vec!3(1);
 		precision strength = 1;
@@ -456,13 +482,38 @@ class GltfReader {
 		}
 	}
 
-	private void readAttributes() {
-		JsonVal[] attributes_json = json["accessors"].list;
-		foreach (JsonVal attribute_json; attributes_json)
-			attributes ~= readAttribute(attribute_json.object);
+	void readAccessors() {
+		JsonVal[] accessors_json = json["accessors"].list;
+		this.gltfAccessors = new Accessor[accessors_json.length];
+		foreach (i, ref accessor; gltfAccessors) {
+			Json accessor_json = accessors_json[i].object;
+
+			if ("sparse" in accessor_json || "bufferView" !in accessor_json)
+				assert(0, "Sparse accessor / empty bufferview not implemented");
+
+			accessor.type = translateAttributeType(cast(int) accessor_json["componentType"].long_);
+			accessor.typeCount = translateAttribyteTypeCount(accessor_json["type"].string_);
+			accessor.matrix = (accessor_json["type"].string_[0 .. 3] == "MAT");
+			accessor.normalised = accessor_json.get("normalized", JsonVal(false)).bool_;
+
+			accessor.elementCount = cast(GLsizei) accessor_json["count"].long_;
+			long relativeOffset = accessor_json.get("byteOffset", JsonVal(0L)).long_;
+			BufferView bufferView = this.gltfBufferViews[accessor_json["bufferView"].long_];
+
+			accessor.elementSize = accessor.typeCount * getGLenumTypeSize(accessor.type);
+			long stride = bufferView.stride;
+			if (stride == 0)
+				stride = accessor.elementSize;
+			accessor.content = new ubyte[accessor.elementCount * accessor.elementSize];
+			for (size_t j = 0; j < accessor.elementCount; j += 1) {
+				auto je = j * accessor.elementSize;
+				auto js = j * stride + relativeOffset;
+				accessor.content[je .. je + accessor.elementSize] = bufferView.content[js .. js + accessor.elementSize];
+			}
+		}
 	}
 
-	private uint translateAttributeType(int type) {
+	uint translateAttributeType(int type) {
 		switch (type) {
 			case 5120:
 				return GL_BYTE;
@@ -481,7 +532,7 @@ class GltfReader {
 		}
 	}
 
-	private ubyte translateAttribyteTypeCount(string type) {
+	ubyte translateAttribyteTypeCount(string type) {
 		switch (type) {
 			case "SCALAR":
 				return 1;
@@ -502,61 +553,39 @@ class GltfReader {
 		}
 	}
 
-	private Mesh.Attribute readAttribute(Json attribute_json) {
-		Mesh.Attribute attribute;
-		if ("sparse" in attribute_json || "bufferView" !in attribute_json)
-			assert(0, "Sparse accessor / empty bufferview not implemented");
+	void readBufferViews() {
+		JsonVal[] bufferviews_json = json["bufferViews"].list;
+		this.gltfBufferViews = new BufferView[bufferviews_json.length];
 
-		attribute.type = translateAttributeType(cast(int) attribute_json["componentType"].long_);
-		attribute.typeCount = translateAttribyteTypeCount(attribute_json["type"].string_);
-		attribute.matrix = (attribute_json["type"].string_[0 .. 3] == "MAT");
-		attribute.normalised = attribute_json.get("normalized", JsonVal(false)).bool_;
-		attribute.elementCount = attribute_json["count"].long_;
-		attribute.beginning = attribute_json.get("byteOffset", JsonVal(0L)).long_.to!uint;
+		foreach (i; 0 .. bufferviews_json.length) {
+			Json bufferview_json = bufferviews_json[i].object;
 
-		Mesh.Binding* binding = &this.bindings[attribute_json["bufferView"].long_];
-		if (binding.stride == 0)
-			binding.stride = cast(int)(attribute.elementSize);
-		attribute.binding = *binding;
+			ubyte[] buffer = buffers[bufferview_json["buffer"].long_];
+			long size = bufferview_json["byteLength"].long_;
+			long offset = bufferview_json.get("byteOffset", JsonVal(0L)).long_;
+			long stride = bufferview_json.get("byteStride", JsonVal(0)).long_;
 
-		return attribute;
-	}
-
-	private void readBindings() {
-		JsonVal[] bindings_json = json["bufferViews"].list;
-		bindings = new Mesh.Binding[bindings_json.length];
-		for (uint i = 0; i < bindings_json.length; i++) {
-			Json binding_json = bindings_json[i].object;
-			Mesh.Binding binding;
-			binding.buffer = this.buffers[binding_json["buffer"].long_];
-			binding.size = binding_json["byteLength"].long_;
-			binding.beginning = binding_json.get("byteOffset", JsonVal(0L)).long_;
-			if (JsonVal* j = "byteStride" in binding_json)
-				binding.stride = cast(int) j.long_;
-			// else determined when attribute is read.
-			bindings[i] = binding;
+			ubyte[] content = buffer[offset .. offset + size].dup;
+			this.gltfBufferViews[i] = BufferView(content, stride);
 		}
 	}
 
-	private void readBuffers(string dir) { //TODO: support GLB files
-		JsonVal[] list = json["buffers"].list;
-		buffers = new Buffer[list.length];
-		buffers_content = new ubyte[][list.length];
-		for (uint i = 0; i < list.length; i++) {
-			Json buffer = list[i].object;
-			const long size = buffer["byteLength"].long_;
-			string uri = buffer["uri"].string_;
-			ubyte[] content = readURI(uri, dir);
+	void readBuffers(string dir) { //TODO: support GLB files
+		JsonVal[] buffers_json = json["buffers"].list;
+		this.buffers = new ubyte[][buffers_json.length];
+		foreach (i; 0 .. buffers_json.length) {
+			Json buffer_json = buffers_json[i].object;
+			const long size = buffer_json["byteLength"].long_;
+			string uri = buffer_json["uri"].string_;
 
+			ubyte[] content = readURI(uri, dir);
 			enforce(content.length == size,
 				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size.to!string); // May result in padding issues (GLB).
-
-			buffers[i] = new Buffer(content);
-			buffers_content[i] = content;
+			buffers[i] = content;
 		}
 	}
 
-	private ubyte[] readURI(string uri, string dir) {
+	ubyte[] readURI(string uri, string dir) {
 		if (uri.length > 5 && uri[0 .. 5] == "data:") {
 			import std.base64;
 
