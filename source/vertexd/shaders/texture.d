@@ -106,19 +106,24 @@ class TextureBase {
 		this.img = img;
 	}
 
-	void initialize(bool srgb) {
+	void initialize(bool srgb, GLsizei mipmapLevels) {
 		if (initialized)
 			return;
+
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
-		glTextureStorage2D(id, 1, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img
+		glTextureStorage2D(id, mipmapLevels, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img
 				.h);
 		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img
 				.pixels.ptr);
-		// TODO
-		glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		if(mipmapLevels>1);
+		glGenerateMipmap(id);
+		
+		// Already defined by Sampler
+		// glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		// glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		writeln("Texture created: " ~ id.to!string);
 		this.initialized = true;
