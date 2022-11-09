@@ -20,16 +20,22 @@ final class GltfReader {
 	GltfMesh[][] meshes;
 	Material[] materials;
 
-	TextureHandle[] textureHandles;
-	TextureBase[] textureBases;
-	Sampler[] samplers;
-
+	// TextureBase[] textureBases;
+	
 	Light[] lights;
 	Camera[] cameras;
-
-private:
+	
+	private:
 	Json json;
+	
+	Sampler[] samplers;
+	Image[] images;
+	TextureHandle[] textureHandles;
 
+	alias Image = TextureBase;
+	// alias Texture = TextureHandle;
+	// alias TextureInfo = Texture;
+	
 	ubyte[][] buffers;
 	BufferView[] gltfBufferViews;
 	Accessor[] gltfAccessors;
@@ -40,6 +46,7 @@ private:
 	}
 
 	alias Accessor = Attribute;
+
 
 	public this(string file) {
 		string dir = dirName(file);
@@ -53,8 +60,8 @@ private:
 		readLights(); // KHR_lights_punctual extension
 
 		readSamplers();
-		readTextureBases(dir);
-		readTextureHandles();
+		readImages(dir);
+		readTextures();
 
 		readMaterials();
 		readMeshes();
@@ -279,8 +286,8 @@ private:
 	Sampler readSampler(Json s_json) {
 		//TODO: decide on defaults
 		uint minFilter = GL_NEAREST;
-
 		uint magFilter = GL_NEAREST;
+
 		if (JsonVal* j = "minFilter" in s_json)
 			minFilter = gltfToGlFilter(j.long_, true);
 		if (JsonVal* j = "magFilter" in s_json)
@@ -329,25 +336,24 @@ private:
 		}
 	}
 
-	void readTextureBases(string dir) {
-		if (JsonVal* j = "images" in json)
-			foreach (JsonVal a_json; j.list)
-				textureBases ~= readTextureBase(a_json.object, dir);
-	}
-
-	TextureBase readTextureBase(Json a_json, string dir) {
-		ubyte[] content;
-		if (JsonVal* uri_json = "uri" in a_json) {
-			assert("bufferView" !in a_json);
-			content = readURI(uri_json.string_, dir);
-		} else {
-			content = this.gltfBufferViews[a_json["bufferView"].long_].content;
+	void readImages(string dir) {
+		if (JsonVal* j = "images" in json){
+			images.reserve(j.list.length);
+			foreach (JsonVal a_json; j.list){
+				ubyte[] content;
+				if (JsonVal* uri_json = "uri" in a_json) {
+					assert("bufferView" !in a_json);
+					content = readURI(uri_json.string_, dir);
+				} else {
+					content = this.gltfBufferViews[a_json["bufferView"].long_].content;
+				}
+				string name = a_json.get("name", JsonVal("")).string_;
+				images ~= Image(name, content);
+			}
 		}
-		string name = a_json.get("name", JsonVal("")).string_;
-		return new TextureBase(content, name);
 	}
 
-	void readTextureHandles() {
+	void readTextures() {
 		if (JsonVal* ts_json = "textures" in json) {
 			JsonVal[] ts = ts_json.list;
 			textureHandles = new TextureHandle[ts.length];
@@ -357,7 +363,7 @@ private:
 				string name = t_json.get("name", JsonVal("")).string_;
 
 				assert("source" in t_json, "Texture has no image");
-				TextureBase base = textureBases[t_json["source"].long_];
+				TextureBase base = images[t_json["source"].long_];
 
 				Sampler sampler;
 				if (JsonVal* s = "sampler" in t_json)
