@@ -11,7 +11,7 @@ class Sampler {
 	@disable this();
 
 	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT,
-		uint minFilter = GL_NEAREST_MIPMAP_LINEAR, uint magFilter = GL_NEAREST) {
+		uint minFilter, uint magFilter) {
 		this.name = name;
 		glCreateSamplers(1, &id);
 		glSamplerParameteri(id, GL_TEXTURE_WRAP_S, wrapS);

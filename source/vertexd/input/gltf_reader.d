@@ -277,7 +277,9 @@ private:
 	}
 
 	Sampler readSampler(Json s_json) {
-		uint minFilter = GL_NEAREST_MIPMAP_LINEAR;
+		//TODO: decide on defaults
+		uint minFilter = GL_NEAREST;
+
 		uint magFilter = GL_NEAREST;
 		if (JsonVal* j = "minFilter" in s_json)
 			minFilter = gltfToGlFilter(j.long_, true);
