@@ -2,6 +2,7 @@ module vertexd.misc;
 
 import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
+import std.math : PI;
 import std.conv : to;
 
 void remove(Type)(ref Type[] list, Type element) {
@@ -34,7 +35,7 @@ bool isList(T, uint n = 1)() if (n > 0) {
 }
 
 // OpenGL type enum to size
-size_t getGLenumTypeSize(GLenum type) {
+GLsizei getGLenumTypeSize(GLenum type) {
 	switch (type) {
 		case GL_BOOL:
 			return ubyte.sizeof;
@@ -55,7 +56,6 @@ size_t getGLenumTypeSize(GLenum type) {
 		case GL_DOUBLE:
 			return double.sizeof;
 		default:
-
 			assert(0, "Unsupported GLenum to type: " ~ type.to!string);
 	}
 }
@@ -104,4 +104,14 @@ ubyte[] padding(size_t size) {
 
 	static ubyte[] b = [0];
 	return (b).replicate(size);
+}
+
+D degreesToRadians(D)(D degrees) {
+	static real factor = PI / 180;
+	return cast(D)(degrees * factor);
+}
+
+R radiansToDegrees(R)(R radians) {
+	static real factor = 180 / PI;
+	return cast(R)(radians * factor);
 }
