@@ -115,3 +115,15 @@ R radiansToDegrees(R)(R radians) {
 	static real factor = 180 / PI;
 	return cast(R)(radians * factor);
 }
+
+// Based on std::bit_width (c++20) and https://stackoverflow.com/a/63987820.
+// Identical to floor(log2(x))+1.
+auto bitWidth(T)(T x) if (isScalarType!T) {
+	assert(x>=0);
+	T result = 0;
+	while(x > 0){
+		x >>= 1;
+		result += 1;
+	}
+	return result;
+}
