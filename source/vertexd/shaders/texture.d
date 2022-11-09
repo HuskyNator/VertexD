@@ -62,7 +62,7 @@ class TextureHandle {
 		base.initialize(srgb);
 
 		this.handle = glGetTextureSamplerHandleARB(base.id, sampler.id);
-		assert(handle != 0, "An error occurred while creating a texture handle");
+		enforce(handle != 0, "An error occurred while creating a texture handle");
 
 		writeln("TextureHandle created: " ~ handle.to!string ~ "(" ~ name ~ ")");
 
@@ -106,14 +106,12 @@ class TextureBase {
 		this.img = img;
 	}
 
-	void initialize(bool srgb) {
+	void initialize(bool srgb, bool mipmap) {
 		if (initialized)
 			return;
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
-		glTextureStorage2D(id, 1, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img
-				.h);
-		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img
-				.pixels.ptr);
+		glTextureStorage2D(id, 1, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img.h);
+		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img.pixels.ptr);
 		// TODO
 		glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
