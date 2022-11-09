@@ -89,7 +89,7 @@ void main(){
 	tangentToWorldMat[0]=tangent_world;
 	tangentToWorldMat[1]=bitangent_world;
 	tangentToWorldMat[2]=normal_world;
-	tangentToWorldMat=transpose(tangentToWorldMat);
+	// tangentToWorldMat=transpose(tangentToWorldMat);
 	
 	if(normal_texture.sampler!=0&&u_useNormalTexture)
 	{normal_world=tangentToWorldMat*normalize((texture(sampler2D(normal_texture.sampler),texCoords[normal_texture.texCoord]).xyz*2.-1.)*vec3(normal_texture.factor,normal_texture.factor,1.));}
@@ -115,6 +115,7 @@ void main(){
 	vec3 light=color_in.xyz*light_sum;
 	float light_lumen=luminocity(light);
 	out_color=vec4(light/(1+light_lumen),color_in.w);
+	// out_color=color_in;
 	if(u_renderNormals){
 		if(u_renderTangents)
 			normal_world=tangent_world;
@@ -124,7 +125,7 @@ void main(){
 		out_color=vec4(normal_world,1);
 	}
 
-	if(u_renderUV && normal_texture.sampler!=0){
-		out_color=vec4(texCoords[normal_texture.texCoord].x, texCoords[normal_texture.texCoord].y, 0, 1);
+	if(u_renderUV){
+		out_color=vec4(texCoords[0].x, texCoords[0].y, baseColor_texture.texCoord, 1);
 	}
 }

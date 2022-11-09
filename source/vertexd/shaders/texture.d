@@ -62,7 +62,7 @@ class TextureHandle {
 		base.initialize(srgb);
 
 		this.handle = glGetTextureSamplerHandleARB(base.id, sampler.id);
-		assert(handle != 0, "An error occurred while creating a texture handle");
+		enforce(handle != 0, "An error occurred while creating a texture handle");
 
 		writeln("TextureHandle created: " ~ handle.to!string ~ "(" ~ name ~ ")");
 

@@ -1,9 +1,6 @@
 module vertexd.world.camera;
 
-import vertexd.mesh.buffer;
-import vertexd.core;
-import vertexd.shaders.shader;
-import vertexd.world;
+import vertexd;
 import std.math : tan;
 
 class Camera : Node.Attribute {
@@ -36,11 +33,9 @@ class Camera : Node.Attribute {
 		uniformBuffer.changeContent(&cameraS, 0, cameraS.sizeof);
 	}
 
-	static Mat!4 perspectiveProjection(
-		precision aspectRatio = (1920.0 / 1080.0),
-		precision horizontalFov = 3.14 / 2.0,
-		precision nearplane = 0.1,
-		precision backplane = 100) {
+	static Mat!4 perspectiveProjection(precision aspectRatio = (1920.0 / 1080.0),
+		precision horizontalFov = degreesToRadians(121), // vertical fov 90°
+		precision nearplane = 0.1, precision backplane = 100) {
 		precision a = 1.0 / tan(horizontalFov / 2.0);
 		alias V = nearplane;
 		alias A = backplane;
@@ -48,10 +43,7 @@ class Camera : Node.Attribute {
 		precision z = -(A + V) / (A - V);
 		precision y = -(2.0 * A * V) / (A - V);
 		return Mat!4([
-			[a, 0.0, 0.0, 0.0],
-			[0.0, a * s, 0.0, 0.0],
-			[0.0, 0.0, z, y],
-			[0.0, 0.0, -1.0, 0.0]
+			[a, 0.0, 0.0, 0.0], [0.0, a * s, 0.0, 0.0], [0.0, 0.0, z, y], [0.0, 0.0, -1.0, 0.0]
 		]);
 	}
 }

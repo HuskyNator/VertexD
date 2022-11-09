@@ -18,8 +18,7 @@ class Primitive(GLenum type) : Mesh {
 			assert(positions.length % 3 == 0);
 		else static if (type == GL_LINES)
 			assert(positions.length % 2 == 0);
-
-		super(name, shader, IndexAttribute(positions.length));
+		super(shader, name);
 		if (name.length == 0)
 			this.name = type.stringof ~ "#" ~ vao.to!string;
 
@@ -27,18 +26,15 @@ class Primitive(GLenum type) : Mesh {
 		this.antiAliasing = antiAliasing;
 		this.wireframe = wireframe;
 
-		size_t pos_size = positions.length * Vec!3.sizeof;
-		Buffer buffer = new Buffer(positions.ptr, pos_size);
-		Binding binding = Binding(buffer, pos_size, 0, Vec!3.sizeof);
-		Attribute posAttr = Attribute(binding, GL_FLOAT, 3, false, false, positions.length, 0);
-		// setAttribute(Mesh.Attribute.create(positions), 0);
-		setAttribute(posAttr, 0);
+		setAttribute(Attribute(positions), 0);
 
 		if (colors.length > 1) {
 			assert(positions.length == colors.length);
-			setAttribute(Mesh.Attribute.create(colors), 1);
+			setAttribute(Attribute(colors), 1);
 		} else
 			this.singleColor = Vec!4(colors[0]);
+
+		setIndexCount(positions.length.to!GLsizei);
 	}
 
 	override GLenum drawMode() {
@@ -46,7 +42,7 @@ class Primitive(GLenum type) : Mesh {
 	}
 
 	override void drawSetup(Node node) {
-		if (1 !in this.attributes)
+		if (1 !in associations)
 			glVertexAttrib4f(1, singleColor.x, singleColor.y, singleColor.z, singleColor.w);
 	}
 
