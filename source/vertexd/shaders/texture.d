@@ -6,6 +6,7 @@ import std.stdio;
 import vertexd.core.mat;
 import vertexd.shaders;
 
+// TODO: consider merging TextureHandle & TextureBase
 struct Texture {
 	TextureHandle handle = null;
 	int texCoord;
@@ -59,7 +60,10 @@ class TextureHandle {
 		if (this.handle != 0)
 			return; // already initialized
 
-		base.initialize(srgb);
+		//TODO: decide on default mipmap level or make it configurable.
+		int maxImageSize = (base.img.w > base.img.h) ? base.img.w : base.img.h;
+		GLsizei maxMipmapLevels = bitWidth(magImageSize);
+		base.initialize(srgb,  maxMipmapLevels);
 
 		this.handle = glGetTextureSamplerHandleARB(base.id, sampler.id);
 		enforce(handle != 0, "An error occurred while creating a texture handle");
@@ -116,7 +120,7 @@ class TextureBase {
 		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img
 				.pixels.ptr);
 
-		if(mipmapLevels>1);
+		if(mipmapLevels>1); //TODO: What happens when the sampler defines mipmap filtering but the texture is only lage enough for 1 level?
 		glGenerateMipmap(id);
 		
 		// Already defined by Sampler

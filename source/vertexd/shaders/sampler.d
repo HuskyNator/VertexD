@@ -8,11 +8,23 @@ class Sampler {
 	string name;
 	uint id;
 
+	uint wrapS;
+	uint wrapT;
+	uint minFilter;
+	uint magFilter;
+
 	@disable this();
 
-	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT,
-		uint minFilter, uint magFilter) {
+	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST, uint magFilter = GL_NEAREST) {
+		assert(minFilter==GL_NEAREST||minFilter==GL_LINEAR);
+		assert(magFilter==GL_NEAREST||magFilter==GL_LINEAR||magFilter==GL_NEAREST_MIPMAP_NEAREST||magFilter==GL_LINEAR_MIPMAP_NEAREST||magFilter==GL_NEAREST_MIPMAP_LINEAR||magFilter==GL_LINEAR_MIPMAP_LINEAR);
+
 		this.name = name;
+		this.wrapS=wrapS;
+		this.wrapT=wrapT;
+		this.minFilter=minFilter;
+		this.magFilter=magFilter;
+
 		glCreateSamplers(1, &id);
 		glSamplerParameteri(id, GL_TEXTURE_WRAP_S, wrapS);
 		glSamplerParameteri(id, GL_TEXTURE_WRAP_T, wrapT);
@@ -31,6 +43,10 @@ class Sampler {
 
 	void use(uint location) {
 		glBindSampler(location, id);
+	}
+
+	bool usesMipmap(){
+		return (magFilter==GL_NEAREST_MIPMAP_NEAREST||magFilter==GL_LINEAR_MIPMAP_NEAREST||magFilter==GL_NEAREST_MIPMAP_LINEAR||magFilter==GL_LINEAR_MIPMAP_LINEAR);
 	}
 
 }
