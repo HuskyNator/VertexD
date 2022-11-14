@@ -1,11 +1,12 @@
 module vertexd.world.node;
 
+import std.conv : to;
+import std.datetime : Duration;
 import vertexd.core.mat;
 import vertexd.core.quaternions;
 import vertexd.mesh.mesh;
-import vertexd.world.world;
 import vertexd.misc;
-import std.datetime : Duration;
+import vertexd.world.world;
 
 struct Pose {
 	Vec!3 location = Vec!3([0, 0, 0]);
@@ -15,26 +16,39 @@ struct Pose {
 }
 
 class Node {
-	interface Attribute {
-		void update(World world, Node parent);
+	static abstract class Attribute { //TODO: add originUpdate? see propogateOrigin todo
+		Node owner;
+		void addUpdate();
+		void update();
+		void removeUpdate();
 	}
+
+	static ulong nodeCount = 0;
 
 	string name;
 	Node parent;
 	Node[] children = [];
 	Pose pose;
-	Mesh[] meshes;
+	Mesh[] meshes = [];
 
-	Attribute[] attributes = [];
+	struct Origin {
+		Node root;
+		World[] worlds; // Plural!
+	}
+
+	Origin origin;
+	alias origin this;
+
+	private Node.Attribute[] attributes = [];
 
 	Mat!4 localMatrix = Mat!4(1);
 	Mat!4 modelMatrix = Mat!4(1);
 
 	private bool modified = true;
 
-	this(string name, Mesh[] meshes = []) {
-		this.name = name;
-		this.meshes = meshes;
+	this() {
+		this.name = "Node#" ~ nodeCount.to!string;
+		this.origin = Origin(this, []);
 	}
 
 	public @property {
@@ -66,9 +80,12 @@ class Node {
 		}
 	}
 
+	Vec!3 worldLocation() {
+		return Vec!3([modelMatrix[0][3], modelMatrix[1][3], modelMatrix[2][3]]);
+	}
+
 	void draw() {
 		foreach (Mesh mesh; meshes) {
-			mesh.material.use();
 			mesh.draw(this);
 		}
 		foreach (Node child; children)
@@ -96,8 +113,7 @@ class Node {
 		localMatrix[2][3] = pose.location.z;
 	}
 
-	void update(World world, bool parentModified) {
-		assert(!(parentModified && parent is null));
+	void update(bool parentModified) {
 		bool update = modified || parentModified;
 
 		if (modified)
@@ -105,25 +121,56 @@ class Node {
 		if (update) {
 			modelMatrix = (parent is null) ? localMatrix : parent.modelMatrix.mult(localMatrix);
 			foreach (Node.Attribute e; attributes)
-				e.update(world, this);
+				e.update();
 		}
 
 		foreach (Node child; children)
-			child.update(world, update);
+			child.update(update);
 
 		modified = false;
 	}
 
 	public void addChild(Node child)
 	in (child !is null)
-	in (child.parent is null) {
+	in (child.parent is null)
+	in (child.worlds.length == 0) {
 		child.parent = this;
+		child.origin = origin;
+		child.propogateOrigin();
 		this.children ~= child;
 	}
 
 	public void removeChild(Node child)
-	in (child !is null) {
+	in (child !is null)
+	in (child.parent is this)
+	in (child.root == root)
+	in (child.worlds == worlds) {
 		remove(children, child);
+		child.origin = Origin(child, []);
+		child.propogateOrigin();
 		child.parent = null;
+	}
+
+	void propogateOrigin() { //TODO: provide old & new see attribute todo
+		foreach (child; children) {
+			child.origin = origin;
+			child.propogateOrigin();
+		}
+	}
+
+	void addAttribute(Node.Attribute attr) {
+		assert(attr.owner is null);
+		attr.owner = this;
+		this.attributes ~= attr;
+
+		attr.addUpdate();
+	}
+
+	void removeAttribute(Node.Attribute attr) {
+		assert(attr.owner is this);
+		attr.removeUpdate();
+
+		remove(attributes, attr);
+		attr.owner = null;
 	}
 }
