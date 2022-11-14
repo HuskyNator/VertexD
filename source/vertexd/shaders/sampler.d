@@ -16,7 +16,7 @@ class Sampler {
 	@disable this();
 
 	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST,
-		uint magFilter = GL_NEAREST) {
+		uint magFilter = GL_NEAREST, bool anisotropic = true) {
 		assert(minFilter == GL_NEAREST || minFilter == GL_LINEAR
 				|| minFilter == GL_NEAREST_MIPMAP_NEAREST || minFilter == GL_LINEAR_MIPMAP_NEAREST
 				|| minFilter == GL_NEAREST_MIPMAP_LINEAR
@@ -34,6 +34,12 @@ class Sampler {
 		glSamplerParameteri(id, GL_TEXTURE_WRAP_T, wrapT);
 		glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, minFilter);
 		glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, magFilter);
+
+		if (anisotropic) {
+			static float maxAnisotripic;
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotripic);
+			glSamplerParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, maxAnisotripic);
+		}
 
 		writeln("Sampler created: " ~ id.to!string);
 	}

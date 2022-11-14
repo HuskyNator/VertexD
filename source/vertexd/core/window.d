@@ -80,6 +80,8 @@ class Window {
 	this(string name = "HoekjeD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
 
+		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
+
 		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
 		assert(glfw_window !is null, "GLFW coult not create window");
@@ -108,6 +110,7 @@ class Window {
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
 		}
 
+		glEnable(GL_MULTISAMPLE); //TODO: instelbaar
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 	}
