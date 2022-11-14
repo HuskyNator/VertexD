@@ -1,5 +1,6 @@
 #version 460
-#extension GL_NV_gpu_shader5:require
+#extension GL_ARB_bindless_texture:require
+#extension GL_ARB_gpu_shader_int64:require
 
 struct Texture{
 	uint64_t sampler;
@@ -43,12 +44,12 @@ layout(row_major,std140,binding=2)uniform Material{
 
 uniform mat4 modelMatrix;
 
-in vec3 vert_POSITION_model;
-in vec3 vert_NORMAL_model;
-in vec4 vert_TANGENT_model;
-in vec2 vert_TEXCOORD_0;
-in vec2 vert_TEXCOORD_1;
-in vec4 vert_COLOR_0;
+layout(location = 0) in vec3 vert_POSITION_model;
+layout(location = 1) in vec3 vert_NORMAL_model;
+layout(location = 2) in vec4 vert_TANGENT_model;
+layout(location = 3) in vec2 vert_TEXCOORD_0;
+layout(location = 4) in vec2 vert_TEXCOORD_1;
+layout(location = 5) in vec4 vert_COLOR_0;
 
 out vec4 gl_Position;
 out vec3 frag_POSITION_world;

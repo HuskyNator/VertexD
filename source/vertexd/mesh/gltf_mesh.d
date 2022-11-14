@@ -19,35 +19,53 @@ class GltfMesh : Mesh {
 
 	public this(Material material, AttributeSet attributeSet, IndexAttribute indexAttribute,
 		string name = "", Shader shader = Shader.gltfShader()) {
-		super(name, shader, indexAttribute);
+		super(shader, name);
 		if (name.length == 0)
 			this.name = "GltfMesh#" ~ vao.to!string;
 		this.material = material;
 		this.attributeSet = attributeSet;
+		setIndex(indexAttribute);
 
-		enforce(setAttribute(attributeSet.position, 0));
+		Attribute[] attributes;
+		uint[] attributeIndices;
+
+		final bool _setAttribute(Mesh.Attribute attr, uint index) {
+			if (!attr.present)
+				return false;
+			attributes ~= attr;
+			attributeIndices ~= index;
+			return true;
+		}
+
+		enforce(_setAttribute(attributeSet.position, 0));
 
 		bool normalTexture = material.normal_texture.present;
-		bool shouldGenerateTangents = attributeSet.normal.present() || attributeSet.tangent.present();
+		bool shouldGenerateTangents = attributeSet.normal.present() && !attributeSet.tangent.present();
 
 		if (!attributeSet.normal.present()) {
-			attributeSet.normal = generateNormals(attributeSet.position, indexAttribute);
+			Vec!3[] normals = generateNormals(attributeSet.position, indexAttribute);
+			attributeSet.normal = Mesh.Attribute(normals);
 		}
-		setAttribute(attributeSet.normal, 1);
+		_setAttribute(attributeSet.normal, 1);
 
 		if (normalTexture) {
-			if (shouldGenerateTangents)
-				attributeSet.tangent = generateTangents(attributeSet.position, attributeSet.normal,
+			if (shouldGenerateTangents) {
+				Vec!4[] tangents = generateTangents(attributeSet.position, attributeSet.normal,
 					attributeSet.texCoord[material.normal_texture.texCoord], indexAttribute);
-			setAttribute(attributeSet.tangent, 2);
+				attributeSet.tangent = Mesh.Attribute(tangents);
+			}
+			_setAttribute(attributeSet.tangent, 2);
 		}
 
 		assert(attributeSet.texCoord.length <= 2); // TODO: have max_texCoord_count (ensuring layout-location)
-		foreach (uint i, a; attributeSet.texCoord)
-			setAttribute(a, 3 + i);
+		foreach (uint i, a; attributeSet.texCoord) {
+			_setAttribute(a, 3 + i);
+		}
 		assert(attributeSet.color.length <= 1); // TODO: have max_color_count (ensuring layout-location)
 		foreach (uint i, a; attributeSet.color)
-			setAttribute(a, 5 + i);
+			_setAttribute(a, 5 + i);
+
+		setAttributes(attributes, attributeIndices, AttributeLayout.SEPERATE);
 	}
 
 	private void setMissingVertexAttributes() {
