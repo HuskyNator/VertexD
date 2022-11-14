@@ -88,7 +88,8 @@ class Light : Node.Attribute {
 	LightS lightS;
 	alias lightS this;
 
-	this(Type type, Vec!3 color, precision strength, precision range = precision.infinity,
+	// TODO: rename strength to intensity
+	this(Type type, Vec!3 color, precision strength = 1.0, precision range = precision.infinity,
 		precision innerAngle = precision.nan, precision outerAngle = precision.nan) {
 		this.type = type;
 		this.color = color;
