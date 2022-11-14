@@ -26,11 +26,11 @@ class Primitive(GLenum type) : Mesh {
 		this.antiAliasing = antiAliasing;
 		this.wireframe = wireframe;
 
-		setAttribute(Attribute(positions), 0);
+		setAttribute(Mesh.Attribute(positions), 0);
 
 		if (colors.length > 1) {
 			assert(positions.length == colors.length);
-			setAttribute(Attribute(colors), 1);
+			setAttribute(Mesh.Attribute(colors), 1);
 		} else
 			this.singleColor = Vec!4(colors[0]);
 
