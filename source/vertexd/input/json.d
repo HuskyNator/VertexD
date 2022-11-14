@@ -5,11 +5,12 @@ import std.conv : to;
 import std.exception : enforce;
 import std.stdio;
 import std.uni;
+import std.traits : isPointer;
 
 alias Json = JsonVal[string];
 
 enum JsonType {
-	object,
+	OBJECT,
 	LIST,
 	STRING,
 	DOUBLE,
@@ -55,7 +56,7 @@ struct JsonVal {
 	}
 
 	this(Json object) {
-		this.type = JsonType.object;
+		this.type = JsonType.OBJECT;
 		this.object = object;
 	}
 
@@ -64,6 +65,28 @@ struct JsonVal {
 		v.type = JsonType.NULL;
 		v.object = null; //?
 		return v;
+	}
+
+	double getType(T)() {
+		final switch (type) {
+			case JsonType.OBJECT:
+				assert(0, "Cant `getType` of JsonType.OBJECT");
+			case JsonType.LIST:
+				assert(0, "Cant `getType` of JsonType.LIST, use `vec` instead");
+			case JsonType.STRING:
+				return string_.to!T;
+			case JsonType.DOUBLE:
+				return double_.to!T;
+			case JsonType.LONG:
+				return long_.to!T;
+			case JsonType.BOOL:
+				return bool_.to!T;
+			case JsonType.NULL:
+				static if (isPointer!T || is(T == class))
+					return null;
+				else
+					assert(0, "Cant `getType` of JsonType.NULL on nonPointer/Class type " ~ T.stringof);
+		}
 	}
 
 	Vec!(L, S) vec(uint L, S)() {
@@ -298,7 +321,7 @@ private:
 		}
 	}
 
-	JsonVal  readVal() {
+	JsonVal readVal() {
 		switch (c) {
 			case '{':
 				JsonVal j = JsonVal(readobject());
@@ -338,7 +361,7 @@ unittest {
 	Json json = JsonReader.readJson(json_string);
 	assert("test" in json);
 	JsonVal testval = json["test"];
-	assert(testval.type == JsonType.object);
+	assert(testval.type == JsonType.OBJECT);
 	Json test = testval.object;
 	assert("values" in test);
 	JsonVal vals = test["values"];
@@ -359,4 +382,34 @@ unittest {
 	assert(number2.type == JsonType.DOUBLE);
 	double number2_d = number2.double_;
 	assert(number2_d == 1.2e+20);
+
+}
+
+unittest {
+	string json_string = `
+	{"perspective" : {
+                "aspectRatio" : 1.7777777777777777,
+                "yfov" : 0.39959652046304894,
+                "zfar" : 100,
+                "znear" : 0.10000000149011612
+            }
+	}`;
+	Json json = JsonReader.readJson(json_string);
+	assert("perspective" in json);
+	JsonVal perspectiveVal = json["perspective"];
+	assert(perspectiveVal.type == JsonType.OBJECT);
+	Json perspectiveObj = perspectiveVal.object;
+
+	assert("aspectRatio" in perspectiveObj);
+	assert(perspectiveObj["aspectRatio"].type == JsonType.DOUBLE);
+	assert(perspectiveObj["aspectRatio"].double_ == 1.7777777777777777);
+	assert("yfov" in perspectiveObj);
+	assert(perspectiveObj["yfov"].type == JsonType.DOUBLE);
+	assert(perspectiveObj["yfov"].double_ == 0.39959652046304894);
+	assert("zfar" in perspectiveObj);
+	assert(perspectiveObj["zfar"].type == JsonType.DOUBLE);
+	assert(perspectiveObj["zfar"].double_ == 100);
+	assert("znear" in perspectiveObj);
+	assert(perspectiveObj["znear"].type == JsonType.DOUBLE);
+	assert(perspectiveObj["znear"].double_ == 0.10000000149011612);
 }
