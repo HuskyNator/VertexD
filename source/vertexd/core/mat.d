@@ -3,6 +3,7 @@ import vertexd.misc;
 import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
+import std.traits : isCallable, ReturnType;
 
 alias prec = precision;
 version (HoekjeD_Double) {
@@ -14,8 +15,7 @@ version (HoekjeD_Double) {
 alias Vec(uint size = 3, Type = precision) = Mat!(size, 1, Type);
 alias Mat(uint count = 3, Type = precision) = Mat!(count, count, Type);
 
-struct Mat(uint row_count, uint column_count, Type = precision)
-		if (row_count > 0 && column_count > 0) {
+struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 0 && column_count > 0) {
 	enum uint size = row_count * column_count;
 	enum bool isVec = column_count == 1;
 	enum bool isMat = !isVec;
@@ -88,13 +88,14 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 	}
 
 	static if (isSquare) {
-		MatType inverse() {
-			MatType inverse;
-			Type determinant;
+		alias Type2 = Result!(Type, "+", Type); // Integer Promotion
+		auto inverse() {
+			Mat!(row_count, column_count, Type2) inverse;
+			Type2 determinant;
 			static if (row_count == 2) {
 				inverse[0][0] = mat[1][1];
-				inverse[0][1] = -mat[1][0];
-				inverse[1][0] = -mat[0][1];
+				inverse[0][1] = -mat[0][1];
+				inverse[1][0] = -mat[1][0];
 				inverse[1][1] = mat[0][0];
 				determinant = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
 			} else static if (row_count == 3) {
@@ -111,35 +112,33 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 				inverse[2][1] = -(mat[0][0] * mat[2][1] - mat[0][1] * mat[2][0]);
 				inverse[2][2] = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
 
-				determinant = mat[0][0] * inverse[0][0]
-					+ mat[0][1] * inverse[1][0]
-					+ mat[0][2] * inverse[2][0];
+				determinant = mat[0][0] * inverse[0][0] + mat[0][1] * inverse[1][0] + mat[0][2] * inverse[2][0];
 			} else static if (row_count == 4) {
 				// Determine 2x2 determinants for bottom 3 rows
 				// Mij_kl references the top left index ij & bottom right index kl
-				Type M10_21 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
-				Type M10_31 = mat[1][0] * mat[3][1] - mat[1][1] * mat[3][0];
-				Type M20_31 = mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0];
+				Type2 M10_21 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
+				Type2 M10_31 = mat[1][0] * mat[3][1] - mat[1][1] * mat[3][0];
+				Type2 M20_31 = mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0];
 
-				Type M10_22 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
-				Type M10_32 = mat[1][0] * mat[3][2] - mat[1][2] * mat[3][0];
-				Type M20_32 = mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0];
+				Type2 M10_22 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
+				Type2 M10_32 = mat[1][0] * mat[3][2] - mat[1][2] * mat[3][0];
+				Type2 M20_32 = mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0];
 
-				Type M10_23 = mat[1][0] * mat[2][3] - mat[1][3] * mat[2][0];
-				Type M10_33 = mat[1][0] * mat[3][3] - mat[1][3] * mat[3][0];
-				Type M20_33 = mat[2][0] * mat[3][3] - mat[2][3] * mat[3][0];
+				Type2 M10_23 = mat[1][0] * mat[2][3] - mat[1][3] * mat[2][0];
+				Type2 M10_33 = mat[1][0] * mat[3][3] - mat[1][3] * mat[3][0];
+				Type2 M20_33 = mat[2][0] * mat[3][3] - mat[2][3] * mat[3][0];
 
-				Type M11_22 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
-				Type M11_32 = mat[1][1] * mat[3][2] - mat[1][2] * mat[3][1];
-				Type M21_32 = mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1];
+				Type2 M11_22 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
+				Type2 M11_32 = mat[1][1] * mat[3][2] - mat[1][2] * mat[3][1];
+				Type2 M21_32 = mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1];
 
-				Type M11_23 = mat[1][1] * mat[2][3] - mat[1][3] * mat[2][1];
-				Type M11_33 = mat[1][1] * mat[3][3] - mat[1][3] * mat[3][1];
-				Type M21_33 = mat[2][1] * mat[3][3] - mat[2][3] * mat[3][1];
+				Type2 M11_23 = mat[1][1] * mat[2][3] - mat[1][3] * mat[2][1];
+				Type2 M11_33 = mat[1][1] * mat[3][3] - mat[1][3] * mat[3][1];
+				Type2 M21_33 = mat[2][1] * mat[3][3] - mat[2][3] * mat[3][1];
 
-				Type M12_23 = mat[1][2] * mat[2][3] - mat[1][3] * mat[2][2];
-				Type M12_33 = mat[1][2] * mat[3][3] - mat[1][3] * mat[3][2];
-				Type M22_33 = mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2];
+				Type2 M12_23 = mat[1][2] * mat[2][3] - mat[1][3] * mat[2][2];
+				Type2 M12_33 = mat[1][2] * mat[3][3] - mat[1][3] * mat[3][2];
+				Type2 M22_33 = mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2];
 
 				// Determine adjugate (transposed cofactor) matrix (minor times even index sign)
 				// Using a laplace expansion to determine the minor
@@ -164,10 +163,8 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 				inverse[3][3] = mat[0][0] * M11_22 - mat[0][1] * M10_22 + mat[0][2] * M10_21;
 
 				// determine determinant with cofactors
-				determinant = mat[0][0] * inverse[0][0]
-					+ mat[0][1] * inverse[1][0]
-					+ mat[0][2] * inverse[2][0]
-					+ mat[0][3] * inverse[3][0];
+				determinant = mat[0][0] * inverse[0][0] + mat[0][1] * inverse[1][0] + mat[0][2]
+					* inverse[2][0] + mat[0][3] * inverse[3][0];
 			}
 
 			enforce(determinant != 0, "Matrix not invertable: determinant = 0");
@@ -176,9 +173,14 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 
 		unittest {
-			Mat!3 M = Mat!3([
-					1, 0, 3, 4, 5, 6, 7, 8, 9
-				]); // Determinant -12
+			Mat!2 M = Mat!2([3, 5, 7, 11]);
+			Mat!2 I = M.inverse().mult(M);
+			Vec!2 i = Vec!2(1);
+			assert(i.isRoughly(I.mult(i)));
+		}
+
+		unittest {
+			Mat!3 M = Mat!3([1, 0, 3, 4, 5, 6, 7, 8, 9]); // Determinant -12
 
 			Mat!3 I = M.inverse().mult(M);
 			Vec!3 i = Vec!3(1);
@@ -186,9 +188,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 
 		unittest {
-			Mat!4 M = Mat!4([
-				1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16
-			]); // Determinant 512
+			Mat!4 M = Mat!4([1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16]); // Determinant 512
 			Mat!4 I = M.inverse().mult(M);
 			Vec!4 i = Vec!4(1);
 			assert(i.isRoughly(I.mult(i)));
@@ -336,9 +336,9 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		auto length(T = precision)() const {
 			T l = 0;
 			static foreach (i; 0 .. row_count) {
-				l += this.vec[i];
+				l += this.vec[i] * this.vec[i];
 			}
-			return l;
+			return sqrt(l);
 		}
 
 		auto normalize(T = precision)() const {
@@ -349,8 +349,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 	}
 
-	auto mult(T, uint K)(const T[K][column_count] right) const
-	if (is(Result!(Type, "*", T))) {
+	auto mult(T, uint K)(const T[K][column_count] right) const if (is(Result!(Type, "*", T))) {
 		alias T2 = Result!(Type, "*", T);
 		Mat!(row_count, K, T2) result;
 		static foreach (i; 0 .. row_count)
@@ -360,8 +359,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		return result;
 	}
 
-	auto mult(T)(const T[column_count] right) const
-	if (is(Result!(Type, "*", T))) {
+	auto mult(T)(const T[column_count] right) const if (is(Result!(Type, "*", T))) {
 		return mult!(T, 1)(cast(T[1][column_count]) right);
 	}
 
@@ -387,12 +385,12 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		Mat!4 A2 = A.transposed();
 		int[4] x2 = [1, 2, 3, 4];
 		Vec!4 A2x2 = A2 ^ x2;
-		// assert(A2x2 == x2);
+		assert(A2x2 == x2);
 
 		Mat!(2, 3, int) A3 = Mat!(2, 3, int)([1, 2, 3, 4, 5, 6]);
 		Vec!3 x3 = Vec!3([1, 2, 3]);
 		Vec!2 A3x3 = A3 ^ x3;
-		// assert(A3x3 == [14, 32]);
+		assert(A3x3 == [14, 32]);
 	}
 
 	auto sum(T = precision)() const {
@@ -410,15 +408,16 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		assert(a.sum() == 12);
 	}
 
-	auto each(R, S)(R function(S element) func) const
-	if (!is(R == void)) {
-		Mat!(row_count, column_count, R) result;
+	auto each(C)(C func) const 
+			if (isCallable!C && !is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
+		Mat!(row_count, column_count, ReturnType!C) result;
 		static foreach (i; 0 .. size)
 			result.vec[i] = func(this.vec[i]);
 		return result;
 	}
 
-	void each(S)(void function(S element) func) const {
+	void each(C)(C func) const 
+			if (isCallable!C && is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		static foreach (i; 0 .. size)
 			func(this.vec[i]);
 	}
@@ -431,23 +430,11 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		Mat!(2, 3, int) a;
 		foreach (i; 0 .. a.size)
 			a.vec[i] = i;
+
 		auto b = a.each(&even);
 		assert(is(typeof(b) == Mat!(2, 3, bool)));
 		foreach (i; 0 .. b.size)
 			assert(b.vec[i] == (i % 2 == 0));
-	}
-
-	auto each(R, S)(R delegate(S element) func) const
-	if (!is(R == void)) {
-		Mat!(row_count, column_count, R) result;
-		static foreach (i; 0 .. size)
-			result.vec[i] = func(this.vec[i]);
-		return result;
-	}
-
-	void each(S)(void delegate(S element) func) const {
-		static foreach (i; 0 .. size)
-			func(this.vec[i]);
 	}
 
 	unittest {
@@ -466,8 +453,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		assert(b == c);
 	}
 
-	auto opBinary(string op, S)(const S right) const
-	if (is(Result!(Type, op, S))) {
+	auto opBinary(string op, S)(const S right) const if (is(Result!(Type, op, S))) {
 		alias R = Result!(Type, op, S);
 		Mat!(row_count, column_count, R) result;
 		mixin("result.vec[] = this.vec[] " ~ op ~ " right;");
@@ -483,8 +469,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 
 	static if (isVec) {
 		auto opBinary(string op, T:
-			S[size], S)(const T right) const
-		if (is(Result!(Type, op, S)) && !isList!(S)) {
+			S[size], S)(const T right) const if (is(Result!(Type, op, S)) && !isList!(S)) {
 			alias R = Result!(Type, op, S);
 			Mat!(row_count, column_count, R) result;
 			static foreach (i; 0 .. size)
@@ -493,8 +478,8 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 	} else {
 		auto opBinary(string op, T:
-			S[column_count][row_count], S)(const T right) const
-		if (is(Result!(Type, op, S)) && !isList!(S)) {
+			S[column_count][row_count], S)(const T right) const 
+				if (is(Result!(Type, op, S)) && !isList!(S)) {
 			alias R = Result!(Type, op, S);
 			Mat!(row_count, column_count, R) result;
 			static foreach (i; 0 .. row_count)
@@ -641,14 +626,8 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 	}
 
 	// Hashes required for associative lists
-	static if (is(Type == byte) ||
-		is(Type == ubyte) ||
-		is(Type == short) ||
-		is(Type == ushort) ||
-		is(Type == int) ||
-		is(Type == uint) ||
-		is(Type == long) ||
-		is(Type == ulong)) {
+	static if (is(Type == byte) || is(Type == ubyte) || is(Type == short) || is(Type == ushort)
+		|| is(Type == int) || is(Type == uint) || is(Type == long) || is(Type == ulong)) {
 		size_t toHash() const @safe pure nothrow {
 			size_t hash = 1;
 			foreach (Type s; this.vec)
@@ -694,7 +673,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 
 	static if (is(typeof(abs!Type))) {
 		bool isRoughly(const MatType other, precision delta = 1e-5) const {
-			return (this - other).each(&abs!Type).sum() < delta;
+			return (cast(MatType)(this - other)).each(&abs!Type).sum() < delta;
 		}
 	}
 
@@ -702,8 +681,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		float delta = 1e-6;
 		Mat!3 a = Mat!(3)(1);
 		float[3][3] diff = [
-			[delta, -delta, delta], [delta, delta, -delta],
-			[-delta, -delta, delta]
+			[delta, -delta, delta], [delta, delta, -delta], [-delta, -delta, delta]
 		];
 		Mat!3 b = a + diff;
 		assert(a.isRoughly(b));
@@ -724,10 +702,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 		precision R = Vec!2([direction.x, direction.y]).length();
 		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
-		return Vec!3([
-			atan(direction.z / R), 0,
-			-signbit(direction.x) * acos(direction.y / R)
-		]);
+		return Vec!3([atan(direction.z / R), 0, -signbit(direction.x) * acos(direction.y / R)]);
 	}
 
 	// TODO: add test

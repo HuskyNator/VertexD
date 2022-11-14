@@ -31,10 +31,6 @@ class Shader {
 	// 	}
 	// }
 
-	static Shader standardShader() {
-		return Shader.load(standardVertShader, standardFragShader);
-	}
-
 	// static string[string] placeholders; // see SubShader#this(file)
 	static Shader[SourcePair] shaders;
 	static Shader current = null;
@@ -180,7 +176,15 @@ class Shader {
 		writeln("Shader " ~ id.to!string ~ " could not find uniform " ~ name ~ ":\n___" ~ get_error_message());
 	}
 
-	static immutable string standardVertShader = import("shaders/standard.vert");
+	static immutable string gltfVertShader = import("shaders/standard.vert");
+	static immutable string gltfFragShader = import("shaders/standard.frag");
+	static Shader gltfShader() {
+		return load(gltfVertShader, gltfFragShader);
+	}
 
-	static immutable string standardFragShader = import("shaders/standard.frag");
+	static immutable string flatColorVertShader = import("shaders/flat_color.vert");
+	static immutable string flatColorFragShader = import("shaders/flat_color.frag");
+	static Shader flatColorShader() {
+		return load(flatColorVertShader, flatColorFragShader);
+	}
 }

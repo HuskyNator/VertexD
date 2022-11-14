@@ -42,7 +42,7 @@ class SubShader(uint type)
 			throw new ShaderException(
 				"Could not build SubShader " ~ id.to!string ~ ":\n__" ~ get_error_message());
 		else
-			writeln("Errormessage log: " ~ get_error_message());
+			writeln("Completed, errormessage log: " ~ get_error_message());
 
 		this.shaders[source] = this;
 	}
