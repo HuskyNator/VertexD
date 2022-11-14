@@ -34,7 +34,7 @@ class LightSet { // TODO: rework lights ubo's & seperate different light types
 		removeBuffer(index);
 	}
 
-	void setBuffer(Light l) {
+	void setBuffer(Light l) { //TODO: single uniform update after changes.
 		uint index = lights[l];
 		ubyte[] content = l.getBytes();
 		uniformBuffer.changeContent(&l.lightS, index * Light.byteSize, Light.byteSize);
@@ -98,9 +98,20 @@ class Light : Node.Attribute {
 		this.outerAngle = outerAngle;
 	}
 
-	void update(World world, Node parent) {
-		location = Vec!3(parent.modelMatrix.col(3)[0 .. 3]);
-		direction = Vec!3(parent.modelMatrix.mult(Vec!4([0, 0, -1, 0]))[0 .. 3]).normalize();
-		world.lightSet.setBuffer(this);
+	override void addUpdate() {
+		foreach (world; owner.worlds)
+			world.lightSet.add(this);
+	}
+
+	override void removeUpdate() {
+		foreach (world; owner.worlds)
+			world.lightSet.remove(this);
+	}
+
+	override void update() {
+		location = Vec!3(owner.modelMatrix.col(3)[0 .. 3]);
+		direction = Vec!3(owner.modelMatrix.mult(Vec!4([0, 0, -1, 0]))[0 .. 3]).normalize();
+		foreach (world; owner.worlds)
+			world.lightSet.setBuffer(this);
 	}
 }

@@ -24,9 +24,21 @@ class Camera : Node.Attribute {
 		}
 	}
 
-	void update(World world, Node parent) {
-		this.location = Vec!3(parent.modelMatrix.col(3)[0 .. 3]);
-		this.cameraMatrix = parent.modelMatrix.inverse();
+	override void addUpdate() {
+		foreach (world; owner.worlds) {
+			world.cameras ~= this;
+		}
+	}
+
+	override void removeUpdate() {
+		foreach (world; owner.worlds) {
+			remove(world.cameras, this);
+		}
+	}
+
+	override void update() {
+		this.location = Vec!3(owner.modelMatrix.col(3)[0 .. 3]);
+		this.cameraMatrix = owner.modelMatrix.inverse();
 	}
 
 	void use() {

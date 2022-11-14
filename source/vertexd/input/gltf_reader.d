@@ -17,17 +17,19 @@ final class GltfReader {
 	World[] worlds;
 	Node[] nodes;
 
+	private Node.Attribute[][Node] attributeAssignments;
+
 	GltfMesh[][] meshes;
 	Material[] materials;
 
 	// TextureBase[] textureBases;
-	
+
 	Light[] lights;
 	Camera[] cameras;
-	
-	private:
+
+private:
 	Json json;
-	
+
 	Sampler[] samplers;
 	Image[] images;
 	TextureHandle[] textureHandles;
@@ -35,7 +37,7 @@ final class GltfReader {
 	alias Image = TextureBase;
 	// alias Texture = TextureHandle;
 	// alias TextureInfo = Texture;
-	
+
 	ubyte[][] buffers;
 	BufferView[] gltfBufferViews;
 	Accessor[] gltfAccessors;
@@ -45,8 +47,7 @@ final class GltfReader {
 		size_t stride;
 	}
 
-	alias Accessor = Attribute;
-
+	alias Accessor = Mesh.Attribute;
 
 	public this(string file) {
 		string dir = dirName(file);
@@ -68,6 +69,15 @@ final class GltfReader {
 		readCameras();
 		readNodes();
 		readWorlds();
+		assignAttributes();
+	}
+
+	void assignAttributes() {
+		foreach (node, attrs; attributeAssignments) {
+			foreach (attr; attrs) {
+				node.addAttribute(attr);
+			}
+		}
 	}
 
 	void readWorlds() {
@@ -85,23 +95,11 @@ final class GltfReader {
 		World world = new World();
 		if (JsonVal* j = "name" in world_json)
 			world.name = j.string_;
+
 		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[])[])).list;
+		foreach (JsonVal child; children)
+			world.addNode(nodes[child.long_]);
 
-		void addAttribute(Node v) {
-			foreach (Node.Attribute e; v.attributes) {
-				if (Light l = cast(Light) e) {
-					world.lightSet.add(l);
-				}
-			}
-			foreach (Node child; v.children)
-				addAttribute(child);
-		}
-
-		foreach (JsonVal child; children) {
-			Node v = nodes[child.long_];
-			world.children ~= v;
-			addAttribute(v);
-		}
 		return world;
 	}
 
@@ -126,13 +124,13 @@ final class GltfReader {
 
 		if (JsonVal* j = "camera" in node_json) {
 			long z = j.long_;
-			node.attributes ~= cameras[z];
+			attributeAssignments[node] ~= cameras[z];
 		}
 
 		if (JsonVal* e = "extensions" in node_json)
 			if (JsonVal* el = "KHR_lights_punctual" in e.object) {
 				long l = el.object["light"].long_;
-				node.attributes ~= lights[l];
+				attributeAssignments[node] ~= lights[l];
 			}
 
 		if (JsonVal* j = "children" in node_json)
@@ -174,15 +172,17 @@ final class GltfReader {
 		string type = camera_json["type"].string_;
 		if (type == "perspective") {
 			Json setting = camera_json["perspective"].object;
-			precision aspect = 1 / setting["aspectRatio"].double_;
+			precision aspect = setting["aspectRatio"].getType!double();
 
-			double yfov = setting["yfov"].double_;
-			precision xfov = yfov / aspect;
+			double yfov = setting["yfov"].getType!double();
+			precision xfov = yfov * aspect;
 
-			precision nearplane = setting["znear"].double_;
-			precision backplane = setting["zfar"].double_;
+			precision nearplane = setting["znear"].getType!double();
+			precision backplane = setting["zfar"].getType!double();
 
-			Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
+			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
+			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0/1080.0, 2.1118483949, 0.1, 100);
+			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
 			return new Camera(projectionMatrix);
 		} else {
 			enforce(type == "orthographic");
@@ -233,7 +233,7 @@ final class GltfReader {
 			string s = "TEXCOORD_" ~ i.to!string;
 			if (s !in attributes_json)
 				break;
-			Attribute attr = this.gltfAccessors[attributes_json[s].long_];
+			Mesh.Attribute attr = this.gltfAccessors[attributes_json[s].long_];
 			attributeSet.texCoord[i] = attr;
 			assert(attr.typeCount == 2);
 			assert(attr.type == GL_FLOAT || ((attr.type == GL_UNSIGNED_BYTE
@@ -246,7 +246,7 @@ final class GltfReader {
 				break;
 			enforce(i == 0, "COLOR_n only supports n = 0"); //TODO: properly use COLOR_0 & determine what to do with more
 
-			Attribute colorAttribute = this.gltfAccessors[attributes_json[s].long_];
+			Mesh.Attribute colorAttribute = this.gltfAccessors[attributes_json[s].long_];
 			enforce(colorAttribute.typeCount == 4, "COLOR_n attribute only supports typecount 4"); // TODO support 3.
 			assert(colorAttribute.typeCount == 3 || colorAttribute.typeCount == 4);
 			assert(colorAttribute.type == GL_FLOAT || ((colorAttribute.type == GL_UNSIGNED_BYTE
@@ -256,13 +256,13 @@ final class GltfReader {
 
 		//TODO: Joints & Weights
 
-		IndexAttribute indexAttribute;
+		Mesh.IndexAttribute indexAttribute;
 		if ("indices" !in primitive) {
 			assert(attributeSet.position.elementCount % 3 == 0);
 			indexAttribute.indexCount = attributeSet.position.elementCount;
 			indexAttribute.offset = 0;
 		} else {
-			indexAttribute = IndexAttribute(this.gltfAccessors[primitive["indices"].long_]);
+			indexAttribute = Mesh.IndexAttribute(this.gltfAccessors[primitive["indices"].long_]);
 		}
 
 		Material material;
@@ -337,18 +337,19 @@ final class GltfReader {
 	}
 
 	void readImages(string dir) {
-		if (JsonVal* j = "images" in json){
+		if (JsonVal* j = "images" in json) {
 			images.reserve(j.list.length);
-			foreach (JsonVal a_json; j.list){
+			foreach (JsonVal image_val; j.list) {
+				Json image_json = image_val.object;
 				ubyte[] content;
-				if (JsonVal* uri_json = "uri" in a_json) {
-					assert("bufferView" !in a_json);
+				if (JsonVal* uri_json = "uri" in image_json) {
+					assert("bufferView" !in image_json);
 					content = readURI(uri_json.string_, dir);
 				} else {
-					content = this.gltfBufferViews[a_json["bufferView"].long_].content;
+					content = this.gltfBufferViews[image_json["bufferView"].long_].content;
 				}
-				string name = a_json.get("name", JsonVal("")).string_;
-				images ~= Image(name, content);
+				string name = image_json.get("name", JsonVal("")).string_;
+				images ~= new Image(content, name);
 			}
 		}
 	}
@@ -391,13 +392,13 @@ final class GltfReader {
 
 	Texture readNormalTexture(Json t_json) {
 		Texture t = readTexture(t_json);
-		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).double_;
+		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).getType!double();
 		return t;
 	}
 
 	Texture readOcclusionTexture(Json t_json) {
 		Texture t = readTexture(t_json);
-		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).double_;
+		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).getType!double();
 		return t;
 	}
 
@@ -425,9 +426,9 @@ final class GltfReader {
 			if (JsonVal* j = "baseColorTexture" in pbr_j)
 				material.baseColor_texture = readTexture(j.object);
 			if (JsonVal* j = "metallicFactor" in pbr_j)
-				material.metalFactor = j.double_;
+				material.metalFactor = j.getType!double();
 			if (JsonVal* j = "roughnessFactor" in pbr_j)
-				material.roughnessFactor = j.double_;
+				material.roughnessFactor = j.getType!double();
 			if (JsonVal* j = "metallicRoughnessTexture" in pbr_j)
 				material.metal_roughness_texture = readTexture(j.object);
 		}
@@ -443,7 +444,7 @@ final class GltfReader {
 		if (JsonVal* j = "alphaMode" in m_json)
 			material.alpha_behaviour = translateAlphaBehaviour(j.string_);
 		if (JsonVal* j = "alphaCutoff" in m_json)
-			material.alpha_threshold = cast(prec) j.double_;
+			material.alpha_threshold = cast(prec) j.getType!double();
 		if (JsonVal* j = "doubleSided" in m_json)
 			material.twosided = j.bool_;
 
@@ -470,9 +471,9 @@ final class GltfReader {
 		if (JsonVal* cj = "color" in lj)
 			color = cj.vec!(3, precision);
 		if (JsonVal* sj = "intensity" in lj)
-			strength = sj.double_;
+			strength = sj.getType!double();
 
-		precision range = lj.get("range", JsonVal(double.infinity)).double_;
+		precision range = lj.get("range", JsonVal(double.infinity)).getType!double();
 
 		string type = lj["type"].string_;
 		switch (type) {
@@ -482,8 +483,8 @@ final class GltfReader {
 				return new Light(Light.Type.FRAGMENT, color, strength, range);
 			case "spot":
 				Json spotj = lj["spot"].object;
-				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).double_;
-				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).double_;
+				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
+				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
 				return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
 			default:
 				assert(0, "Light type unknown: " ~ type);

@@ -9,92 +9,92 @@ import std.typecons : Nullable;
 import std.traits : isIntegral;
 import vertexd;
 
-alias Attr = Attribute;
-struct Attribute {
-	uint type; // GLuint
-	ubyte typeCount; // 1-4 / 9 / 16
-	bool matrix;
-	bool normalised = false;
-	ubyte[] content;
-
-	GLsizei elementCount; // Redundant
-	GLsizei elementSize; // Redudant
-	invariant {
-		if (content !is null && content.length > 0) {
-			assert(elementSize == typeCount * getGLenumTypeSize(type));
-			assert(content.length % elementSize == 0);
-		}
-	}
-
-	this(M : T[R], T, uint R)(M[] content, bool normalised = false) if (!isList!T) {
-		this(cast(T[1][R][]) content, normalised);
-	}
-
-	this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false) if (!isList!T) {
-		this.type = getGLenum!T;
-		this.typeCount = R * C;
-		this.matrix = C > 1;
-		this.normalised = normalised;
-		assert(!normalised || (type != GL_FLOAT && type != GL_UNSIGNED_INT));
-		this.content = cast(ubyte[]) content;
-
-		this.elementCount = cast(GLsizei) content.length;
-		this.elementSize = cast(GLsizei) M.sizeof;
-	}
-
-	bool present() const {
-		return content.length > 0;
-	}
-
-	size_t size() const {
-		return content.length;
-	}
-
-}
-
-alias IndexAttr = IndexAttribute;
-struct IndexAttribute {
-	GLenum type; // ubyte/ushort/uint
-	GLsizei indexCount = 0;
-	GLint offset = 0;
-	ubyte[] content;
-
-	this(T)(T[] content) if (__traits(compiles, (getGLenum!T))) { // not isIntegral!T
-		assert(content.length % 3 == 0);
-		this.indexCount = content.length.to!GLsizei;
-		this.type = getGLenum!T;
-		this.offset = 0;
-		this.content = cast(ubyte[]) content;
-	}
-
-	this(Attribute attr) {
-		assert(attr.elementCount % 3 == 0);
-		this.indexCount = attr.elementCount;
-		assert(attr.typeCount == 1);
-		this.type = attr.type;
-		this.offset = 0;
-		this.content = attr.content;
-	}
-
-	bool present() {
-		return content.ptr !is null;
-	}
-
-	uint[3][] getContent() {
-		switch (type) {
-			case GL_UNSIGNED_BYTE:
-				return (cast(ubyte[3][]) content).to!(uint[3][]);
-			case GL_UNSIGNED_SHORT:
-				return (cast(ushort[3][]) content).to!(uint[3][]);
-			case GL_UNSIGNED_INT:
-				return (cast(uint[3][]) content);
-			default:
-				assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
-		}
-	}
-}
-
 abstract class Mesh {
+	alias Attr = Attribute;
+	static struct Attribute {
+		uint type; // GLuint
+		ubyte typeCount; // 1-4 / 9 / 16
+		bool matrix;
+		bool normalised = false;
+		ubyte[] content;
+
+		GLsizei elementCount; // Redundant
+		GLsizei elementSize; // Redudant
+		invariant {
+			if (content !is null && content.length > 0) {
+				assert(elementSize == typeCount * getGLenumTypeSize(type));
+				assert(content.length % elementSize == 0);
+			}
+		}
+
+		this(M : T[R], T, uint R)(M[] content, bool normalised = false) if (!isList!T) {
+			this(cast(T[1][R][]) content, normalised);
+		}
+
+		this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false) if (!isList!T) {
+			this.type = getGLenum!T;
+			this.typeCount = R * C;
+			this.matrix = C > 1;
+			this.normalised = normalised;
+			assert(!normalised || (type != GL_FLOAT && type != GL_UNSIGNED_INT));
+			this.content = cast(ubyte[]) content;
+
+			this.elementCount = cast(GLsizei) content.length;
+			this.elementSize = cast(GLsizei) M.sizeof;
+		}
+
+		bool present() const {
+			return content.length > 0;
+		}
+
+		size_t size() const {
+			return content.length;
+		}
+
+	}
+
+	alias IndexAttr = IndexAttribute;
+	static struct IndexAttribute {
+		GLenum type; // ubyte/ushort/uint
+		GLsizei indexCount = 0;
+		GLint offset = 0;
+		ubyte[] content;
+
+		this(T)(T[] content) if (__traits(compiles, (getGLenum!T))) { // not isIntegral!T
+			assert(content.length % 3 == 0);
+			this.indexCount = content.length.to!GLsizei;
+			this.type = getGLenum!T;
+			this.offset = 0;
+			this.content = cast(ubyte[]) content;
+		}
+
+		this(Mesh.Attribute attr) {
+			assert(attr.elementCount % 3 == 0);
+			this.indexCount = attr.elementCount;
+			assert(attr.typeCount == 1);
+			this.type = attr.type;
+			this.offset = 0;
+			this.content = attr.content;
+		}
+
+		bool present() {
+			return content.ptr !is null;
+		}
+
+		uint[3][] getContent() {
+			switch (type) {
+				case GL_UNSIGNED_BYTE:
+					return (cast(ubyte[3][]) content).to!(uint[3][]);
+				case GL_UNSIGNED_SHORT:
+					return (cast(ushort[3][]) content).to!(uint[3][]);
+				case GL_UNSIGNED_INT:
+					return (cast(uint[3][]) content);
+				default:
+					assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
+			}
+		}
+	}
+
 	string name;
 	Shader shader;
 	protected uint vao;
@@ -116,7 +116,7 @@ abstract class Mesh {
 	}
 
 	protected struct Association {
-		Attribute attr;
+		Mesh.Attribute attr;
 		GLuint relativeOffset;
 		uint bindingIndex;
 	}
@@ -202,7 +202,7 @@ abstract class Mesh {
 		INTERLEAVED
 	}
 
-	void setAttributes(Attribute[] attributes, uint[] attributeindices, AttributeLayout layout) {
+	void setAttributes(Mesh.Attribute[] attributes, uint[] attributeindices, AttributeLayout layout) {
 		assert(attributes.length > 0);
 		assert(attributes.length == attributeindices.length);
 
@@ -240,7 +240,7 @@ abstract class Mesh {
 			assert(0);
 	}
 
-	void setAttribute(Attribute attr, uint attrIndex) {
+	void setAttribute(Mesh.Attribute attr, uint attrIndex) {
 		Buffer buffer = new Buffer(attr.content);
 		Binding binding = Binding(buffer, attr.size(), 0, attr.elementSize);
 		uint bindingIndex = setBinding(binding);
@@ -249,9 +249,9 @@ abstract class Mesh {
 
 private:
 	void setAssociation(Association assoc, uint attrIndex) {
-		assert(attrIndex !in associations, "Attribute index already set");
+		assert(attrIndex !in associations, "Mesh.Attribute index already set");
 		assert(assoc.bindingIndex in bindings, "Required binding not present");
-		Attribute attr = assoc.attr;
+		Mesh.Attribute attr = assoc.attr;
 
 		glEnableVertexArrayAttrib(vao, attrIndex);
 		glVertexArrayAttribFormat(vao, attrIndex, attr.typeCount, attr.type, attr.normalised, assoc.relativeOffset);
@@ -305,6 +305,10 @@ private:
 		this.bindings.remove(bindingIndex);
 	}
 
+	public static Vec!3[] generateNormals(Mesh.Attribute positions, IndexAttribute indices) {
+		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent() : null);
+	}
+
 	/// Calculates a normal attribute using the positions attribute.
 	/// Indexed meshes result in surface-weighted per-vertex normals.
 	/// Non-indexed meshes merely result in flat per-face normals.
@@ -338,6 +342,12 @@ private:
 				normal = normal.normalize();
 		}
 		return normals;
+	}
+
+	public static Vec!4[] generateTangents(Mesh.Attribute positions, Mesh.Attribute normals,
+		Mesh.Attribute texCoords, Mesh.IndexAttribute indices) {
+		return generateTangents(cast(Vec!3[]) positions.content, cast(Vec!3[]) normals.content,
+			cast(Vec!2[]) texCoords.content, indices.present() ? indices.getContent() : null);
 	}
 
 	/// Calculates a tangent attribute based on the position and normal attributes,

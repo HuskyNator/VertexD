@@ -4,6 +4,7 @@ import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
 import std.math : PI;
 import std.conv : to;
+import std.traits: isScalarType;
 
 void remove(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);

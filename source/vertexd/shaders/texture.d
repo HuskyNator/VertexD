@@ -2,8 +2,10 @@ module vertexd.shaders.texture;
 import bindbc.opengl;
 import imageformats;
 import std.conv : to;
+import std.exception : enforce;
 import std.stdio;
 import vertexd.core.mat;
+import vertexd.misc : bitWidth;
 import vertexd.shaders;
 
 // TODO: consider merging TextureHandle & TextureBase
@@ -62,8 +64,8 @@ class TextureHandle {
 
 		//TODO: decide on default mipmap level or make it configurable.
 		int maxImageSize = (base.img.w > base.img.h) ? base.img.w : base.img.h;
-		GLsizei maxMipmapLevels = bitWidth(magImageSize);
-		base.initialize(srgb,  maxMipmapLevels);
+		GLsizei maxMipmapLevels = cast(GLsizei) bitWidth(maxImageSize);
+		base.initialize(srgb, maxMipmapLevels);
 
 		this.handle = glGetTextureSamplerHandleARB(base.id, sampler.id);
 		enforce(handle != 0, "An error occurred while creating a texture handle");
@@ -115,14 +117,12 @@ class TextureBase {
 			return;
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
-		glTextureStorage2D(id, mipmapLevels, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img
-				.h);
-		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img
-				.pixels.ptr);
+		glTextureStorage2D(id, mipmapLevels, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), img.w, img.h);
+		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img.pixels.ptr);
 
-		if(mipmapLevels>1); //TODO: What happens when the sampler defines mipmap filtering but the texture is only lage enough for 1 level?
-		glGenerateMipmap(id);
-		
+		if (mipmapLevels > 1) //TODO: What happens when the sampler defines mipmap filtering but the texture is only lage enough for 1 level?
+			glGenerateTextureMipmap(id);
+
 		// Already defined by Sampler
 		// glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		// glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);

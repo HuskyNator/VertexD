@@ -6,9 +6,9 @@ import vertexd;
 
 class GltfMesh : Mesh {
 	struct AttributeSet {
-		Attribute position, normal, tangent;
-		Attribute[2] texCoord; // TODO: static list of max_texCoord_count
-		Attribute[1] color; // TODO: static list of max_color_count
+		Mesh.Attribute position, normal, tangent;
+		Mesh.Attribute[2] texCoord; // TODO: static list of max_texCoord_count
+		Mesh.Attribute[1] color; // TODO: static list of max_color_count
 		// Attribute[] joints;
 		// Attribute[] weights;
 		// Attribute[] custom;
@@ -29,7 +29,7 @@ class GltfMesh : Mesh {
 		Attribute[] attributes;
 		uint[] attributeIndices;
 
-		final bool _setAttribute(Attribute attr, uint index) {
+		final bool _setAttribute(Mesh.Attribute attr, uint index) {
 			if (!attr.present)
 				return false;
 			attributes ~= attr;
@@ -43,25 +43,24 @@ class GltfMesh : Mesh {
 		bool shouldGenerateTangents = attributeSet.normal.present() && !attributeSet.tangent.present();
 
 		if (!attributeSet.normal.present()) {
-			Vec!3[] normals = generateNormals(cast(Vec!3[]) attributeSet.position.content, indexAttribute.getContent);
-			attributeSet.normal = Attribute(normals);
+			Vec!3[] normals = generateNormals(attributeSet.position, indexAttribute);
+			attributeSet.normal = Mesh.Attribute(normals);
 		}
 		_setAttribute(attributeSet.normal, 1);
 
 		if (normalTexture) {
 			if (shouldGenerateTangents) {
-				Vec!4[] tangents = generateTangents(cast(Vec!3[]) attributeSet.position.content,
-					cast(Vec!3[]) attributeSet.normal.content,
-					cast(Vec!2[]) attributeSet.texCoord[material.normal_texture.texCoord].content,
-					indexAttribute.getContent);
-				attributeSet.tangent = Attribute(tangents);
+				Vec!4[] tangents = generateTangents(attributeSet.position, attributeSet.normal,
+					attributeSet.texCoord[material.normal_texture.texCoord], indexAttribute);
+				attributeSet.tangent = Mesh.Attribute(tangents);
 			}
 			_setAttribute(attributeSet.tangent, 2);
 		}
 
 		assert(attributeSet.texCoord.length <= 2); // TODO: have max_texCoord_count (ensuring layout-location)
-		foreach (uint i, a; attributeSet.texCoord){
-			_setAttribute(a, 3 + i);}
+		foreach (uint i, a; attributeSet.texCoord) {
+			_setAttribute(a, 3 + i);
+		}
 		assert(attributeSet.color.length <= 1); // TODO: have max_color_count (ensuring layout-location)
 		foreach (uint i, a; attributeSet.color)
 			_setAttribute(a, 5 + i);
