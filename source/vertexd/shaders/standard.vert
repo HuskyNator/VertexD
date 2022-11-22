@@ -42,7 +42,7 @@ layout(row_major,std140,binding=2)uniform Material{
 	Texture emissive_texture;
 };
 
-uniform mat4 modelMatrix;
+layout(location=0)uniform mat4 modelMatrix;
 
 layout(location = 0) in vec3 vert_POSITION_model;
 layout(location = 1) in vec3 vert_NORMAL_model;

@@ -42,7 +42,7 @@ layout(row_major,std140,binding=2)uniform Material{
 	Texture emissive_texture;
 };
 
-uniform mat4 modelMatrix;
+layout(location=0)uniform mat4 modelMatrix;
 
 //TODO: Remove
 uniform vec4 u_color;
