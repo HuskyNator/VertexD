@@ -141,6 +141,14 @@ class TextureBase {
 		this(read_image_from_mem(content, ColFmt.RGBA), name);
 	}
 
+	static IFImage readImage(string file) {
+		return read_image(file, ColFmt.RGBA);
+	}
+
+	static IFImage readImage(ubyte[] content) {
+		return read_image_from_mem(content, ColFmt.RGBA);
+	}
+
 	~this() {
 		if (!initialized)
 			return;
