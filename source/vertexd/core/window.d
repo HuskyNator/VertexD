@@ -21,14 +21,14 @@ struct MousepositionInput {
 	double x, y;
 }
 
-struct MousehweelInput {
+struct MousewheelInput {
 	double x, y;
 }
 
 alias KeyCallback = void delegate(KeyInput input) nothrow;
 alias MousebuttonCallback = void delegate(MousebuttonInput input) nothrow;
 alias MousepositionCallback = void delegate(MousepositionInput input) nothrow;
-alias MousewheelCallback = void delegate(MousehweelInput input) nothrow;
+alias MousewheelCallback = void delegate(MousewheelInput input) nothrow;
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,
@@ -55,7 +55,7 @@ class Window {
 	KeyInput[] keyInput = [];
 	MousepositionInput[] mousepositionInput = [];
 	MousebuttonInput[] mousebuttonInput = [];
-	MousehweelInput[] mousewheelInput = [];
+	MousewheelInput[] mousewheelInput = [];
 
 	static void setStandardVisible(bool visible) {
 		glfwWindowHint(GLFW_VISIBLE, visible);
@@ -155,7 +155,7 @@ class Window {
 			foreach (MousepositionCallback callback; mousepositionCallbacks)
 				callback(input);
 
-		foreach (MousehweelInput input; mousewheelInput)
+		foreach (MousewheelInput input; mousewheelInput)
 			foreach (MousewheelCallback callback; mousewheelCallbacks)
 				callback(input);
 
@@ -232,7 +232,7 @@ extern (C) void window_mouseposition_callback(GLFWwindow* glfw_window, double x,
 
 extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
 	Window window = Window.windows[glfw_window];
-	MousehweelInput input = MousehweelInput(x, y);
+	MousewheelInput input = MousewheelInput(x, y);
 	window.mousewheelInput ~= input;
 }
 
