@@ -108,22 +108,22 @@ class Shader {
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buffer.buffer);
 	}
 
-	void setUniform(V)(string name, V value) if (!isInstanceOf!(Mat, V)) {
+	void setUniform(V)(string name, V value) {
 		const int uniformLocation = glGetUniformLocation(id, name.ptr);
 		if (uniformLocation == -1)
 			return error_message_missing_uniform(name);
 
+		setUniform(uniformLocation, value);
+	}
+
+	void setUniform(V)(int uniformLocation, V value) if (!isInstanceOf!(Mat, V)) {
 		enum string type = is(V == uint) ? "ui" : (is(V == int) ? "i" : (is(V == float) ? "f" : (is(V == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ V ~ " not supported for setUniform.");
 		mixin("glProgramUniform1" ~ type ~ "(id, uniformLocation, value);");
 	}
 
-	void setUniform(V : Mat!(L, 1, S), uint L, S)(string name, V value) if (L >= 1 && L <= 4) { // set Vec
-		const int uniformLocation = glGetUniformLocation(id, name.ptr);
-		if (uniformLocation == -1)
-			return error_message_missing_uniform(name);
-
+	void setUniform(V : Mat!(L, 1, S), uint L, S)(int uniformLocation, V value) if (L >= 1 && L <= 4) { // set Vec
 		enum string values = "value.x" ~ (L == 1 ? "" : ",value.y" ~ (L == 2 ? "" : ",value.z" ~ (L == 3 ? ""
 					: ",value.w")));
 		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
@@ -132,11 +132,7 @@ class Shader {
 		mixin("glProgramUniform" ~ L.to!string ~ type ~ "(id, uniformLocation, " ~ values ~ ");");
 	}
 
-	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(string name, V value) if (L >= 1 && L <= 4) { // set Vec[]
-		const int uniformLocation = glGetUniformLocation(id, name.ptr);
-		if (uniformLocation == -1)
-			error_message_missing_uniform(name);
-
+	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(int uniformLocation, V value) if (L >= 1 && L <= 4) { // set Vec[]
 		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
@@ -144,22 +140,14 @@ class Shader {
 				~ "v(id, uniformLocation, cast(uint) value.length, cast(" ~ S.stringof ~ "*) value.ptr);");
 	}
 
-	void setUniform(V : Mat!(R, K, precision), uint R, uint K)(string name, V value)
+	void setUniform(V : Mat!(R, K, precision), uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
-		const int uniformLocation = glGetUniformLocation(id, name.ptr);
-		if (uniformLocation == -1)
-			return error_message_missing_uniform(name);
-
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(precision == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, value[0].ptr);");
 	}
 
-	void setUniform(V : Mat!(R, K, precision)[], uint R, uint K)(string name, V value)
+	void setUniform(V : Mat!(R, K, precision)[], uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat[]
-		const int uniformLocation = glGetUniformLocation(id, name.ptr);
-		if (uniformLocation == -1)
-			return error_message_missing_uniform(name);
-
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(precision == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
 	}
