@@ -61,7 +61,23 @@ private:
 		readLights(); // KHR_lights_punctual extension
 
 		readSamplers();
+		debug {
+			import std.datetime.stopwatch;
+
+			StopWatch s = StopWatch(AutoStart.yes);
+		}
 		readImages(dir);
+
+		debug {
+			s.stop();
+			File logFile = File("log.txt", "a");
+			logFile.write("Time To Read Images: ");
+			logFile.write(s.peek().total!"msecs");
+			logFile.write("msecs");
+			version (MultiThreadImageLoad)
+				logFile.write(" (MultiThreadImageLoad)");
+			logFile.writeln();
+		}
 		readTextures();
 
 		readMaterials();
@@ -339,7 +355,19 @@ private:
 	void readImages(string dir) {
 		if (JsonVal* j = "images" in json) {
 			images.reserve(j.list.length);
-			foreach (JsonVal image_val; j.list) {
+
+			version (MultiThreadImageLoad) {
+				import std.parallelism;
+				import imageformats;
+
+				auto tasks = taskPool();
+				__gshared IFImage[] sharedIFImages;
+				__gshared string[] sharedNames;
+				sharedIFImages = new IFImage[j.list.length];
+				sharedNames = new string[j.list.length];
+			}
+
+			foreach (size_t index, JsonVal image_val; j.list) {
 				Json image_json = image_val.object;
 				ubyte[] content;
 				if (JsonVal* uri_json = "uri" in image_json) {
@@ -349,7 +377,22 @@ private:
 					content = this.gltfBufferViews[image_json["bufferView"].long_].content;
 				}
 				string name = image_json.get("name", JsonVal("")).string_;
-				images ~= new Image(content, name);
+
+				version (MultiThreadImageLoad) {
+					auto readImage = (ubyte[] content, string name, size_t index) {
+						sharedIFImages[index] = Image.readImage(content);
+						sharedNames[index] = name;
+					};
+					tasks.put(task(readImage, content, name, index));
+				} else {
+					images ~= new Image(content, name);
+				}
+			}
+
+			version (MultiThreadImageLoad) {
+				tasks.finish(true);
+				foreach (i; 0 .. sharedIFImages.length)
+					images ~= new Image(sharedIFImages[i], sharedNames[i]);
 			}
 		}
 	}
