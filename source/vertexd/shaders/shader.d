@@ -70,7 +70,7 @@ class Shader {
 		import core.stdc.stdio : printf;
 
 		glDeleteProgram(id);
-		printf("Shader removed: %u ($u, $u)\n", id, vertShader.id, fragmentShader.id);
+		printf("Shader removed: %u (% u, % u)\n", id, vertShader.id, fragmentShader.id);
 	}
 
 	/// Replace placeholders

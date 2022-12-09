@@ -41,7 +41,8 @@ class Window {
 	string name;
 	int width;
 	int height;
-	package GLFWwindow* glfw_window;
+	// package GLFWwindow* glfw_window;
+	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
 
 	// World
