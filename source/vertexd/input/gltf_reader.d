@@ -49,7 +49,7 @@ private:
 
 	alias Accessor = Mesh.Attribute;
 
-	public this(string file) {
+	public this(string file, Shader shader = Shader.gltfShader()) {
 		string dir = dirName(file);
 		this.json = JsonReader.readJsonFile(file);
 		enforce(json["asset"].object["version"].string_ == "2.0");
@@ -81,7 +81,7 @@ private:
 		readTextures();
 
 		readMaterials();
-		readMeshes();
+		readMeshes(shader);
 		readCameras();
 		readNodes();
 		readWorlds();
@@ -197,7 +197,7 @@ private:
 			precision backplane = setting["zfar"].getType!double();
 
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
-			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0/1080.0, 2.1118483949, 0.1, 100);
+			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
 			return new Camera(projectionMatrix);
 		} else {
@@ -207,7 +207,7 @@ private:
 		}
 	}
 
-	void readMeshes() {
+	void readMeshes(Shader shader) {
 		JsonVal[] meshes_json = json["meshes"].list;
 		this.meshes.reserve(meshes_json.length);
 
@@ -218,13 +218,13 @@ private:
 			GltfMesh[] primitives;
 			JsonVal[] primitives_json = mesh_json["primitives"].list;
 			foreach (i; 0 .. primitives_json.length)
-				primitives ~= readPrimitive(primitives_json[i].object, name);
+				primitives ~= readPrimitive(primitives_json[i].object, name, shader);
 
 			this.meshes ~= primitives;
 		}
 	}
 
-	GltfMesh readPrimitive(Json primitive, string name) {
+	GltfMesh readPrimitive(Json primitive, string name, Shader shader) {
 		Json attributes_json = primitive["attributes"].object;
 		enforce("POSITION" in attributes_json, "Presence of POSITION attribute assumed");
 
@@ -287,7 +287,29 @@ private:
 		else
 			material = Material.defaultMaterial;
 
-		return new GltfMesh(material, attributeSet, indexAttribute, name);
+		GLenum drawMode = getRenderTypeGLenum(primitive.get("mode", JsonVal(4L)).getType!uint);
+		return new GltfMesh(material, attributeSet, indexAttribute, name, shader, drawMode);
+	}
+
+	GLenum getRenderTypeGLenum(uint drawMode) {
+		switch (drawMode) {
+			case 0:
+				return GL_POINTS;
+			case 1:
+				return GL_LINES;
+			case 2:
+				return GL_LINE_LOOP;
+			case 3:
+				return GL_LINE_STRIP;
+			case 4:
+				return GL_TRIANGLES;
+			case 5:
+				return GL_TRIANGLE_STRIP;
+			case 6:
+				return GL_TRIANGLE_FAN;
+			default:
+				assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
+		}
 	}
 
 	void readSamplers() {

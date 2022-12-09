@@ -18,7 +18,7 @@ class Primitive(GLenum type) : Mesh {
 			assert(positions.length % 3 == 0);
 		else static if (type == GL_LINES)
 			assert(positions.length % 2 == 0);
-		super(shader, name);
+		super(shader, name, type);
 		if (name.length == 0)
 			this.name = type.stringof ~ "#" ~ vao.to!string;
 
@@ -37,24 +37,8 @@ class Primitive(GLenum type) : Mesh {
 		setIndexCount(positions.length.to!GLsizei);
 	}
 
-	override GLenum drawMode() {
-		return type;
-	}
-
 	override void drawSetup(Node node) {
 		if (1 !in associations)
 			glVertexAttrib4f(1, singleColor.x, singleColor.y, singleColor.z, singleColor.w);
-	}
-
-	static void setPointSize(float size = 1) {
-		glPointSize(size);
-	}
-
-	static void setLineWidth(float size = 1) {
-		glLineWidth(size);
-	}
-
-	static void setWireframe(bool on = false) {
-		glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
 	}
 }

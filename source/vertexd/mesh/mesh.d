@@ -81,14 +81,15 @@ abstract class Mesh {
 			return content.ptr !is null;
 		}
 
-		uint[3][] getContent() {
+		uint[T][] getContent(uint T)() {
+			// assert(T == getGLenumDrawModeCount(drawMode));
 			switch (type) {
 				case GL_UNSIGNED_BYTE:
-					return (cast(ubyte[3][]) content).to!(uint[3][]);
+					return (cast(ubyte[T][]) content).to!(uint[T][]);
 				case GL_UNSIGNED_SHORT:
-					return (cast(ushort[3][]) content).to!(uint[3][]);
+					return (cast(ushort[T][]) content).to!(uint[T][]);
 				case GL_UNSIGNED_INT:
-					return (cast(uint[3][]) content);
+					return (cast(uint[T][]) content);
 				default:
 					assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
 			}
@@ -97,6 +98,7 @@ abstract class Mesh {
 
 	string name;
 	Shader shader;
+	GLenum drawMode;
 	protected uint vao;
 
 	Index index;
@@ -165,13 +167,14 @@ abstract class Mesh {
 		}
 	}
 
-	this(Shader shader, string name = "") {
+	this(Shader shader, string name = "", GLenum drawMode = GL_TRIANGLES) {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
 		// TODO: create global id-tracker/namer, not just for meshes.
 		this.name = name.length > 0 ? name : "Mesh#" ~ vao.to!string;
 		this.shader = shader;
+		this.drawMode = drawMode;
 	}
 
 	~this() {
@@ -181,7 +184,6 @@ abstract class Mesh {
 		printf("Mesh removed: %u\n", vao);
 	}
 
-	abstract GLenum drawMode();
 	abstract void drawSetup(Node node);
 
 	void draw(Node node) {
@@ -248,6 +250,18 @@ abstract class Mesh {
 		setAssociation(Association(attr, 0, bindingIndex), attrIndex);
 	}
 
+	static void setWireframe(bool on = false) {
+		glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
+	}
+
+	static void setPointSize(float size = 1) {
+		glPointSize(size);
+	}
+
+	static void setLineWidth(float size = 1) {
+		glLineWidth(size);
+	}
+
 private:
 	void setAssociation(Association assoc, uint attrIndex) {
 		assert(attrIndex !in associations, "Mesh.Attribute index already set");
@@ -306,8 +320,10 @@ private:
 		this.bindings.remove(bindingIndex);
 	}
 
+	// TODO: adopt below for non GL_TRIANGLES draw mode? Or exclude?
+
 	public static Vec!3[] generateNormals(Mesh.Attribute positions, IndexAttribute indices) {
-		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent() : null);
+		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent!3() : null);
 	}
 
 	/// Calculates a normal attribute using the positions attribute.
