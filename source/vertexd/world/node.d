@@ -135,8 +135,7 @@ class Node {
 	in (child.parent is null)
 	in (child.worlds.length == 0) {
 		child.parent = this;
-		child.origin = origin;
-		child.propogateOrigin();
+		child.propogateOrigin(this.origin);
 		this.children ~= child;
 	}
 
@@ -146,16 +145,14 @@ class Node {
 	in (child.root == root)
 	in (child.worlds == worlds) {
 		remove(children, child);
-		child.origin = Origin(child, []);
-		child.propogateOrigin();
+		child.propogateOrigin(Origin(child, []));
 		child.parent = null;
 	}
 
-	void propogateOrigin() { //TODO: provide old & new see attribute todo
-		foreach (child; children) {
-			child.origin = origin;
-			child.propogateOrigin();
-		}
+	void propogateOrigin(Origin newOrigin) { //TODO: provide old & new see attribute todo
+		this.origin = newOrigin;
+		foreach (child; children)
+			child.propogateOrigin(newOrigin);
 	}
 
 	void addAttribute(Node.Attribute attr) {
