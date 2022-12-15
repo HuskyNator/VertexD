@@ -62,7 +62,7 @@ abstract class Mesh {
 		ubyte[] content;
 
 		this(T)(T[] content) if (__traits(compiles, (getGLenum!T))) { // not isIntegral!T
-			assert(content.length % 3 == 0);
+			// assert(content.length % 3 == 0);
 			this.indexCount = content.length.to!GLsizei;
 			this.type = getGLenum!T;
 			this.offset = 0;
@@ -70,7 +70,7 @@ abstract class Mesh {
 		}
 
 		this(Mesh.Attribute attr) {
-			assert(attr.elementCount % 3 == 0); // WARNING: move check elsewhere.
+			// assert(attr.elementCount % 3 == 0); // WARNING: move check elsewhere.
 			this.indexCount = attr.elementCount;
 			assert(attr.typeCount == 1);
 			this.type = attr.type;
