@@ -12,6 +12,14 @@ void remove(Type)(ref Type[] list, Type element) {
 	list = list.removeAt(i);
 }
 
+bool tryRemove(Type)(ref Type[] list, Type element) {
+	const long i = list.countUntil(element);
+	if (i < 0)
+		return false; // Element not in list
+	list = list.removeAt(i);
+	return true;
+}
+
 alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));
 
 // a.isType!B

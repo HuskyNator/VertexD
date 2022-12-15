@@ -48,6 +48,7 @@ class Node {
 
 	this() {
 		this.name = "Node#" ~ nodeCount.to!string;
+		nodeCount += 1;
 		this.origin = Origin(this, []);
 	}
 

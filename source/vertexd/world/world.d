@@ -26,7 +26,7 @@ class World {
 
 	this() {
 		this.name = "World#" ~ worlds.length.to!string;
-		World.worlds ~= this;
+		// World.worlds ~= this;
 		lightSet = new LightSet();
 	}
 

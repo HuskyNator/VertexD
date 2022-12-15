@@ -34,6 +34,7 @@ abstract class Mesh {
 		this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false) if (!isList!T) {
 			this.type = getGLenum!T;
 			this.typeCount = R * C;
+			// writeln("TYPECOUNT R" ~ R.to!string ~ " * C" ~ C.to!string ~ " = " ~ typeCount.to!string);
 			this.matrix = C > 1;
 			this.normalised = normalised;
 			assert(!normalised || (type != GL_FLOAT && type != GL_UNSIGNED_INT));
@@ -69,7 +70,7 @@ abstract class Mesh {
 		}
 
 		this(Mesh.Attribute attr) {
-			assert(attr.elementCount % 3 == 0);
+			assert(attr.elementCount % 3 == 0); // WARNING: move check elsewhere.
 			this.indexCount = attr.elementCount;
 			assert(attr.typeCount == 1);
 			this.type = attr.type;
@@ -364,7 +365,7 @@ private:
 	public static Vec!4[] generateTangents(Mesh.Attribute positions, Mesh.Attribute normals,
 		Mesh.Attribute texCoords, Mesh.IndexAttribute indices) {
 		return generateTangents(cast(Vec!3[]) positions.content, cast(Vec!3[]) normals.content,
-			cast(Vec!2[]) texCoords.content, indices.present() ? indices.getContent() : null);
+			cast(Vec!2[]) texCoords.content, indices.present() ? indices.getContent!3() : null);
 	}
 
 	/// Calculates a tangent attribute based on the position and normal attributes,
