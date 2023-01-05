@@ -34,6 +34,7 @@ abstract class Mesh {
 		this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false) if (!isList!T) {
 			this.type = getGLenum!T;
 			this.typeCount = R * C;
+			// writeln("TYPECOUNT R" ~ R.to!string ~ " * C" ~ C.to!string ~ " = " ~ typeCount.to!string);
 			this.matrix = C > 1;
 			this.normalised = normalised;
 			assert(!normalised || (type != GL_FLOAT && type != GL_UNSIGNED_INT));
@@ -61,7 +62,7 @@ abstract class Mesh {
 		ubyte[] content;
 
 		this(T)(T[] content) if (__traits(compiles, (getGLenum!T))) { // not isIntegral!T
-			assert(content.length % 3 == 0);
+			// assert(content.length % 3 == 0);
 			this.indexCount = content.length.to!GLsizei;
 			this.type = getGLenum!T;
 			this.offset = 0;
@@ -69,7 +70,7 @@ abstract class Mesh {
 		}
 
 		this(Mesh.Attribute attr) {
-			assert(attr.elementCount % 3 == 0);
+			// assert(attr.elementCount % 3 == 0); // WARNING: move check elsewhere.
 			this.indexCount = attr.elementCount;
 			assert(attr.typeCount == 1);
 			this.type = attr.type;
@@ -81,14 +82,15 @@ abstract class Mesh {
 			return content.ptr !is null;
 		}
 
-		uint[3][] getContent() {
+		uint[T][] getContent(uint T)() {
+			// assert(T == getGLenumDrawModeCount(drawMode));
 			switch (type) {
 				case GL_UNSIGNED_BYTE:
-					return (cast(ubyte[3][]) content).to!(uint[3][]);
+					return (cast(ubyte[T][]) content).to!(uint[T][]);
 				case GL_UNSIGNED_SHORT:
-					return (cast(ushort[3][]) content).to!(uint[3][]);
+					return (cast(ushort[T][]) content).to!(uint[T][]);
 				case GL_UNSIGNED_INT:
-					return (cast(uint[3][]) content);
+					return (cast(uint[T][]) content);
 				default:
 					assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
 			}
@@ -96,7 +98,8 @@ abstract class Mesh {
 	}
 
 	string name;
-	Shader shader;
+	ShaderProgram shaderProgram;
+	GLenum drawMode;
 	protected uint vao;
 
 	Index index;
@@ -165,13 +168,14 @@ abstract class Mesh {
 		}
 	}
 
-	this(Shader shader, string name = "") {
+	this(ShaderProgram shaderProgram, string name = "", GLenum drawMode = GL_TRIANGLES) {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
 		// TODO: create global id-tracker/namer, not just for meshes.
 		this.name = name.length > 0 ? name : "Mesh#" ~ vao.to!string;
-		this.shader = shader;
+		this.shaderProgram = shaderProgram;
+		this.drawMode = drawMode;
 	}
 
 	~this() {
@@ -181,12 +185,12 @@ abstract class Mesh {
 		printf("Mesh removed: %u\n", vao);
 	}
 
-	abstract GLenum drawMode();
 	abstract void drawSetup(Node node);
 
 	void draw(Node node) {
-		shader.use();
-		shader.setUniform("modelMatrix", node.modelMatrix);
+		shaderProgram.use();
+		// shader.setUniform("modelMatrix", node.modelMatrix);
+		shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
 		glBindVertexArray(vao);
 		drawSetup(node);
 
@@ -247,6 +251,18 @@ abstract class Mesh {
 		setAssociation(Association(attr, 0, bindingIndex), attrIndex);
 	}
 
+	static void setWireframe(bool on = false) {
+		glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
+	}
+
+	static void setPointSize(float size = 1) {
+		glPointSize(size);
+	}
+
+	static void setLineWidth(float size = 1) {
+		glLineWidth(size);
+	}
+
 private:
 	void setAssociation(Association assoc, uint attrIndex) {
 		assert(attrIndex !in associations, "Mesh.Attribute index already set");
@@ -305,8 +321,10 @@ private:
 		this.bindings.remove(bindingIndex);
 	}
 
+	// TODO: adopt below for non GL_TRIANGLES draw mode? Or exclude?
+
 	public static Vec!3[] generateNormals(Mesh.Attribute positions, IndexAttribute indices) {
-		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent() : null);
+		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent!3() : null);
 	}
 
 	/// Calculates a normal attribute using the positions attribute.
@@ -347,7 +365,7 @@ private:
 	public static Vec!4[] generateTangents(Mesh.Attribute positions, Mesh.Attribute normals,
 		Mesh.Attribute texCoords, Mesh.IndexAttribute indices) {
 		return generateTangents(cast(Vec!3[]) positions.content, cast(Vec!3[]) normals.content,
-			cast(Vec!2[]) texCoords.content, indices.present() ? indices.getContent() : null);
+			cast(Vec!2[]) texCoords.content, indices.present() ? indices.getContent!3() : null);
 	}
 
 	/// Calculates a tangent attribute based on the position and normal attributes,
