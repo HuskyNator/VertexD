@@ -469,7 +469,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 
 	static if (isVec) {
 		auto opBinary(string op, T:
-			S[size], S)(const T right) const if (is(Result!(Type, op, S)) && !isList!(S)) {
+			S[Size], S, uint Size)(const T right) const 
+				if (is(Result!(Type, op, S)) && !isList!(S) && Size == size) { // WARNING: why cant size be used directly?
 			alias R = Result!(Type, op, S);
 			Mat!(row_count, column_count, R) result;
 			static foreach (i; 0 .. size)

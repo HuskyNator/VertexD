@@ -67,7 +67,7 @@ struct JsonVal {
 		return v;
 	}
 
-	double getType(T)() {
+	T getType(T)() {
 		final switch (type) {
 			case JsonType.OBJECT:
 				assert(0, "Cant `getType` of JsonType.OBJECT");

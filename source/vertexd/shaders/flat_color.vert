@@ -5,7 +5,7 @@ layout(row_major,std140,binding=0)uniform Camera{
 	vec3 camera_world;
 };
 
-uniform mat4 modelMatrix;
+layout(location=0)uniform mat4 modelMatrix;
 
 in vec3 vert_POSITION_model;
 in vec4 vert_COLOR_0;

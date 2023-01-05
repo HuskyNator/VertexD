@@ -22,7 +22,7 @@ final class GltfReader {
 	GltfMesh[][] meshes;
 	Material[] materials;
 
-	// TextureBase[] textureBases;
+	// Texture[] textureBases;
 
 	Light[] lights;
 	Camera[] cameras;
@@ -34,9 +34,9 @@ private:
 	Image[] images;
 	TextureHandle[] textureHandles;
 
-	alias Image = TextureBase;
-	// alias Texture = TextureHandle;
-	// alias TextureInfo = Texture;
+	alias Image = Texture;
+	// alias BindlessTexture = TextureHandle;
+	// alias TextureInfo = BindlessTexture;
 
 	ubyte[][] buffers;
 	BufferView[] gltfBufferViews;
@@ -49,7 +49,7 @@ private:
 
 	alias Accessor = Mesh.Attribute;
 
-	public this(string file) {
+	public this(string file, ShaderProgram shader = ShaderProgram.gltfShaderProgram()) {
 		string dir = dirName(file);
 		this.json = JsonReader.readJsonFile(file);
 		enforce(json["asset"].object["version"].string_ == "2.0");
@@ -61,11 +61,27 @@ private:
 		readLights(); // KHR_lights_punctual extension
 
 		readSamplers();
+		debug {
+			import std.datetime.stopwatch;
+
+			StopWatch s = StopWatch(AutoStart.yes);
+		}
 		readImages(dir);
+
+		debug {
+			s.stop();
+			File logFile = File("log.txt", "a");
+			logFile.write("Time To Read Images: ");
+			logFile.write(s.peek().total!"msecs");
+			logFile.write("msecs");
+			version (MultiThreadImageLoad)
+				logFile.write(" (MultiThreadImageLoad)");
+			logFile.writeln();
+		}
 		readTextures();
 
 		readMaterials();
-		readMeshes();
+		readMeshes(shader);
 		readCameras();
 		readNodes();
 		readWorlds();
@@ -181,7 +197,7 @@ private:
 			precision backplane = setting["zfar"].getType!double();
 
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
-			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0/1080.0, 2.1118483949, 0.1, 100);
+			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
 			return new Camera(projectionMatrix);
 		} else {
@@ -191,7 +207,7 @@ private:
 		}
 	}
 
-	void readMeshes() {
+	void readMeshes(ShaderProgram shader) {
 		JsonVal[] meshes_json = json["meshes"].list;
 		this.meshes.reserve(meshes_json.length);
 
@@ -202,13 +218,13 @@ private:
 			GltfMesh[] primitives;
 			JsonVal[] primitives_json = mesh_json["primitives"].list;
 			foreach (i; 0 .. primitives_json.length)
-				primitives ~= readPrimitive(primitives_json[i].object, name);
+				primitives ~= readPrimitive(primitives_json[i].object, name, shader);
 
 			this.meshes ~= primitives;
 		}
 	}
 
-	GltfMesh readPrimitive(Json primitive, string name) {
+	GltfMesh readPrimitive(Json primitive, string name, ShaderProgram shader) {
 		Json attributes_json = primitive["attributes"].object;
 		enforce("POSITION" in attributes_json, "Presence of POSITION attribute assumed");
 
@@ -271,7 +287,29 @@ private:
 		else
 			material = Material.defaultMaterial;
 
-		return new GltfMesh(material, attributeSet, indexAttribute, name);
+		GLenum drawMode = getRenderTypeGLenum(primitive.get("mode", JsonVal(4L)).getType!uint);
+		return new GltfMesh(material, attributeSet, indexAttribute, name, shader, drawMode);
+	}
+
+	GLenum getRenderTypeGLenum(uint drawMode) {
+		switch (drawMode) {
+			case 0:
+				return GL_POINTS;
+			case 1:
+				return GL_LINES;
+			case 2:
+				return GL_LINE_LOOP;
+			case 3:
+				return GL_LINE_STRIP;
+			case 4:
+				return GL_TRIANGLES;
+			case 5:
+				return GL_TRIANGLE_STRIP;
+			case 6:
+				return GL_TRIANGLE_FAN;
+			default:
+				assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
+		}
 	}
 
 	void readSamplers() {
@@ -339,7 +377,19 @@ private:
 	void readImages(string dir) {
 		if (JsonVal* j = "images" in json) {
 			images.reserve(j.list.length);
-			foreach (JsonVal image_val; j.list) {
+
+			version (MultiThreadImageLoad) {
+				import std.parallelism;
+				import imageformats;
+
+				auto tasks = taskPool();
+				__gshared IFImage[] sharedIFImages;
+				__gshared string[] sharedNames;
+				sharedIFImages = new IFImage[j.list.length];
+				sharedNames = new string[j.list.length];
+			}
+
+			foreach (size_t index, JsonVal image_val; j.list) {
 				Json image_json = image_val.object;
 				ubyte[] content;
 				if (JsonVal* uri_json = "uri" in image_json) {
@@ -349,7 +399,22 @@ private:
 					content = this.gltfBufferViews[image_json["bufferView"].long_].content;
 				}
 				string name = image_json.get("name", JsonVal("")).string_;
-				images ~= new Image(content, name);
+
+				version (MultiThreadImageLoad) {
+					auto readImage = (ubyte[] content, string name, size_t index) {
+						sharedIFImages[index] = Image.readImage(content);
+						sharedNames[index] = name;
+					};
+					tasks.put(task(readImage, content, name, index));
+				} else {
+					images ~= new Image(content, name);
+				}
+			}
+
+			version (MultiThreadImageLoad) {
+				tasks.finish(true);
+				foreach (i; 0 .. sharedIFImages.length)
+					images ~= new Image(sharedIFImages[i], sharedNames[i]);
 			}
 		}
 	}
@@ -363,8 +428,8 @@ private:
 
 				string name = t_json.get("name", JsonVal("")).string_;
 
-				assert("source" in t_json, "Texture has no image");
-				TextureBase base = images[t_json["source"].long_];
+				assert("source" in t_json, "BindlessTexture has no image");
+				Texture base = images[t_json["source"].long_];
 
 				Sampler sampler;
 				if (JsonVal* s = "sampler" in t_json)
@@ -383,21 +448,21 @@ private:
 				materials ~= readMaterial(m_json.object);
 	}
 
-	Texture readTexture(Json t_json) {
-		Texture t;
+	BindlessTexture readTexture(Json t_json) {
+		BindlessTexture t;
 		t.handle = textureHandles[t_json["index"].long_];
 		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
 		return t;
 	}
 
-	Texture readNormalTexture(Json t_json) {
-		Texture t = readTexture(t_json);
+	BindlessTexture readNormalTexture(Json t_json) {
+		BindlessTexture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).getType!double();
 		return t;
 	}
 
-	Texture readOcclusionTexture(Json t_json) {
-		Texture t = readTexture(t_json);
+	BindlessTexture readOcclusionTexture(Json t_json) {
+		BindlessTexture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).getType!double();
 		return t;
 	}
