@@ -20,7 +20,7 @@ class Camera : Node.Attribute {
 
 		if (uniformBuffer is null) {
 			uniformBuffer = new Buffer(&cameraS, cameraS.sizeof, true);
-			Shader.setUniformBuffer(0, uniformBuffer);
+			ShaderProgram.setUniformBuffer(0, uniformBuffer);
 		}
 	}
 

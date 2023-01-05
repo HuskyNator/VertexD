@@ -13,7 +13,7 @@ class Primitive(GLenum type) : Mesh {
 	bool antiAliasing, wireframe;
 
 	public this(float[3][] positions, float[4][] colors = [[0, 1, 0, 1]], string name = "",
-		Shader shader = Shader.flatColorShader(), float size = 1, bool antiAliasing = false, bool wireframe = false) {
+		ShaderProgram shader = ShaderProgram.flatColorShaderProgram(), float size = 1, bool antiAliasing = false, bool wireframe = false) {
 		static if (type == GL_TRIANGLES)
 			assert(positions.length % 3 == 0);
 		else static if (type == GL_LINES)

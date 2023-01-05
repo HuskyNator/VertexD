@@ -78,14 +78,17 @@ class Window {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
 	}
 
-	this(string name = "HoekjeD", int glfw_width = 960, int glfw_height = 540) {
+	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
 
 		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
 
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+
 		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
-		assert(glfw_window !is null, "GLFW coult not create window");
+		assert(glfw_window !is null, "GLFW coult not create a window.");
 
 		Window.windows[glfw_window] = this;
 		glfwMakeContextCurrent(glfw_window); // TODO: Should still find a solution for multithreading & using multiple windows

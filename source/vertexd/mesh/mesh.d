@@ -98,7 +98,7 @@ abstract class Mesh {
 	}
 
 	string name;
-	Shader shader;
+	ShaderProgram shaderProgram;
 	GLenum drawMode;
 	protected uint vao;
 
@@ -168,13 +168,13 @@ abstract class Mesh {
 		}
 	}
 
-	this(Shader shader, string name = "", GLenum drawMode = GL_TRIANGLES) {
+	this(ShaderProgram shaderProgram, string name = "", GLenum drawMode = GL_TRIANGLES) {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
 		// TODO: create global id-tracker/namer, not just for meshes.
 		this.name = name.length > 0 ? name : "Mesh#" ~ vao.to!string;
-		this.shader = shader;
+		this.shaderProgram = shaderProgram;
 		this.drawMode = drawMode;
 	}
 
@@ -188,9 +188,9 @@ abstract class Mesh {
 	abstract void drawSetup(Node node);
 
 	void draw(Node node) {
-		shader.use();
+		shaderProgram.use();
 		// shader.setUniform("modelMatrix", node.modelMatrix);
-		shader.setUniform(0, node.modelMatrix); // modelMatrix
+		shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
 		glBindVertexArray(vao);
 		drawSetup(node);
 
