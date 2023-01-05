@@ -26,7 +26,7 @@ class World {
 
 	this() {
 		this.name = "World#" ~ worlds.length.to!string;
-		World.worlds ~= this;
+		// World.worlds ~= this;
 		lightSet = new LightSet();
 	}
 
@@ -49,15 +49,16 @@ class World {
 
 	void addNode(Node n) {
 		assert(n.parent is null);
+		assert(n.root is n);
 		this.roots ~= n;
-		n.worlds ~= this;
-		n.propogateOrigin();
+		n.origin.worlds ~= this;
+		n.propogateOrigin(n.origin);
 	}
 
 	void removeNode(Node n) {
 		assert(n.root is n && n.worlds.canFind(this));
 		remove(roots, n);
-		remove(n.worlds, this);
-		n.propogateOrigin();
+		remove(n.origin.worlds, this);
+		n.propogateOrigin(n.origin);
 	}
 }

@@ -4,12 +4,20 @@ import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
 import std.math : PI;
 import std.conv : to;
-import std.traits: isScalarType;
+import std.traits : isScalarType;
 
 void remove(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);
 	assert(i >= 0, "Element not in list");
 	list = list.removeAt(i);
+}
+
+bool tryRemove(Type)(ref Type[] list, Type element) {
+	const long i = list.countUntil(element);
+	if (i < 0)
+		return false; // Element not in list
+	list = list.removeAt(i);
+	return true;
 }
 
 alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));
@@ -58,6 +66,19 @@ GLsizei getGLenumTypeSize(GLenum type) {
 			return double.sizeof;
 		default:
 			assert(0, "Unsupported GLenum to type: " ~ type.to!string);
+	}
+}
+
+uint getGLenumDrawModeCount(GLenum drawMode) {
+	switch (drawMode) {
+		case GL_POINTS:
+			return 1;
+		case GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP:
+			return 2;
+		case GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
+			return 3;
+		default:
+			assert(0, "DrawMode unknown: " ~ drawMode.to!string);
 	}
 }
 
@@ -120,9 +141,9 @@ R radiansToDegrees(R)(R radians) {
 // Based on std::bit_width (c++20) and https://stackoverflow.com/a/63987820.
 // Identical to floor(log2(x))+1.
 auto bitWidth(T)(T x) if (isScalarType!T) {
-	assert(x>=0);
+	assert(x >= 0);
 	T result = 0;
-	while(x > 0){
+	while (x > 0) {
 		x >>= 1;
 		result += 1;
 	}

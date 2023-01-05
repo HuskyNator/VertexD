@@ -21,14 +21,14 @@ struct MousepositionInput {
 	double x, y;
 }
 
-struct MousehweelInput {
+struct MousewheelInput {
 	double x, y;
 }
 
 alias KeyCallback = void delegate(KeyInput input) nothrow;
 alias MousebuttonCallback = void delegate(MousebuttonInput input) nothrow;
 alias MousepositionCallback = void delegate(MousepositionInput input) nothrow;
-alias MousewheelCallback = void delegate(MousehweelInput input) nothrow;
+alias MousewheelCallback = void delegate(MousewheelInput input) nothrow;
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,
@@ -41,7 +41,8 @@ class Window {
 	string name;
 	int width;
 	int height;
-	package GLFWwindow* glfw_window;
+	// package GLFWwindow* glfw_window;
+	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
 
 	// World
@@ -55,7 +56,7 @@ class Window {
 	KeyInput[] keyInput = [];
 	MousepositionInput[] mousepositionInput = [];
 	MousebuttonInput[] mousebuttonInput = [];
-	MousehweelInput[] mousewheelInput = [];
+	MousewheelInput[] mousewheelInput = [];
 
 	static void setStandardVisible(bool visible) {
 		glfwWindowHint(GLFW_VISIBLE, visible);
@@ -77,14 +78,17 @@ class Window {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
 	}
 
-	this(string name = "HoekjeD", int glfw_width = 960, int glfw_height = 540) {
+	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
 
 		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
 
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+
 		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
-		assert(glfw_window !is null, "GLFW coult not create window");
+		assert(glfw_window !is null, "GLFW coult not create a window.");
 
 		Window.windows[glfw_window] = this;
 		glfwMakeContextCurrent(glfw_window); // TODO: Should still find a solution for multithreading & using multiple windows
@@ -155,7 +159,7 @@ class Window {
 			foreach (MousepositionCallback callback; mousepositionCallbacks)
 				callback(input);
 
-		foreach (MousehweelInput input; mousewheelInput)
+		foreach (MousewheelInput input; mousewheelInput)
 			foreach (MousewheelCallback callback; mousewheelCallbacks)
 				callback(input);
 
@@ -232,7 +236,7 @@ extern (C) void window_mouseposition_callback(GLFWwindow* glfw_window, double x,
 
 extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
 	Window window = Window.windows[glfw_window];
-	MousehweelInput input = MousehweelInput(x, y);
+	MousewheelInput input = MousewheelInput(x, y);
 	window.mousewheelInput ~= input;
 }
 

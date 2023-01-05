@@ -5,7 +5,7 @@ import std.typecons : Nullable;
 import vertexd.core.mat;
 import vertexd.mesh.buffer;
 import vertexd.misc;
-import vertexd.shaders.shader;
+import vertexd.shaders.shaderprogram;
 import vertexd.shaders.texture;
 
 class Material {
@@ -27,11 +27,11 @@ class Material {
 	// padding (44-48)
 
 	// 48 - 128
-	Texture baseColor_texture; // TODO: Potentially SRGB
-	Texture metal_roughness_texture;
-	Texture normal_texture;
-	Texture occlusion_texture;
-	Texture emission_texture;
+	BindlessTexture baseColor_texture; // TODO: Potentially SRGB
+	BindlessTexture metal_roughness_texture;
+	BindlessTexture normal_texture;
+	BindlessTexture occlusion_texture;
+	BindlessTexture emission_texture;
 
 	// TODO
 	AlphaBehaviour alpha_behaviour = AlphaBehaviour.OPAQUE;
@@ -73,7 +73,7 @@ class Material {
 	}
 
 	void use() {
-		Shader.setUniformBuffer(2, buffer);
+		ShaderProgram.setUniformBuffer(2, buffer);
 
 		baseColor_texture.load();
 		metal_roughness_texture.load();
