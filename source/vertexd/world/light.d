@@ -2,7 +2,7 @@ module vertexd.world.light;
 
 import vertexd.mesh.buffer;
 import vertexd.core.mat;
-import vertexd.shaders.shader;
+import vertexd.shaders.shaderprogram;
 import vertexd.world.node;
 import vertexd.world.world;
 import std.conv : to;
@@ -19,7 +19,7 @@ class LightSet { // TODO: rework lights ubo's & seperate different light types
 
 	this() {
 		uniformBuffer = new Buffer(true);
-		Shader.setShaderStorageBuffer(1, uniformBuffer);
+		ShaderProgram.setShaderStorageBuffer(1, uniformBuffer);
 	}
 
 	void add(Light l) {

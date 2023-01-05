@@ -2,7 +2,7 @@
 #extension GL_ARB_bindless_texture:require
 #extension GL_ARB_gpu_shader_int64:require
 
-struct Texture{
+struct BindlessTexture{
 	uint64_t sampler;
 	int texCoord;
 	float factor;
@@ -35,14 +35,14 @@ layout(row_major,std140,binding=2)uniform Material{
 	float metal_factor;
 	float roughness_factor;
 	vec3 emissive_factor;// + 1 float of padding (std140)
-	Texture baseColor_texture;
-	Texture metal_roughness_texture;
-	Texture normal_texture;
-	Texture occlusion_texture;
-	Texture emissive_texture;
+	BindlessTexture baseColor_texture;
+	BindlessTexture metal_roughness_texture;
+	BindlessTexture normal_texture;
+	BindlessTexture occlusion_texture;
+	BindlessTexture emissive_texture;
 };
 
-uniform mat4 modelMatrix;
+layout(location=0)uniform mat4 modelMatrix;
 
 //TODO: Remove
 uniform vec4 u_color;

@@ -36,6 +36,8 @@ struct Quaternion(Type = prec) {
 	}
 
 	static QuatType rotation(Vec!(3, Type) axis, Type angle) {
+		if (angle == 0)
+			return QuatType(cast(Type) 1, Vec!(3, Type)(cast(Type) 0));
 		return QuatType(cos(angle / 2.0), axis * cast(Type) sin(angle / 2.0));
 	}
 
