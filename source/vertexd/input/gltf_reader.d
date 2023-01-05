@@ -22,7 +22,7 @@ final class GltfReader {
 	GltfMesh[][] meshes;
 	Material[] materials;
 
-	// TextureBase[] textureBases;
+	// Texture[] textureBases;
 
 	Light[] lights;
 	Camera[] cameras;
@@ -34,9 +34,9 @@ private:
 	Image[] images;
 	TextureHandle[] textureHandles;
 
-	alias Image = TextureBase;
-	// alias Texture = TextureHandle;
-	// alias TextureInfo = Texture;
+	alias Image = Texture;
+	// alias BindlessTexture = TextureHandle;
+	// alias TextureInfo = BindlessTexture;
 
 	ubyte[][] buffers;
 	BufferView[] gltfBufferViews;
@@ -49,7 +49,7 @@ private:
 
 	alias Accessor = Mesh.Attribute;
 
-	public this(string file, Shader shader = Shader.gltfShader()) {
+	public this(string file, ShaderProgram shader = ShaderProgram.gltfShaderProgram()) {
 		string dir = dirName(file);
 		this.json = JsonReader.readJsonFile(file);
 		enforce(json["asset"].object["version"].string_ == "2.0");
@@ -207,7 +207,7 @@ private:
 		}
 	}
 
-	void readMeshes(Shader shader) {
+	void readMeshes(ShaderProgram shader) {
 		JsonVal[] meshes_json = json["meshes"].list;
 		this.meshes.reserve(meshes_json.length);
 
@@ -224,7 +224,7 @@ private:
 		}
 	}
 
-	GltfMesh readPrimitive(Json primitive, string name, Shader shader) {
+	GltfMesh readPrimitive(Json primitive, string name, ShaderProgram shader) {
 		Json attributes_json = primitive["attributes"].object;
 		enforce("POSITION" in attributes_json, "Presence of POSITION attribute assumed");
 
@@ -428,8 +428,8 @@ private:
 
 				string name = t_json.get("name", JsonVal("")).string_;
 
-				assert("source" in t_json, "Texture has no image");
-				TextureBase base = images[t_json["source"].long_];
+				assert("source" in t_json, "BindlessTexture has no image");
+				Texture base = images[t_json["source"].long_];
 
 				Sampler sampler;
 				if (JsonVal* s = "sampler" in t_json)
@@ -448,21 +448,21 @@ private:
 				materials ~= readMaterial(m_json.object);
 	}
 
-	Texture readTexture(Json t_json) {
-		Texture t;
+	BindlessTexture readTexture(Json t_json) {
+		BindlessTexture t;
 		t.handle = textureHandles[t_json["index"].long_];
 		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
 		return t;
 	}
 
-	Texture readNormalTexture(Json t_json) {
-		Texture t = readTexture(t_json);
+	BindlessTexture readNormalTexture(Json t_json) {
+		BindlessTexture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("scale", JsonVal(1.0)).getType!double();
 		return t;
 	}
 
-	Texture readOcclusionTexture(Json t_json) {
-		Texture t = readTexture(t_json);
+	BindlessTexture readOcclusionTexture(Json t_json) {
+		BindlessTexture t = readTexture(t_json);
 		t.factor = cast(float) t_json.get("strength", JsonVal(1.0)).getType!double();
 		return t;
 	}
