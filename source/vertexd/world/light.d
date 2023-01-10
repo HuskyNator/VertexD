@@ -19,7 +19,7 @@ class LightSet { // TODO: rework lights ubo's & seperate different light types
 
 	this() {
 		shaderStorageBuffer = new Buffer(true);
-		Shader.setShaderStorageBuffer(1, shaderStorageBuffer);
+		ShaderProgram.setShaderStorageBuffer(1, shaderStorageBuffer);
 	}
 
 	void add(Light l) {
