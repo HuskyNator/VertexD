@@ -13,13 +13,13 @@ enum max_lights = 512;
 
 class LightSet { // TODO: rework lights ubo's & seperate different light types
 	private uint[Light] lights;
-	private Buffer uniformBuffer;
+	private Buffer shaderStorageBuffer;
 
 	invariant (lights.length <= max_lights);
 
 	this() {
-		uniformBuffer = new Buffer(true);
-		ShaderProgram.setShaderStorageBuffer(1, uniformBuffer);
+		shaderStorageBuffer = new Buffer(true);
+		Shader.setShaderStorageBuffer(1, shaderStorageBuffer);
 	}
 
 	void add(Light l) {
@@ -37,17 +37,17 @@ class LightSet { // TODO: rework lights ubo's & seperate different light types
 	void setBuffer(Light l) { //TODO: single uniform update after changes.
 		uint index = lights[l];
 		ubyte[] content = l.getBytes();
-		uniformBuffer.changeContent(&l.lightS, index * Light.byteSize, Light.byteSize);
+		shaderStorageBuffer.changeContent(content.ptr, index * Light.byteSize, Light.byteSize);
 	}
 
 	void removeBuffer(uint index) {
-		uniformBuffer.cutContent(index * Light.lightS.byteSize, Light.lightS.byteSize);
+		shaderStorageBuffer.cutContent(index * Light.lightS.byteSize, Light.lightS.byteSize);
 	}
 }
 
 class Light : Node.Attribute {
 	static enum Type : uint {
-		FRAGMENT = 0,
+		POINT = 0,
 		DIRECTIONAL = 1,
 		SPOTLIGHT = 2
 	}
@@ -110,7 +110,7 @@ class Light : Node.Attribute {
 	}
 
 	override void update() {
-		location = Vec!3(owner.modelMatrix.col(3)[0 .. 3]);
+		location = owner.worldLocation;
 		direction = Vec!3(owner.modelMatrix.mult(Vec!4([0, 0, -1, 0]))[0 .. 3]).normalize();
 		foreach (world; owner.worlds)
 			world.lightSet.setBuffer(this);
