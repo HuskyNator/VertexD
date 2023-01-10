@@ -15,7 +15,8 @@ version (HoekjeD_Double) {
 alias Vec(uint size = 3, Type = precision) = Mat!(size, 1, Type);
 alias Mat(uint count = 3, Type = precision) = Mat!(count, count, Type);
 
-struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 0 && column_count > 0) {
+struct Mat(uint row_count, uint column_count, Type = precision)
+		if (row_count > 0 && column_count > 0) {
 	enum uint size = row_count * column_count;
 	enum bool isVec = column_count == 1;
 	enum bool isMat = !isVec;
@@ -50,17 +51,23 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 	}
 
-	this(Type[size] n) {
-		this.vec = n;
-	}
-
-	this(Type[] n) {
+	this(Type[] n...) {
 		enforce(n.length == size);
 		this.vec = n;
 	}
 
 	this(Type[column_count][row_count] n) {
 		this.mat = n;
+	}
+
+	unittest {
+		Vec!3 a = Vec!3([1, 2, 3]);
+		Vec!3 b = Vec!3(1, 2, 3);
+		assert(a == b);
+
+		Mat!3 c = Mat!3(0, 1, 2, 3, 4, 5, 6, 7, 8);
+		Mat!3 d = Mat!3([[0, 1, 2], [3, 4, 5], [6, 7, 8]]);
+		assert(c == d);
 	}
 
 	static if (isVec)
@@ -188,7 +195,9 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 
 		unittest {
-			Mat!4 M = Mat!4([1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16]); // Determinant 512
+			Mat!4 M = Mat!4([
+				1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16
+			]); // Determinant 512
 			Mat!4 I = M.inverse().mult(M);
 			Vec!4 i = Vec!4(1);
 			assert(i.isRoughly(I.mult(i)));
@@ -349,7 +358,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 	}
 
-	auto mult(T, uint K)(const T[K][column_count] right) const if (is(Result!(Type, "*", T))) {
+	auto mult(T, uint K)(const T[K][column_count] right) const 
+			if (is(Result!(Type, "*", T))) {
 		alias T2 = Result!(Type, "*", T);
 		Mat!(row_count, K, T2) result;
 		static foreach (i; 0 .. row_count)
@@ -408,7 +418,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		assert(a.sum() == 12);
 	}
 
-	auto each(C)(C func) const 
+	auto each(C)(C func) const
+	
 			if (isCallable!C && !is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!C) result;
 		static foreach (i; 0 .. size)
@@ -416,7 +427,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		return result;
 	}
 
-	void each(C)(C func) const 
+	void each(C)(C func) const
+	
 			if (isCallable!C && is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		static foreach (i; 0 .. size)
 			func(this.vec[i]);
@@ -469,8 +481,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 
 	static if (isVec) {
 		auto opBinary(string op, T:
-			S[Size], S, uint Size)(const T right) const 
-				if (is(Result!(Type, op, S)) && !isList!(S) && Size == size) { // WARNING: why cant size be used directly?
+			S[Size], S, uint Size)(const T right) const
+		if (is(Result!(Type, op, S)) && !isList!(S) && Size == size) { // WARNING: why cant size be used directly?
 			alias R = Result!(Type, op, S);
 			Mat!(row_count, column_count, R) result;
 			static foreach (i; 0 .. size)
@@ -479,8 +491,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 	} else {
 		auto opBinary(string op, T:
-			S[column_count][row_count], S)(const T right) const 
-				if (is(Result!(Type, op, S)) && !isList!(S)) {
+			S[column_count][row_count], S)(const T right) const
+		if (is(Result!(Type, op, S)) && !isList!(S)) {
 			alias R = Result!(Type, op, S);
 			Mat!(row_count, column_count, R) result;
 			static foreach (i; 0 .. row_count)
@@ -682,7 +694,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		float delta = 1e-6;
 		Mat!3 a = Mat!(3)(1);
 		float[3][3] diff = [
-			[delta, -delta, delta], [delta, delta, -delta], [-delta, -delta, delta]
+			[delta, -delta, delta], [delta, delta, -delta],
+			[-delta, -delta, delta]
 		];
 		Mat!3 b = a + diff;
 		assert(a.isRoughly(b));
@@ -703,7 +716,9 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 		precision R = Vec!2([direction.x, direction.y]).length();
 		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
-		return Vec!3([atan(direction.z / R), 0, -signbit(direction.x) * acos(direction.y / R)]);
+		return Vec!3([
+			atan(direction.z / R), 0, -signbit(direction.x) * acos(direction.y / R)
+		]);
 	}
 
 	// TODO: add test
