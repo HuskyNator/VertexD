@@ -545,7 +545,7 @@ private:
 			case "directional":
 				return new Light(Light.Type.DIRECTIONAL, color, strength, range);
 			case "point":
-				return new Light(Light.Type.FRAGMENT, color, strength, range);
+				return new Light(Light.Type.POINT, color, strength, range);
 			case "spot":
 				Json spotj = lj["spot"].object;
 				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
