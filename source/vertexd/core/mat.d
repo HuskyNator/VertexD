@@ -52,7 +52,6 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 	}
 
 	this(Type[] n...) {
-		enforce(n.length == size);
 		this.vec = n;
 	}
 

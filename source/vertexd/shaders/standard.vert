@@ -44,12 +44,12 @@ layout(row_major,std140,binding=2)uniform Material{
 
 layout(location=0)uniform mat4 modelMatrix;
 
-layout(location = 0) in vec3 vert_POSITION_model;
-layout(location = 1) in vec3 vert_NORMAL_model;
-layout(location = 2) in vec4 vert_TANGENT_model;
-layout(location = 3) in vec2 vert_TEXCOORD_0;
-layout(location = 4) in vec2 vert_TEXCOORD_1;
-layout(location = 5) in vec4 vert_COLOR_0;
+layout(location=0)in vec3 vert_POSITION_model;
+layout(location=1)in vec3 vert_NORMAL_model;
+layout(location=2)in vec4 vert_TANGENT_model;
+layout(location=3)in vec2 vert_TEXCOORD_0;
+layout(location=4)in vec2 vert_TEXCOORD_1;
+layout(location=5)in vec4 vert_COLOR_0;
 
 out vec4 gl_Position;
 out vec3 frag_POSITION_world;
@@ -71,7 +71,7 @@ void main(){
 	frag_NORMAL_world=normalize(temp.xyz);
 	temp=modelMatrix*vec4(vert_TANGENT_model.xyz,0);
 	frag_TANGENT_world=vec4(normalize(temp.xyz),vert_TANGENT_model.w);
-	frag_TEXCOORD_0 = vert_TEXCOORD_0;
-	frag_TEXCOORD_1 = vert_TEXCOORD_1;
+	frag_TEXCOORD_0=vert_TEXCOORD_0;
+	frag_TEXCOORD_1=vert_TEXCOORD_1;
 	frag_COLOR_0=vert_COLOR_0;
 }

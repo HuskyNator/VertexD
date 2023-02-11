@@ -189,8 +189,8 @@ abstract class Mesh {
 
 	void draw(Node node) {
 		shaderProgram.use();
-		// shader.setUniform("modelMatrix", node.modelMatrix);
-		shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
+		shaderProgram.setUniform("modelMatrix", node.modelMatrix);
+		// shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
 		glBindVertexArray(vao);
 		drawSetup(node);
 

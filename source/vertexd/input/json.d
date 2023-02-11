@@ -407,8 +407,8 @@ unittest {
 	assert(perspectiveObj["yfov"].type == JsonType.DOUBLE);
 	assert(perspectiveObj["yfov"].double_ == 0.39959652046304894);
 	assert("zfar" in perspectiveObj);
-	assert(perspectiveObj["zfar"].type == JsonType.DOUBLE);
-	assert(perspectiveObj["zfar"].double_ == 100);
+	assert(perspectiveObj["zfar"].type == JsonType.LONG);
+	assert(perspectiveObj["zfar"].long_ == 100);
 	assert("znear" in perspectiveObj);
 	assert(perspectiveObj["znear"].type == JsonType.DOUBLE);
 	assert(perspectiveObj["znear"].double_ == 0.10000000149011612);

@@ -11,6 +11,7 @@ import vertexd.shaders;
 class Shader {
 	Type type;
 	uint id;
+	string source;
 
 	enum Type {
 		COMPUTE = GL_COMPUTE_SHADER,
@@ -71,7 +72,13 @@ class Shader {
 	}
 
 	this(string source, Type type) {
+		this.source = source;
 		this.type = type;
+	}
+
+	void initialize() {
+		if (this.id != 0)
+			return;
 		this.id = glCreateShader(type);
 		writeln("SubShader(" ~ type.to!string ~ ") created: " ~ id.to!string);
 

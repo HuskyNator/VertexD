@@ -19,8 +19,9 @@ class Node {
 	static abstract class Attribute { //TODO: add originUpdate? see propogateOrigin todo
 		Node owner;
 		void addUpdate();
-		void update();
 		void removeUpdate();
+		void update();
+		void originUpdate(Origin newOrigin);
 	}
 
 	static ulong nodeCount = 0;
@@ -33,7 +34,7 @@ class Node {
 
 	struct Origin {
 		Node root;
-		World[] worlds; // Plural!
+		World world;
 	}
 
 	Origin origin;
@@ -46,10 +47,15 @@ class Node {
 
 	private bool modified = true;
 
+	this(Mesh[] meshes){
+		this();
+		this.meshes = meshes;
+	}
+
 	this() {
 		this.name = "Node#" ~ nodeCount.to!string;
 		nodeCount += 1;
-		this.origin = Origin(this, []);
+		this.origin = Origin(this, null);
 	}
 
 	public @property {
@@ -134,7 +140,7 @@ class Node {
 	public void addChild(Node child)
 	in (child !is null)
 	in (child.parent is null)
-	in (child.worlds.length == 0) {
+	in (child.world is null) {
 		child.parent = this;
 		child.propogateOrigin(this.origin);
 		this.children ~= child;
@@ -144,14 +150,18 @@ class Node {
 	in (child !is null)
 	in (child.parent is this)
 	in (child.root == root)
-	in (child.worlds == worlds) {
+	in (child.world == world) {
 		remove(children, child);
-		child.propogateOrigin(Origin(child, []));
+		child.propogateOrigin(Origin(child, null));
 		child.parent = null;
 	}
 
 	void propogateOrigin(Origin newOrigin) { //TODO: provide old & new see attribute todo
+		foreach (Node.Attribute attribute; attributes)
+			attribute.originUpdate(newOrigin); // Perform before overwriting old origin
+
 		this.origin = newOrigin;
+
 		foreach (child; children)
 			child.propogateOrigin(newOrigin);
 	}

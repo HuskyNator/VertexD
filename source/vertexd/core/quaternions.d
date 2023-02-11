@@ -35,6 +35,12 @@ struct Quaternion(Type = prec) {
 		return QuatType(r, -v);
 	}
 
+	// Inverse
+	auto opUnary(string op)() const if (op == "-") {
+		Type factor = Type(1.0) / (r * r + v.dot(v));
+		return QuatType(factor * r, -factor * v);
+	}
+
 	static QuatType rotation(Vec!(3, Type) axis, Type angle) {
 		if (angle == 0)
 			return QuatType(cast(Type) 1, Vec!(3, Type)(cast(Type) 0));

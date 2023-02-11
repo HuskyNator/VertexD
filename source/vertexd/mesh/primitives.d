@@ -10,10 +10,9 @@ alias Triangles = Primitive!GL_TRIANGLES;
 class Primitive(GLenum type) : Mesh {
 	Vec!4 singleColor;
 	float size;
-	bool antiAliasing, wireframe;
 
 	public this(float[3][] positions, float[4][] colors = [[0, 1, 0, 1]], string name = "",
-		ShaderProgram shader = ShaderProgram.flatColorShaderProgram(), float size = 1, bool antiAliasing = false, bool wireframe = false) {
+		ShaderProgram shader = ShaderProgram.flatColorShaderProgram(), float size = 1) {
 		static if (type == GL_TRIANGLES)
 			assert(positions.length % 3 == 0);
 		else static if (type == GL_LINES)
@@ -23,8 +22,6 @@ class Primitive(GLenum type) : Mesh {
 			this.name = type.stringof ~ "#" ~ vao.to!string;
 
 		this.size = size;
-		this.antiAliasing = antiAliasing;
-		this.wireframe = wireframe;
 
 		setAttribute(Mesh.Attribute(positions), 0);
 
