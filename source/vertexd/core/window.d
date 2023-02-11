@@ -25,10 +25,13 @@ struct MousewheelInput {
 	double x, y;
 }
 
+alias MouseEnterInput = int;
+
 alias KeyCallback = void delegate(KeyInput input) nothrow;
 alias MousebuttonCallback = void delegate(MousebuttonInput input) nothrow;
 alias MousepositionCallback = void delegate(MousepositionInput input) nothrow;
 alias MousewheelCallback = void delegate(MousewheelInput input) nothrow;
+alias MouseEnterCallback = void delegate(MouseEnterInput entered) nothrow;
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,
@@ -39,8 +42,13 @@ enum MouseType {
 class Window {
 	// Window Properties
 	string name;
-	int width;
-	int height;
+	union {
+		Vec!(2, int) bounds;
+		struct {
+			int width;
+			int height;
+		}
+	}
 	// package GLFWwindow* glfw_window;
 	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
@@ -53,10 +61,12 @@ class Window {
 	MousebuttonCallback[] mousebuttonCallbacks = [];
 	MousepositionCallback[] mousepositionCallbacks = [];
 	MousewheelCallback[] mousewheelCallbacks = [];
+	MouseEnterCallback[] mouseEnterCallbacks = [];
 	KeyInput[] keyInput = [];
 	MousepositionInput[] mousepositionInput = [];
 	MousebuttonInput[] mousebuttonInput = [];
 	MousewheelInput[] mousewheelInput = [];
+	MouseEnterInput[] mouseEnterInput = [];
 
 	static void setStandardVisible(bool visible) {
 		glfwWindowHint(GLFW_VISIBLE, visible);
@@ -98,6 +108,7 @@ class Window {
 		glfwSetMouseButtonCallback(glfw_window, &window_mousebutton_callback);
 		glfwSetCursorPosCallback(glfw_window, &window_mouseposition_callback);
 		glfwSetScrollCallback(glfw_window, &windows_mousewheel_callback);
+		glfwSetCursorEnterCallback(glfw_window, &windows_mouse_enter_callback);
 		// glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
 		glfwSetFramebufferSizeCallback(glfw_window, &windows_size_callback);
 
@@ -163,6 +174,14 @@ class Window {
 			foreach (MousewheelCallback callback; mousewheelCallbacks)
 				callback(input);
 
+		foreach (MouseEnterInput input; mouseEnterInput)
+			foreach (MouseEnterCallback callback; mouseEnterCallbacks) {
+				import std.stdio;
+
+				writeln("input" ~ input.to!string);
+				callback(input);
+			}
+
 		//WARNING: assumed independence of mouse & keyboard over small time intervals
 	}
 
@@ -180,6 +199,7 @@ class Window {
 		mousebuttonInput = [];
 		mousepositionInput = [];
 		mousewheelInput = [];
+		mouseEnterInput = [];
 	}
 
 	unittest {
@@ -238,6 +258,11 @@ extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, d
 	Window window = Window.windows[glfw_window];
 	MousewheelInput input = MousewheelInput(x, y);
 	window.mousewheelInput ~= input;
+}
+
+extern (C) void windows_mouse_enter_callback(GLFWwindow* glfw_window, int entered) nothrow {
+	Window window = Window.windows[glfw_window];
+	window.mouseEnterInput ~= entered;
 }
 
 debug {

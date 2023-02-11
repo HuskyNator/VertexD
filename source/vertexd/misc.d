@@ -4,7 +4,7 @@ import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
 import std.math : PI;
 import std.conv : to;
-import std.traits : isScalarType;
+import std.traits : isScalarType, isFloatingPoint;
 
 void remove(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);
@@ -128,12 +128,12 @@ ubyte[] padding(size_t size) {
 	return (b).replicate(size);
 }
 
-D degreesToRadians(D)(D degrees) {
+D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
 	static real factor = PI / 180;
 	return cast(D)(degrees * factor);
 }
 
-R radiansToDegrees(R)(R radians) {
+R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
 	static real factor = 180 / PI;
 	return cast(R)(radians * factor);
 }
