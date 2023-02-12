@@ -17,13 +17,9 @@ struct MousebuttonInput {
 	int button, event, modifier;
 }
 
-struct MousepositionInput {
-	double x, y;
-}
+alias MousepositionInput = Vec!(2, double);
 
-struct MousewheelInput {
-	double x, y;
-}
+alias MousewheelInput = Vec!(2, double);
 
 alias MouseEnterInput = int;
 
@@ -90,6 +86,8 @@ class Window {
 
 	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
+		this.width = glfw_width;
+		this.height = glfw_height;
 
 		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
 
@@ -115,7 +113,8 @@ class Window {
 		glfwSetCursorPos(glfw_window, 0, 0);
 
 		GLSupport opengl_version = loadOpenGL();
-		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version.to!string);
+		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version
+				.to!string);
 		enforce(hasARBBindlessTexture, "No support for bindless textures");
 
 		debug {
@@ -246,6 +245,8 @@ extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button,
 	Window window = Window.windows[glfw_window];
 	MousebuttonInput input = MousebuttonInput(button, event, modifier);
 	window.mousebuttonInput ~= input;
+	import vertexd.misc: tryWriteln;
+	tryWriteln(input);
 }
 
 extern (C) void window_mouseposition_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
@@ -276,77 +277,77 @@ debug {
 			writeln("Opengl Exception #" ~ errorID.to!string);
 			write("\tSource: ");
 			switch (source) {
-				case GL_DEBUG_SOURCE_API:
-					writeln("OpenGL API");
-					break;
-				case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-					writeln("Window System API");
-					break;
-				case GL_DEBUG_SOURCE_SHADER_COMPILER:
-					writeln("Shader Compiler");
-					break;
-				case GL_DEBUG_SOURCE_THIRD_PARTY:
-					writeln("Third Party");
-					break;
-				case GL_DEBUG_SOURCE_APPLICATION:
-					writeln("Source Application");
-					break;
-				case GL_DEBUG_SOURCE_OTHER:
-					writeln("Miscellaneous");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_SOURCE_API:
+				writeln("OpenGL API");
+				break;
+			case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+				writeln("Window System API");
+				break;
+			case GL_DEBUG_SOURCE_SHADER_COMPILER:
+				writeln("Shader Compiler");
+				break;
+			case GL_DEBUG_SOURCE_THIRD_PARTY:
+				writeln("Third Party");
+				break;
+			case GL_DEBUG_SOURCE_APPLICATION:
+				writeln("Source Application");
+				break;
+			case GL_DEBUG_SOURCE_OTHER:
+				writeln("Miscellaneous");
+				break;
+			default:
+				assert(false);
 			}
 
 			write("\tType: ");
 			switch (type) {
-				case GL_DEBUG_TYPE_ERROR:
-					writeln("Error ╮(. ❛ ᴗ ❛.)╭");
-					break;
-				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-					writeln("Deprecated usage");
-					break;
-				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-					writeln("Undefined behaviour");
-					break;
-				case GL_DEBUG_TYPE_PORTABILITY:
-					writeln("System portability");
-					break;
-				case GL_DEBUG_TYPE_PERFORMANCE:
-					writeln("Performance Issues");
-					break;
-				case GL_DEBUG_TYPE_MARKER:
-					writeln("\"Command stream annotation\"");
-					break;
-				case GL_DEBUG_TYPE_PUSH_GROUP:
-					writeln("\"Group pushing\"");
-					break;
-				case GL_DEBUG_TYPE_POP_GROUP:
-					writeln("\"Group popping\"");
-					break;
-				case GL_DEBUG_TYPE_OTHER:
-					writeln("Miscellaneous");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_TYPE_ERROR:
+				writeln("Error ╮(. ❛ ᴗ ❛.)╭");
+				break;
+			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+				writeln("Deprecated usage");
+				break;
+			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+				writeln("Undefined behaviour");
+				break;
+			case GL_DEBUG_TYPE_PORTABILITY:
+				writeln("System portability");
+				break;
+			case GL_DEBUG_TYPE_PERFORMANCE:
+				writeln("Performance Issues");
+				break;
+			case GL_DEBUG_TYPE_MARKER:
+				writeln("\"Command stream annotation\"");
+				break;
+			case GL_DEBUG_TYPE_PUSH_GROUP:
+				writeln("\"Group pushing\"");
+				break;
+			case GL_DEBUG_TYPE_POP_GROUP:
+				writeln("\"Group popping\"");
+				break;
+			case GL_DEBUG_TYPE_OTHER:
+				writeln("Miscellaneous");
+				break;
+			default:
+				assert(false);
 			}
 
 			write("\tSeverity: ");
 			switch (severity) {
-				case GL_DEBUG_SEVERITY_HIGH:
-					writeln("High");
-					break;
-				case GL_DEBUG_SEVERITY_MEDIUM:
-					writeln("Medium");
-					break;
-				case GL_DEBUG_SEVERITY_LOW:
-					writeln("Low");
-					break;
-				case GL_DEBUG_SEVERITY_NOTIFICATION:
-					writeln("Notification (Miscellaneous)");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_SEVERITY_HIGH:
+				writeln("High");
+				break;
+			case GL_DEBUG_SEVERITY_MEDIUM:
+				writeln("Medium");
+				break;
+			case GL_DEBUG_SEVERITY_LOW:
+				writeln("Low");
+				break;
+			case GL_DEBUG_SEVERITY_NOTIFICATION:
+				writeln("Notification (Miscellaneous)");
+				break;
+			default:
+				assert(false);
 			}
 
 			writeln("\tMessage: " ~ message.to!string);
