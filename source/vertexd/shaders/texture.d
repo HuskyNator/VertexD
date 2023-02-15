@@ -3,7 +3,7 @@ import bindbc.opengl;
 import std.conv : to;
 import std.exception : enforce;
 import std.stdio;
-import vertexd.core.mat;
+import vertexd.core;
 import vertexd.misc : bitWidth;
 import vertexd.shaders;
 
@@ -51,8 +51,8 @@ class TextureHandle {
 
 	@disable this();
 
-	this(string name, Texture base, Sampler sampler) {
-		this.name = name;
+	this(Texture base, Sampler sampler, string name = null) {
+		this.name = (name is null) ? vdName!TextureHandle : name;
 		this.base = base;
 		this.sampler = sampler;
 	}
@@ -110,22 +110,22 @@ class Texture {
 	GLsizei levels;
 	bool srgb;
 
-	this(IFImage img, string name = "") {
+	this(IFImage img, string name = null) {
 		this(name);
 		this.img = img;
 	}
 
-	this(string name) {
-		this.name = name;
+	this(string name = null) {
+		this.name = (name is null) ? vdName!Texture : name;
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
 		writeln("Texture created: " ~ id.to!string);
 	}
 
-	this(string file, string name = "") {
+	this(string file, string name = null) {
 		this(read_image(file, ColFmt.RGBA), name);
 	}
 
-	this(ubyte[] content, string name = "") {
+	this(ubyte[] content, string name = null) {
 		this(read_image_from_mem(content, ColFmt.RGBA), name);
 	}
 

@@ -11,15 +11,13 @@ class Primitive(GLenum type) : Mesh {
 	Vec!4 singleColor;
 	float size;
 
-	public this(float[3][] positions, float[4][] colors = [[0, 1, 0, 1]], string name = "",
+	public this(float[3][] positions, float[4][] colors = [[0, 1, 0, 1]], string name = null,
 		ShaderProgram shader = ShaderProgram.flatColorShaderProgram(), float size = 1) {
 		static if (type == GL_TRIANGLES)
 			assert(positions.length % 3 == 0);
 		else static if (type == GL_LINES)
 			assert(positions.length % 2 == 0);
 		super(shader, name, type);
-		if (name.length == 0)
-			this.name = type.stringof ~ "#" ~ vao.to!string;
 
 		this.size = size;
 
