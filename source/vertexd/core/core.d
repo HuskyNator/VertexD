@@ -81,10 +81,9 @@ public void vdStep() {
 
 	foreach (Window window; Window.windows.values) {
 		GLFWwindow* glfw_window = window.glfw_window;
-		if (glfwWindowShouldClose(window.glfw_window)) {
-			glfwDestroyWindow(glfw_window);
+		if (glfwWindowShouldClose(window.glfw_window))
 			Window.windows.remove(glfw_window);
-		} else
+		else
 			window.draw();
 	}
 
@@ -98,4 +97,5 @@ public void vdLoop() {
 	_vdTime.reset();
 	while (Window.windows.length > 0)
 		vdStep();
+	writeln("\nLast window removed. Halting loop.\n");
 }

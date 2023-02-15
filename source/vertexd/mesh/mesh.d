@@ -178,10 +178,9 @@ abstract class Mesh {
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteVertexArrays(1, &vao);
-		printf("Mesh removed: %u\n", vao);
+		write("Mesh removed: ");
+		writeln(vao);
 	}
 
 	abstract void drawSetup(Node node);

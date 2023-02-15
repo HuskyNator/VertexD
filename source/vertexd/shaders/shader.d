@@ -4,7 +4,7 @@ import std.conv : to;
 import std.file : readText;
 import std.path;
 import std.regex;
-import std.stdio : writeln;
+import std.stdio : write, writeln;
 import vertexd.core.mat : precision;
 import vertexd.shaders;
 
@@ -57,12 +57,12 @@ class Shader {
 		string infoLog = getInfoLog();
 
 		if (completed == 0)
-			throw new ShaderException("Could not build SubShader " ~ id.to!string ~ ":\n__" ~ infoLog);
+			throw new ShaderException("Could not compile SubShader " ~ id.to!string ~ ":\n__" ~ infoLog);
 
 		if (infoLog.length > 0)
-			writeln("Completed, infolog: " ~ infoLog);
+			writeln("SubShader compilation completed, infolog: " ~ infoLog);
 		else
-			writeln("Completed, infolog empty");
+			writeln("SubShader compilation completed, infolog empty");
 	}
 
 	this(string file) {
@@ -90,10 +90,9 @@ class Shader {
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteShader(id);
-		printf("SubShader removed: %u\n", id);
+		write("SubShader removed: ");
+		writeln(id);
 	}
 
 	override string toString() const {
