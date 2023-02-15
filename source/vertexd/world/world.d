@@ -51,14 +51,12 @@ class World {
 		assert(n.parent is null);
 		assert(n.root is n);
 		this.roots ~= n;
-		n.origin.worlds ~= this;
-		n.propogateOrigin(n.origin);
+		n.propogateOrigin(Node.Origin(n, this));
 	}
 
 	void removeNode(Node n) {
-		assert(n.root is n && n.worlds.canFind(this));
+		assert(n.root is n && n.world is this);
 		remove(roots, n);
-		remove(n.origin.worlds, this);
-		n.propogateOrigin(n.origin);
+		n.propogateOrigin(Node.Origin(n, null));
 	}
 }
