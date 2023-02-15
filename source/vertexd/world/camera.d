@@ -25,15 +25,21 @@ class Camera : Node.Attribute {
 	}
 
 	override void addUpdate() {
-		foreach (world; owner.worlds) {
-			world.cameras ~= this;
-		}
+		if (owner.world !is null)
+			owner.world.cameras ~= this;
 	}
 
 	override void removeUpdate() {
-		foreach (world; owner.worlds) {
-			remove(world.cameras, this);
-		}
+		if (owner.world !is null)
+			owner.world.cameras.remove(this);
+	}
+
+	override void originUpdate(Node.Origin newOrigin) { // WARNING: assuming no transplanting worlds (only remove or add)
+		bool removed = newOrigin.world is null;
+		if (removed)
+			remove(owner.world.cameras, this);
+		else
+			newOrigin.world.cameras ~= this;
 	}
 
 	override void update() {
@@ -46,7 +52,7 @@ class Camera : Node.Attribute {
 	}
 
 	static Mat!4 perspectiveProjection(precision aspectRatio = (1920.0 / 1080.0),
-		precision horizontalFov = degreesToRadians(121), // vertical fov 90°
+		precision horizontalFov = degreesToRadians(121.0), // vertical fov 90°
 		precision nearplane = 0.1, precision backplane = 100) {
 		precision a = 1.0 / tan(horizontalFov / 2.0);
 		alias V = nearplane;

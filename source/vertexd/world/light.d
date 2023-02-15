@@ -100,19 +100,24 @@ class Light : Node.Attribute {
 	}
 
 	override void addUpdate() {
-		foreach (world; owner.worlds)
-			world.lightSet.add(this);
+		owner.world.lightSet.add(this);
 	}
 
 	override void removeUpdate() {
-		foreach (world; owner.worlds)
-			world.lightSet.remove(this);
+		owner.world.lightSet.remove(this);
+	}
+
+	override void originUpdate(Node.Origin newOrigin) {
+		bool removed = newOrigin.world is null;
+		if (removed)
+			owner.world.lightSet.remove(this);
+		else
+			newOrigin.world.lightSet.add(this);
 	}
 
 	override void update() {
 		location = owner.worldLocation;
 		direction = Vec!3(owner.modelMatrix.mult(Vec!4([0, 0, -1, 0]))[0 .. 3]).normalize();
-		foreach (world; owner.worlds)
-			world.lightSet.setBuffer(this);
+		owner.world.lightSet.setBuffer(this);
 	}
 }
