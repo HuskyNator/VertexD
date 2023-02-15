@@ -4,7 +4,16 @@ import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
 import std.math : PI;
 import std.conv : to;
-import std.traits : isScalarType;
+import std.traits : isScalarType, isFloatingPoint;
+
+void tryWriteln(T)(T output) nothrow {
+	import std.stdio : writeln;
+
+	try {
+		writeln(output);
+	} catch (Exception e) {
+	}
+}
 
 void remove(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);
@@ -46,39 +55,39 @@ bool isList(T, uint n = 1)() if (n > 0) {
 // OpenGL type enum to size
 GLsizei getGLenumTypeSize(GLenum type) {
 	switch (type) {
-		case GL_BOOL:
-			return ubyte.sizeof;
-		case GL_BYTE:
-			return byte.sizeof;
-		case GL_SHORT:
-			return short.sizeof;
-		case GL_INT:
-			return int.sizeof;
-		case GL_UNSIGNED_BYTE:
-			return ubyte.sizeof;
-		case GL_UNSIGNED_SHORT:
-			return ushort.sizeof;
-		case GL_UNSIGNED_INT:
-			return uint.sizeof;
-		case GL_FLOAT:
-			return float.sizeof;
-		case GL_DOUBLE:
-			return double.sizeof;
-		default:
-			assert(0, "Unsupported GLenum to type: " ~ type.to!string);
+	case GL_BOOL:
+		return ubyte.sizeof;
+	case GL_BYTE:
+		return byte.sizeof;
+	case GL_SHORT:
+		return short.sizeof;
+	case GL_INT:
+		return int.sizeof;
+	case GL_UNSIGNED_BYTE:
+		return ubyte.sizeof;
+	case GL_UNSIGNED_SHORT:
+		return ushort.sizeof;
+	case GL_UNSIGNED_INT:
+		return uint.sizeof;
+	case GL_FLOAT:
+		return float.sizeof;
+	case GL_DOUBLE:
+		return double.sizeof;
+	default:
+		assert(0, "Unsupported GLenum to type: " ~ type.to!string);
 	}
 }
 
 uint getGLenumDrawModeCount(GLenum drawMode) {
 	switch (drawMode) {
-		case GL_POINTS:
-			return 1;
-		case GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP:
-			return 2;
-		case GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
-			return 3;
-		default:
-			assert(0, "DrawMode unknown: " ~ drawMode.to!string);
+	case GL_POINTS:
+		return 1;
+	case GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP:
+		return 2;
+	case GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
+		return 3;
+	default:
+		assert(0, "DrawMode unknown: " ~ drawMode.to!string);
 	}
 }
 
@@ -128,12 +137,12 @@ ubyte[] padding(size_t size) {
 	return (b).replicate(size);
 }
 
-D degreesToRadians(D)(D degrees) {
+D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
 	static real factor = PI / 180;
 	return cast(D)(degrees * factor);
 }
 
-R radiansToDegrees(R)(R radians) {
+R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
 	static real factor = 180 / PI;
 	return cast(R)(radians * factor);
 }
