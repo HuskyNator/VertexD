@@ -82,7 +82,7 @@ public void vdStep() {
 	foreach (Window window; Window.windows.values) {
 		GLFWwindow* glfw_window = window.glfw_window;
 		if (glfwWindowShouldClose(window.glfw_window))
-			Window.windows.remove(glfw_window);
+			window.close();
 		else
 			window.draw();
 	}

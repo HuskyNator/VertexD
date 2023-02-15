@@ -137,6 +137,23 @@ class Window {
 		writeln(name);
 	}
 
+	/// Sets flag the window should be closed & removes the window from the rendering loop
+	// Note actual closure happens upon the deconstructor being called
+	/// See_Also:
+	/// reinstate
+	void close() nothrow {
+		glfwSetWindowShouldClose(glfw_window, true);
+		Window.windows.remove(glfw_window);
+	}
+
+	/// Unsets the closure flag & adds the window back to the rendering loop
+	/// See_Also:
+	/// close
+	void reinstate() {
+		glfwSetWindowShouldClose(glfw_window, false);
+		Window.windows[glfw_window] = this;
+	}
+
 	void draw() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
 		world.draw();
@@ -238,12 +255,12 @@ extern (C) void window_key_callback(GLFWwindow* glfw_window, int key, int key_co
 			_console_visible = !_console_visible;
 		}
 	}
-	if (key == GLFW_KEY_ESCAPE)
-		glfwSetWindowShouldClose(glfw_window, true);
-
 	Window window = Window.windows[glfw_window];
 	KeyInput input = KeyInput(key, key_code, event, modifier);
 	window.keyInput ~= input;
+
+	if (key == GLFW_KEY_ESCAPE)
+		window.close();
 }
 
 extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
