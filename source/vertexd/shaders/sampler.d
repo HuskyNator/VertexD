@@ -3,6 +3,7 @@ import bindbc.opengl;
 import std.conv;
 import std.stdio;
 import std.typecons : Nullable;
+import vertexd.core.core;
 
 class Sampler {
 	string name;
@@ -15,15 +16,15 @@ class Sampler {
 
 	@disable this();
 
-	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST,
-		uint magFilter = GL_NEAREST, bool anisotropic = true) {
+	this(uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST,
+		uint magFilter = GL_NEAREST, bool anisotropic = true, string name = null) {
 		assert(minFilter == GL_NEAREST || minFilter == GL_LINEAR
 				|| minFilter == GL_NEAREST_MIPMAP_NEAREST || minFilter == GL_LINEAR_MIPMAP_NEAREST
 				|| minFilter == GL_NEAREST_MIPMAP_LINEAR
 				|| minFilter == GL_LINEAR_MIPMAP_LINEAR, "Invalid minFilter:" ~ minFilter.to!string);
 		assert(magFilter == GL_NEAREST || magFilter == GL_LINEAR, "Invalid magFilter:" ~ magFilter.to!string);
 
-		this.name = name;
+		this.name = (name is null) ? vdName!Sampler : name;
 		this.wrapS = wrapS;
 		this.wrapT = wrapT;
 		this.minFilter = minFilter;

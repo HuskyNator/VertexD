@@ -38,16 +38,28 @@ void vdInit() {
 	_vdTime = StopWatch(AutoStart.yes); // Restores to 0 once vdLoop is called
 }
 
+ulong[ClassInfo] _vdClassCounts;
+
+string vdName(C)() if (is(C == class)) {
+	return vdName(C.classinfo);
+}
+
+string vdName(ClassInfo cinfo) {
+	ulong newCount = 1uL;
+	if (cinfo in _vdClassCounts)
+		newCount = _vdClassCounts[cinfo] + 1; // wraps around to 0
+	_vdClassCounts[cinfo] = newCount;
+	return cinfo.name ~ '#' ~ newCount.to!string;
+}
+
 private ulong _vdStepCount = 0;
 private StopWatch _vdTime;
 
-@property
-public ulong vdStepcount() {
+@property public ulong vdStepcount() {
 	return _vdStepCount;
 }
 
-@property
-public Duration vdTime() {
+@property public Duration vdTime() {
 	return _vdTime.peek();
 }
 

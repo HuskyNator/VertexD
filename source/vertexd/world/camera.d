@@ -12,10 +12,12 @@ class Camera : Node.Attribute {
 
 	static Buffer uniformBuffer;
 
+	string name;
 	CameraS cameraS;
 	alias cameraS this;
 
-	this(Mat!4 projectionMatrix) {
+	this(Mat!4 projectionMatrix, string name = null) {
+		this.name = (name is null) ? vdName!Camera : name;
 		this.projectionMatrix = projectionMatrix;
 
 		if (uniformBuffer is null) {

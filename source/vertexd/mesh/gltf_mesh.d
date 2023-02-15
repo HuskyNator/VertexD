@@ -18,10 +18,8 @@ class GltfMesh : Mesh {
 	AttributeSet attributeSet;
 
 	public this(Material material, AttributeSet attributeSet, IndexAttribute indexAttribute,
-		string name = "", ShaderProgram shader = ShaderProgram.gltfShaderProgram(), GLenum drawMode = GL_TRIANGLES) {
+		string name = null, ShaderProgram shader = ShaderProgram.gltfShaderProgram(), GLenum drawMode = GL_TRIANGLES) {
 		super(shader, name, drawMode);
-		if (name.length == 0)
-			this.name = "GltfMesh#" ~ vao.to!string;
 		this.material = material;
 		this.attributeSet = attributeSet;
 		setIndex(indexAttribute);
