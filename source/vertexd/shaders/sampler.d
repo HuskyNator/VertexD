@@ -46,10 +46,9 @@ class Sampler {
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteSamplers(1, &id);
-		printf("Sampler removed: %u\n", id);
+		write("Sampler removed: ");
+		writeln(id);
 	}
 
 	void use(uint location) {

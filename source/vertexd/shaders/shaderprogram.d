@@ -85,14 +85,14 @@ class ShaderProgram {
 		if (completed == 0)
 			throw new ShaderException("Could not compose ShaderProgram " ~ id.to!string ~ ":\n_" ~ getInfoLog());
 
-		writeln("ShaderProgram created:" ~ toString());
+		writeln("ShaderProgram created: " ~ toString());
 		return this;
 	}
 
 	~this() {
 		glDeleteProgram(id);
 		write("Shader removed: ");
-		writeln(toString());
+		writeln(id);
 	}
 
 	static void setUniformBuffer(int binding, Buffer buffer) {

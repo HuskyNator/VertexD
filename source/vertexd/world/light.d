@@ -1,13 +1,13 @@
 module vertexd.world.light;
 
+import std.conv : to;
+import std.exception : enforce;
+import vertexd.core;
 import vertexd.mesh.buffer;
-import vertexd.core.mat;
+import vertexd.misc;
 import vertexd.shaders.shaderprogram;
 import vertexd.world.node;
 import vertexd.world.world;
-import std.conv : to;
-import std.exception : enforce;
-import vertexd.misc;
 
 enum max_lights = 512;
 
