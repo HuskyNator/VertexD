@@ -130,6 +130,8 @@ class Window {
 	}
 
 	~this() {
+		Window.windows.remove(glfw_window); // ensures removal regardless of vdStep behaviour
+
 		glfwDestroyWindow(glfw_window);
 		write("\nWindow removed: ");
 		writeln(name);
