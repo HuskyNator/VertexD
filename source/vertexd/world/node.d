@@ -21,6 +21,7 @@ class Node {
 		void addUpdate();
 		void removeUpdate();
 		void update();
+		void logicUpdate();
 		void originUpdate(Origin newOrigin);
 	}
 
