@@ -207,7 +207,7 @@ private:
 			precision width = setting["xmag"].getType!double();
 			precision height = setting["ymag"].getType!double();
 			precision nearplane = setting["znear"].getType!double();
-			precision farplane = settings["zfar"].getType!double();
+			precision farplane = setting["zfar"].getType!double();
 
 			Mat!4 projectionMatrix = Camera.orthographicProjection(width, height, nearplane, farplane);
 			return new Camera(projectionMatrix, name);
@@ -340,8 +340,8 @@ private:
 		if (JsonVal* j = "magFilter" in s_json)
 			magFilter = gltfToGlFilter(j.long_, false);
 
-		uint wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
-		uint wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
+		uint wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10_497)).long_);
+		uint wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10_497)).long_);
 		string name = s_json.get("name", JsonVal.NULL).string_;
 
 		return new Sampler(wrapS, wrapT, minFilter, magFilter, true, name); //TODO: anisotroic true/false?
@@ -349,11 +349,11 @@ private:
 
 	uint gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
-			case 33071:
+			case 33_071:
 				return GL_CLAMP_TO_EDGE;
-			case 33648:
+			case 33_648:
 				return GL_MIRRORED_REPEAT;
-			case 10497:
+			case 10_497:
 				return GL_REPEAT;
 			default:
 				assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
