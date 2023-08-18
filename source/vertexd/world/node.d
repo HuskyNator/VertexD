@@ -23,6 +23,7 @@ class Node {
 		void removeUpdate();
 		void update();
 		void originUpdate(Origin newOrigin);
+		// TODO improve
 	}
 
 	static ulong nodeCount = 0;

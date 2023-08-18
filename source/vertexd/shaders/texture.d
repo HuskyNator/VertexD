@@ -111,18 +111,15 @@ class Texture {
 	bool srgb;
 
 	this(IFImage img, string name = null) {
-		this(name);
-		this.img = img;
-	}
-
-	this(string name = null) {
 		this.name = (name is null) ? vdName!Texture : name;
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
 		writeln("Texture created: " ~ id.to!string);
+		this.img = img;
 	}
 
 	this(string file, string name = null) {
-		this(read_image(file, ColFmt.RGBA), name);
+		IFImage i = read_image(file, ColFmt.RGBA);
+		this(i, name);
 	}
 
 	this(ubyte[] content, string name = null) {
