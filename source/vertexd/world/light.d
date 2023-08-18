@@ -1,13 +1,13 @@
 module vertexd.world.light;
 
+import std.conv : to;
+import std.exception : enforce;
+import vertexd.core;
 import vertexd.mesh.buffer;
-import vertexd.core.mat;
+import vertexd.misc;
 import vertexd.shaders.shaderprogram;
 import vertexd.world.node;
 import vertexd.world.world;
-import std.conv : to;
-import std.exception : enforce;
-import vertexd.misc;
 
 enum max_lights = 512;
 
@@ -85,12 +85,15 @@ class Light : Node.Attribute {
 		}
 	}
 
+	string name;
 	LightS lightS;
 	alias lightS this;
 
 	// TODO: rename strength to intensity
-	this(Type type, Vec!3 color, precision strength = 1.0, precision range = precision.infinity,
-		precision innerAngle = precision.nan, precision outerAngle = precision.nan) {
+	this(Type type, Vec!3 color, string name = null, precision strength = 1.0,
+		precision range = precision.infinity, precision innerAngle = precision.nan, precision outerAngle = precision
+		.nan) {
+		this.name = (name is null) ? vdName!Light : name;
 		this.type = type;
 		this.color = color;
 		this.strength = strength;
@@ -100,19 +103,24 @@ class Light : Node.Attribute {
 	}
 
 	override void addUpdate() {
-		foreach (world; owner.worlds)
-			world.lightSet.add(this);
+		owner.world.lightSet.add(this);
 	}
 
 	override void removeUpdate() {
-		foreach (world; owner.worlds)
-			world.lightSet.remove(this);
+		owner.world.lightSet.remove(this);
+	}
+
+	override void originUpdate(Node.Origin newOrigin) {
+		bool removed = newOrigin.world is null;
+		if (removed)
+			owner.world.lightSet.remove(this);
+		else
+			newOrigin.world.lightSet.add(this);
 	}
 
 	override void update() {
 		location = owner.worldLocation;
 		direction = Vec!3(owner.modelMatrix.mult(Vec!4([0, 0, -1, 0]))[0 .. 3]).normalize();
-		foreach (world; owner.worlds)
-			world.lightSet.setBuffer(this);
+		owner.world.lightSet.setBuffer(this);
 	}
 }
