@@ -85,6 +85,61 @@ class Window {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
 	}
 
+	/// Locks ratio
+	void setAspectRatio(int width, int height) {
+		glfwSetWindowAspectRatio(glfw_window, width, height);
+	}
+
+	/// Unlocks ratio
+	void unsetAspectRatio() {
+		glfwSetWindowAspectRatio(glfw_window, GLFW_DONT_CARE, GLFW_DONT_CARE);
+	}
+
+	void setSize(int width, int height) {
+		glfwSetWindowSize(glfw_window, width, height);
+		this.width = width;
+		this.height = height;
+	}
+
+	/// Sets minimum & maximum size limits for window.
+	///
+	/// Note -1 disables individual limits.
+	void setSizeLimit(int width_min, int height_min, int width_max, int height_max) {
+		glfwSetWindowSizeLimits(glfw_window, width_min, height_min, width_max, height_max);
+	}
+
+	/// Set top left coordinate of window.
+	void setPosition(int x, int y) {
+		glfwSetWindowPos(glfw_window, x, y);
+	}
+
+	/// Get top left coordinate of window.
+	Vec!(2, int) getPosition() {
+		Vec!(2, int) pos;
+		glfwGetWindowPos(glfw_window, &pos.x, &pos.y);
+		return pos;
+	}
+
+	void setName(string name) {
+		debug writeln("Renaming window \"" ~ this.name ~ "\" to \"" ~ name ~ "\"");
+		this.name = name;
+		glfwSetWindowTitle(glfw_window, name.ptr);
+	}
+
+	import imageformats : IFImage;
+
+	void setIcon(IFImage[] images) {
+		GLFWimage[] glfw_images = new GLFWimage[images.length];
+		foreach (i, IFImage image; images)
+			glfw_images[i] = GLFWimage(image.w, image.h, image.pixels.ptr);
+
+		glfwSetWindowIcon(glfw_window, cast(int) glfw_images.length, glfw_images.ptr);
+	}
+
+	void unsetIcon() {
+		glfwSetWindowIcon(glfw_window, 0, null);
+	}
+
 	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
 		this.width = glfw_width;
@@ -109,7 +164,7 @@ class Window {
 		glfwSetScrollCallback(glfw_window, &windows_mousewheel_callback);
 		glfwSetCursorEnterCallback(glfw_window, &windows_mouse_enter_callback);
 		// glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
-		glfwSetFramebufferSizeCallback(glfw_window, &windows_size_callback);
+		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
 
 		glfwSetCursorPos(glfw_window, 0, 0);
 
@@ -158,12 +213,6 @@ class Window {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
 		world.draw();
 		glfwSwapBuffers(glfw_window);
-	}
-
-	protected void reshape(int width, int height) nothrow {
-		this.width = width;
-		this.height = height;
-		glViewport(0, 0, width, height);
 	}
 
 	void focus() {
@@ -242,7 +291,13 @@ class Window {
 }
 
 extern (C) void windows_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
-	Window.windows[glfw_window].reshape(width, height);
+	Window window = Window.windows[glfw_window];
+	window.width = width;
+	window.height = height;
+}
+
+extern (C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow {
+	glViewport(0, 0, width, height);
 }
 
 extern (C) void window_key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
