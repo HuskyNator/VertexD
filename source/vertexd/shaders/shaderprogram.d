@@ -114,7 +114,7 @@ class ShaderProgram {
 	void setUniform(V)(int uniformLocation, V value) if (!isInstanceOf!(Mat, V)) {
 		enum string type = is(V == uint) ? "ui" : (is(V == int) ? "i" : (is(V == float) ? "f" : (is(V == double)
 					? "d" : "")));
-		static assert(type != "", "Type " ~ V ~ " not supported for setUniform.");
+		static assert(type != "", "Type " ~ V.stringof ~ " not supported for setUniform.");
 		mixin("glProgramUniform1" ~ type ~ "(id, uniformLocation, value);");
 	}
 
@@ -181,5 +181,15 @@ class ShaderProgram {
 			flatColorShaderProgram_ = new ShaderProgram([flatColorVertShader, flatColorFragShader],
 				[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return flatColorShaderProgram_;
+	}
+
+	static immutable string flatUVVertShader = import("shaders/flat_uv.vert");
+	static immutable string flatUVFragShader = import("shaders/flat_uv.frag");
+	static ShaderProgram flatUVShaderProgram_;
+	static ShaderProgram flatUVShaderProgram() {
+		if (flatUVShaderProgram_ is null)
+			flatUVShaderProgram_ = new ShaderProgram([flatUVVertShader, flatUVFragShader],
+				[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+		return flatUVShaderProgram_;
 	}
 }
