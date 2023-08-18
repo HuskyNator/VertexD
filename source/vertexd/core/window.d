@@ -24,11 +24,11 @@ alias MousewheelInput = Vec!(2, double);
 
 alias MouseEnterInput = int;
 
-alias KeyCallback = void delegate(KeyInput input) nothrow;
-alias MousebuttonCallback = void delegate(MousebuttonInput input) nothrow;
-alias MousepositionCallback = void delegate(MousepositionInput input) nothrow;
-alias MousewheelCallback = void delegate(MousewheelInput input) nothrow;
-alias MouseEnterCallback = void delegate(MouseEnterInput entered) nothrow;
+alias KeyCallback = void delegate(KeyInput input);
+alias MousebuttonCallback = void delegate(MousebuttonInput input);
+alias MousepositionCallback = void delegate(MousepositionInput input);
+alias MousewheelCallback = void delegate(MousewheelInput input);
+alias MouseEnterCallback = void delegate(MouseEnterInput entered);
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,

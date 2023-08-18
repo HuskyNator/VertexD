@@ -14,8 +14,6 @@ class Sampler {
 	uint minFilter;
 	uint magFilter;
 
-	@disable this();
-
 	this(uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST,
 		uint magFilter = GL_NEAREST, bool anisotropic = true, string name = null) {
 		assert(minFilter == GL_NEAREST || minFilter == GL_LINEAR
