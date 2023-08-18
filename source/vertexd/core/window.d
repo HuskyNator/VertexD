@@ -2,12 +2,13 @@ module vertexd.core.window;
 
 import bindbc.glfw;
 import bindbc.opengl;
-import vertexd.core;
-import vertexd.world;
+import bindbc.opengl.bind.arb.arb_01 : hasARBBindlessTexture;
 import std.container.rbtree;
 import std.conv : to;
 import std.exception : enforce;
-import bindbc.opengl.bind.arb.arb_01 : hasARBBindlessTexture;
+import std.stdio : write, writeln;
+import vertexd.core;
+import vertexd.world;
 
 struct KeyInput {
 	int key, key_id, event, modifier;
@@ -17,18 +18,17 @@ struct MousebuttonInput {
 	int button, event, modifier;
 }
 
-struct MousepositionInput {
-	double x, y;
-}
+alias MousepositionInput = Vec!(2, double);
 
-struct MousewheelInput {
-	double x, y;
-}
+alias MousewheelInput = Vec!(2, double);
 
-alias KeyCallback = void delegate(KeyInput input) nothrow;
-alias MousebuttonCallback = void delegate(MousebuttonInput input) nothrow;
-alias MousepositionCallback = void delegate(MousepositionInput input) nothrow;
-alias MousewheelCallback = void delegate(MousewheelInput input) nothrow;
+alias MouseEnterInput = int;
+
+alias KeyCallback = void delegate(KeyInput input);
+alias MousebuttonCallback = void delegate(MousebuttonInput input);
+alias MousepositionCallback = void delegate(MousepositionInput input);
+alias MousewheelCallback = void delegate(MousewheelInput input);
+alias MouseEnterCallback = void delegate(MouseEnterInput entered);
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,
@@ -39,8 +39,13 @@ enum MouseType {
 class Window {
 	// Window Properties
 	string name;
-	int width;
-	int height;
+	union {
+		Vec!(2, int) bounds;
+		struct {
+			int width;
+			int height;
+		}
+	}
 	// package GLFWwindow* glfw_window;
 	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
@@ -53,10 +58,12 @@ class Window {
 	MousebuttonCallback[] mousebuttonCallbacks = [];
 	MousepositionCallback[] mousepositionCallbacks = [];
 	MousewheelCallback[] mousewheelCallbacks = [];
+	MouseEnterCallback[] mouseEnterCallbacks = [];
 	KeyInput[] keyInput = [];
 	MousepositionInput[] mousepositionInput = [];
 	MousebuttonInput[] mousebuttonInput = [];
 	MousewheelInput[] mousewheelInput = [];
+	MouseEnterInput[] mouseEnterInput = [];
 
 	static void setStandardVisible(bool visible) {
 		glfwWindowHint(GLFW_VISIBLE, visible);
@@ -80,6 +87,8 @@ class Window {
 
 	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
 		this.name = name;
+		this.width = glfw_width;
+		this.height = glfw_height;
 
 		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
 
@@ -98,6 +107,7 @@ class Window {
 		glfwSetMouseButtonCallback(glfw_window, &window_mousebutton_callback);
 		glfwSetCursorPosCallback(glfw_window, &window_mouseposition_callback);
 		glfwSetScrollCallback(glfw_window, &windows_mousewheel_callback);
+		glfwSetCursorEnterCallback(glfw_window, &windows_mouse_enter_callback);
 		// glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
 		glfwSetFramebufferSizeCallback(glfw_window, &windows_size_callback);
 
@@ -117,6 +127,31 @@ class Window {
 		glEnable(GL_MULTISAMPLE); //TODO: instelbaar
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
+	}
+
+	~this() {
+		Window.windows.remove(glfw_window); // ensures removal regardless of vdStep behaviour
+
+		glfwDestroyWindow(glfw_window);
+		write("\nWindow removed: ");
+		writeln(name);
+	}
+
+	/// Sets flag the window should be closed & removes the window from the rendering loop
+	// Note actual closure happens upon the deconstructor being called
+	/// See_Also:
+	/// reinstate
+	void close() nothrow {
+		glfwSetWindowShouldClose(glfw_window, true);
+		Window.windows.remove(glfw_window);
+	}
+
+	/// Unsets the closure flag & adds the window back to the rendering loop
+	/// See_Also:
+	/// close
+	void reinstate() {
+		glfwSetWindowShouldClose(glfw_window, false);
+		Window.windows[glfw_window] = this;
 	}
 
 	void draw() {
@@ -163,6 +198,11 @@ class Window {
 			foreach (MousewheelCallback callback; mousewheelCallbacks)
 				callback(input);
 
+		foreach (MouseEnterInput input; mouseEnterInput)
+			foreach (MouseEnterCallback callback; mouseEnterCallbacks) {
+				callback(input);
+			}
+
 		//WARNING: assumed independence of mouse & keyboard over small time intervals
 	}
 
@@ -180,6 +220,7 @@ class Window {
 		mousebuttonInput = [];
 		mousepositionInput = [];
 		mousewheelInput = [];
+		mouseEnterInput = [];
 	}
 
 	unittest {
@@ -214,12 +255,12 @@ extern (C) void window_key_callback(GLFWwindow* glfw_window, int key, int key_co
 			_console_visible = !_console_visible;
 		}
 	}
-	if (key == GLFW_KEY_ESCAPE)
-		glfwSetWindowShouldClose(glfw_window, true);
-
 	Window window = Window.windows[glfw_window];
 	KeyInput input = KeyInput(key, key_code, event, modifier);
 	window.keyInput ~= input;
+
+	if (key == GLFW_KEY_ESCAPE)
+		window.close();
 }
 
 extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
@@ -238,6 +279,11 @@ extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, d
 	Window window = Window.windows[glfw_window];
 	MousewheelInput input = MousewheelInput(x, y);
 	window.mousewheelInput ~= input;
+}
+
+extern (C) void windows_mouse_enter_callback(GLFWwindow* glfw_window, int entered) nothrow {
+	Window window = Window.windows[glfw_window];
+	window.mouseEnterInput ~= entered;
 }
 
 debug {

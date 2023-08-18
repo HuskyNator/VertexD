@@ -46,23 +46,34 @@ class ShaderProgram {
 
 	@disable this();
 
-	this(string[] files...) {
+	this(string[] files, bool initialize = true) {
 		Shader[] shaders = new Shader[files.length];
 		foreach (i, string file; files)
 			shaders[i] = new Shader(file);
-		this(shaders);
+		this(shaders, initialize);
 	}
 
-	this(string[] sources, Shader.Type[] types) {
+	this(string[] sources, Shader.Type[] types, bool initialize = true) {
 		assert(sources.length == types.length);
 		Shader[] shaders = new Shader[sources.length];
 		foreach (i; 0 .. sources.length)
 			shaders[i] = new Shader(sources[i], types[i]);
-		this(shaders);
+		this(shaders, initialize);
 	}
 
-	this(Shader[] shaders...) {
+	this(Shader[] shaders, bool initialize = true) {
 		this.shaders = shaders.dup;
+		if (initialize)
+			this.initialize();
+	}
+
+	final ShaderProgram initialize() {
+		if (this.id != 0)
+			return this;
+
+		foreach (Shader shader; shaders)
+			shader.initialize();
+
 		this.id = glCreateProgram();
 
 		foreach (Shader shader; shaders)
@@ -74,13 +85,14 @@ class ShaderProgram {
 		if (completed == 0)
 			throw new ShaderException("Could not compose ShaderProgram " ~ id.to!string ~ ":\n_" ~ getInfoLog());
 
-		writeln("ShaderProgram created:" ~ toString());
+		writeln("ShaderProgram created: " ~ toString());
+		return this;
 	}
 
 	~this() {
 		glDeleteProgram(id);
 		write("Shader removed: ");
-		writeln(toString());
+		writeln(id);
 	}
 
 	static void setUniformBuffer(int binding, Buffer buffer) {

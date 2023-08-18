@@ -108,9 +108,10 @@ private:
 	}
 
 	World readWorld(Json world_json) {
-		World world = new World();
+		string name = null;
 		if (JsonVal* j = "name" in world_json)
-			world.name = j.string_;
+			name = j.string_;
+		World world = new World(name);
 
 		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[])[])).list;
 		foreach (JsonVal child; children)
@@ -123,18 +124,18 @@ private:
 		JsonVal[] nodes_json = json["nodes"].list;
 		nodes = new Node[nodes_json.length];
 
-		foreach (i; 0 .. nodes_json.length)
-			nodes[i] = new Node(); // Preinitialize to permit child references
+		foreach (i, JsonVal node; nodes_json) {
+			string name = null;
+			if (JsonVal* j = "name" in node.object)
+				name = j.string_;
+			nodes[i] = new Node(name); // Preinitialize to permit child references
+		}
 
 		foreach (i, JsonVal node; nodes_json)
 			readNode(nodes[i], node.object);
 	}
 
 	Node readNode(ref Node node, Json node_json) {
-		string name = "";
-		if (JsonVal* j = "name" in node_json)
-			node.name = j.string_;
-
 		if (JsonVal* j = "mesh" in node_json)
 			node.meshes = cast(Mesh[]) this.meshes[j.long_];
 
@@ -181,7 +182,7 @@ private:
 	}
 
 	Camera readCamera(Json camera_json) {
-		string name = "";
+		string name = null;
 		if (JsonVal* j = "name" in camera_json)
 			name = j.string_;
 
@@ -199,7 +200,7 @@ private:
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
 			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
-			return new Camera(projectionMatrix);
+			return new Camera(projectionMatrix, name);
 		} else {
 			enforce(type == "orthographic");
 			assert(0, "Orthographic camera not yet implemented");
@@ -213,7 +214,9 @@ private:
 
 		foreach (JsonVal mesh; meshes_json) {
 			Json mesh_json = mesh.object;
-			string name = mesh_json.get("name", JsonVal("")).string_;
+			string name = null;
+			if (JsonVal* j = "name" in mesh_json)
+				name = j.string_;
 
 			GltfMesh[] primitives;
 			JsonVal[] primitives_json = mesh_json["primitives"].list;
@@ -333,9 +336,9 @@ private:
 
 		uint wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
 		uint wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
-		string name = s_json.get("name", JsonVal("")).string_;
+		string name = s_json.get("name", JsonVal.NULL).string_;
 
-		return new Sampler(name, wrapS, wrapT, minFilter, magFilter);
+		return new Sampler(wrapS, wrapT, minFilter, magFilter, true, name); //TODO: anisotroic true/false?
 	}
 
 	uint gltfToGLWrap(long gltfWrap) {
@@ -398,7 +401,7 @@ private:
 				} else {
 					content = this.gltfBufferViews[image_json["bufferView"].long_].content;
 				}
-				string name = image_json.get("name", JsonVal("")).string_;
+				string name = image_json.get("name", JsonVal.NULL).string_;
 
 				version (MultiThreadImageLoad) {
 					auto readImage = (ubyte[] content, string name, size_t index) {
@@ -426,7 +429,7 @@ private:
 			foreach (long i; 0 .. ts.length) {
 				Json t_json = ts[i].object;
 
-				string name = t_json.get("name", JsonVal("")).string_;
+				string name = t_json.get("name", JsonVal.NULL).string_;
 
 				assert("source" in t_json, "BindlessTexture has no image");
 				Texture base = images[t_json["source"].long_];
@@ -437,7 +440,7 @@ private:
 				else
 					sampler = samplers[$ - 1];
 
-				textureHandles[i] = new TextureHandle(name, base, sampler);
+				textureHandles[i] = new TextureHandle(base, sampler, name);
 			}
 		}
 	}
@@ -481,8 +484,8 @@ private:
 			}
 		}
 
-		Material material = new Material();
-		material.name = m_json.get("name", JsonVal("")).string_;
+		string name = m_json.get("name", JsonVal.NULL).string_;
+		Material material = new Material(name);
 
 		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json) {
 			Json pbr_j = pbr_jval.object;
@@ -527,7 +530,7 @@ private:
 	}
 
 	Light readLight(Json lj) {
-		string name = "";
+		string name = null;
 		Vec!3 color = Vec!3(1);
 		precision strength = 1;
 
@@ -543,14 +546,14 @@ private:
 		string type = lj["type"].string_;
 		switch (type) {
 			case "directional":
-				return new Light(Light.Type.DIRECTIONAL, color, strength, range);
+				return new Light(Light.Type.DIRECTIONAL, color, name, strength, range);
 			case "point":
-				return new Light(Light.Type.POINT, color, strength, range);
+				return new Light(Light.Type.POINT, color, name, strength, range);
 			case "spot":
 				Json spotj = lj["spot"].object;
 				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
 				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
-				return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
+				return new Light(Light.Type.SPOTLIGHT, color, name, strength, range, innerAngle, outerAngle);
 			default:
 				assert(0, "Light type unknown: " ~ type);
 		}
