@@ -197,14 +197,20 @@ private:
 			precision nearplane = setting["znear"].getType!double();
 			precision backplane = setting["zfar"].getType!double();
 
-			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
-			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
+			Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
+			// Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
 			return new Camera(projectionMatrix, name);
 		} else {
 			enforce(type == "orthographic");
-			assert(0, "Orthographic camera not yet implemented");
-			// TODO Orthographic camera
+			Json setting = camera_json["orthographic"].object;
+			precision width = setting["xmag"].getType!double();
+			precision height = setting["ymag"].getType!double();
+			precision nearplane = setting["znear"].getType!double();
+			precision farplane = settings["zfar"].getType!double();
+
+			Mat!4 projectionMatrix = Camera.orthographicProjection(width, height, nearplane, farplane);
+			return new Camera(projectionMatrix, name);
 		}
 	}
 
