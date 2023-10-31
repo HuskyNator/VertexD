@@ -17,3 +17,5 @@ vertexd-test-*
 
 glfw3.dll
 glfw3dll.lib
+
+*.pdb

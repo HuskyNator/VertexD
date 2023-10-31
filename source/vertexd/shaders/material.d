@@ -2,7 +2,7 @@ module vertexd.shaders.material;
 
 import std.conv;
 import std.typecons : Nullable;
-import vertexd.core.mat;
+import vertexd.core;
 import vertexd.mesh.buffer;
 import vertexd.misc;
 import vertexd.shaders.shaderprogram;
@@ -15,7 +15,7 @@ class Material {
 		BLEND
 	}
 
-	string name = "Default Material";
+	string name;
 	Buffer buffer;
 
 	// notation: allignment-padding
@@ -45,7 +45,8 @@ class Material {
 		return _defaultMaterial;
 	}
 
-	this() {
+	this(string name = null) {
+		this.name = (name is null) ? vdName!Material : name;
 		buffer = new Buffer(false);
 	}
 
