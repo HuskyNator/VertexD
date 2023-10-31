@@ -34,6 +34,9 @@ class Camera : Node.Attribute {
 			owner.world.cameras.remove(this);
 	}
 
+	override void logicUpdate() {
+	}
+
 	override void originUpdate(Node.Origin newOrigin) { // WARNING: assuming no transplanting worlds (only remove or add)
 		bool removed = newOrigin.world is null;
 		if (removed)
@@ -61,7 +64,8 @@ class Camera : Node.Attribute {
 		precision z = -(A + V) / (A - V);
 		precision y = -(2.0 * A * V) / (A - V);
 		return Mat!4([
-			[a, 0.0, 0.0, 0.0], [0.0, a * s, 0.0, 0.0], [0.0, 0.0, z, y], [0.0, 0.0, -1.0, 0.0]
+			[a, 0.0, 0.0, 0.0], [0.0, a * s, 0.0, 0.0], [0.0, 0.0, z, y],
+			[0.0, 0.0, -1.0, 0.0]
 		]);
 	}
 }

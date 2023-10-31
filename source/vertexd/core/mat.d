@@ -3,7 +3,7 @@ import vertexd.misc;
 import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
-import std.traits : isCallable, ReturnType;
+import std.traits : isCallable, ReturnType, isFloatingPoint;
 
 alias prec = precision;
 version (HoekjeD_Double) {
@@ -202,7 +202,7 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 			assert(i.isRoughly(I.mult(i)));
 		}
 
-		static if (row_count == 3 || row_count == 4) {
+		static if ((row_count == 3 || row_count == 4) && isFloatingPoint!Type) {
 			static {
 				MatType rotationMx(precision angle) {
 					MatType rotationM = MatType(1);
@@ -357,8 +357,8 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 		}
 	}
 
-	auto mult(T, uint K)(const T[K][column_count] right) const 
-			if (is(Result!(Type, "*", T))) {
+	auto mult(T, uint K)(const T[K][column_count] right) const
+	if (is(Result!(Type, "*", T))) {
 		alias T2 = Result!(Type, "*", T);
 		Mat!(row_count, K, T2) result;
 		static foreach (i; 0 .. row_count)
@@ -418,7 +418,9 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 	}
 
 	auto each(C)(C func) const
+
 	
+
 			if (isCallable!C && !is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!C) result;
 		static foreach (i; 0 .. size)
@@ -427,7 +429,9 @@ struct Mat(uint row_count, uint column_count, Type = precision)
 	}
 
 	void each(C)(C func) const
+
 	
+
 			if (isCallable!C && is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		static foreach (i; 0 .. size)
 			func(this.vec[i]);

@@ -130,6 +130,7 @@ class Window {
 	}
 
 	void draw() {
+		assert(world !is null, "No world set.");
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
 		world.draw();
 		glfwSwapBuffers(glfw_window);
@@ -245,7 +246,8 @@ extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button,
 	Window window = Window.windows[glfw_window];
 	MousebuttonInput input = MousebuttonInput(button, event, modifier);
 	window.mousebuttonInput ~= input;
-	import vertexd.misc: tryWriteln;
+	import vertexd.misc : tryWriteln;
+
 	tryWriteln(input);
 }
 

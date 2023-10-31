@@ -83,7 +83,8 @@ class ShaderProgram {
 		int completed;
 		glGetProgramiv(id, GL_LINK_STATUS, &completed);
 		if (completed == 0)
-			throw new ShaderException("Could not compose ShaderProgram " ~ id.to!string ~ ":\n_" ~ getInfoLog());
+			throw new ShaderException(
+				"Could not compose ShaderProgram " ~ id.to!string ~ ":\n_" ~ getInfoLog());
 
 		writeln("ShaderProgram created:" ~ toString());
 		return this;
@@ -103,6 +104,17 @@ class ShaderProgram {
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buffer.buffer);
 	}
 
+	void setUniformHandle(GLint uniformLocation, GLuint64 handleID) {
+		glProgramUniformHandleui64ARB(id, uniformLocation, handleID);
+	}
+
+	GLint getUniformLocation(string name){
+		GLint uniformLocation = glGetUniformLocation(id, name.ptr);
+		if (uniformLocation == -1)
+			error_message_missing_uniform(name);
+		return uniformLocation;
+	}
+
 	void setUniform(V)(string name, V value) {
 		const int uniformLocation = glGetUniformLocation(id, name.ptr);
 		if (uniformLocation == -1)
@@ -118,7 +130,8 @@ class ShaderProgram {
 		mixin("glProgramUniform1" ~ type ~ "(id, uniformLocation, value);");
 	}
 
-	void setUniform(V : Mat!(L, 1, S), uint L, S)(int uniformLocation, V value) if (L >= 1 && L <= 4) { // set Vec
+	void setUniform(V : Mat!(L, 1, S), uint L, S)(int uniformLocation, V value)
+			if (L >= 1 && L <= 4) { // set Vec
 		enum string values = "value.x" ~ (L == 1 ? "" : ",value.y" ~ (L == 2 ? "" : ",value.z" ~ (L == 3 ? ""
 					: ",value.w")));
 		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
@@ -127,7 +140,8 @@ class ShaderProgram {
 		mixin("glProgramUniform" ~ L.to!string ~ type ~ "(id, uniformLocation, " ~ values ~ ");");
 	}
 
-	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(int uniformLocation, V value) if (L >= 1 && L <= 4) { // set Vec[]
+	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(int uniformLocation, V value)
+			if (L >= 1 && L <= 4) { // set Vec[]
 		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
@@ -137,13 +151,15 @@ class ShaderProgram {
 
 	void setUniform(V : Mat!(R, K, precision), uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
-		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
+				: (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(precision == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, value[0].ptr);");
 	}
 
 	void setUniform(V : Mat!(R, K, precision)[], uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat[]
-		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string : (K.to!string ~ "x" ~ R.to!string)) ~ (
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
+				: (K.to!string ~ "x" ~ R.to!string)) ~ (
 				is(precision == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
 	}
 
@@ -168,8 +184,10 @@ class ShaderProgram {
 	static ShaderProgram gltfShaderProgram_ = null;
 	static ShaderProgram gltfShaderProgram() {
 		if (gltfShaderProgram_ is null)
-			gltfShaderProgram_ = new ShaderProgram([gltfVertShader, gltfFragShader],
-				[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+			gltfShaderProgram_ = new ShaderProgram([
+				gltfVertShader, gltfFragShader
+			],
+			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return gltfShaderProgram_;
 	}
 
@@ -178,8 +196,10 @@ class ShaderProgram {
 	static ShaderProgram flatColorShaderProgram_;
 	static ShaderProgram flatColorShaderProgram() {
 		if (flatColorShaderProgram_ is null)
-			flatColorShaderProgram_ = new ShaderProgram([flatColorVertShader, flatColorFragShader],
-				[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+			flatColorShaderProgram_ = new ShaderProgram([
+				flatColorVertShader, flatColorFragShader
+			],
+			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return flatColorShaderProgram_;
 	}
 }
