@@ -143,6 +143,7 @@ class Texture {
 		READWRITE = GL_READ_WRITE
 	}
 
+	// TODO: ???
 	void bindImage(GLuint index, Access access, GLint level = 0) {
 		assert(!srgb); // Note srgb can't be used for image load/store operations
 		glBindImageTexture(index, id, level, false, 0, access, GL_RGBA8);

@@ -80,7 +80,8 @@ class Light : Node.Attribute {
 			bytes ~= toBytes(direction);
 			bytes ~= padding(4);
 			assert(bytes.length == byteSize,
-				"Light bytes expected " ~ byteSize.to!string ~ " but got " ~ bytes.length.to!string);
+				"Light bytes expected " ~ byteSize.to!string ~ " but got " ~ bytes
+					.length.to!string);
 			return bytes;
 		}
 	}
@@ -105,6 +106,9 @@ class Light : Node.Attribute {
 
 	override void removeUpdate() {
 		owner.world.lightSet.remove(this);
+	}
+
+	override void logicUpdate() {
 	}
 
 	override void originUpdate(Node.Origin newOrigin) {

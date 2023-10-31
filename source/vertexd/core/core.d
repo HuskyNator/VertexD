@@ -82,8 +82,12 @@ public void vdStep() {
 	glfwPollEvents();
 }
 
+bool vdShouldClose() {
+	return Window.windows.length == 0;
+}
+
 public void vdLoop() {
 	_vdTime.reset();
-	while (Window.windows.length > 0)
+	while (!vdShouldClose())
 		vdStep();
 }

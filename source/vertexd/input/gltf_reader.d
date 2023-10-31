@@ -293,22 +293,22 @@ private:
 
 	GLenum getRenderTypeGLenum(uint drawMode) {
 		switch (drawMode) {
-			case 0:
-				return GL_POINTS;
-			case 1:
-				return GL_LINES;
-			case 2:
-				return GL_LINE_LOOP;
-			case 3:
-				return GL_LINE_STRIP;
-			case 4:
-				return GL_TRIANGLES;
-			case 5:
-				return GL_TRIANGLE_STRIP;
-			case 6:
-				return GL_TRIANGLE_FAN;
-			default:
-				assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
+		case 0:
+			return GL_POINTS;
+		case 1:
+			return GL_LINES;
+		case 2:
+			return GL_LINE_LOOP;
+		case 3:
+			return GL_LINE_STRIP;
+		case 4:
+			return GL_TRIANGLES;
+		case 5:
+			return GL_TRIANGLE_STRIP;
+		case 6:
+			return GL_TRIANGLE_FAN;
+		default:
+			assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
 		}
 	}
 
@@ -323,54 +323,60 @@ private:
 
 	Sampler readSampler(Json s_json) {
 		//TODO: decide on defaults
-		uint minFilter = GL_NEAREST;
-		uint magFilter = GL_NEAREST;
+		Sampler.MinFilter minFilter = Sampler.MinFilter.NEAREST;
+		Sampler.MagFilter magFilter = Sampler.MagFilter.NEAREST;
 
 		if (JsonVal* j = "minFilter" in s_json)
-			minFilter = gltfToGlFilter(j.long_, true);
+			minFilter = gltfToGlFilter!true(j.long_);
 		if (JsonVal* j = "magFilter" in s_json)
-			magFilter = gltfToGlFilter(j.long_, false);
+			magFilter = gltfToGlFilter!false(j.long_);
 
-		uint wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
-		uint wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
+		Sampler.Wrap wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
+		Sampler.Wrap wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
 		string name = s_json.get("name", JsonVal("")).string_;
 
 		return new Sampler(name, wrapS, wrapT, minFilter, magFilter);
 	}
 
-	uint gltfToGLWrap(long gltfWrap) {
+	Sampler.Wrap gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
-			case 33071:
-				return GL_CLAMP_TO_EDGE;
-			case 33648:
-				return GL_MIRRORED_REPEAT;
-			case 10497:
-				return GL_REPEAT;
-			default:
-				assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
+		case 33071:
+			return Sampler.Wrap.CLAMP_TO_EDGE;
+		case 33648:
+			return Sampler.Wrap.MIRRORED_REPEAT;
+		case 10497:
+			return Sampler.Wrap.REPEAT;
+		default:
+			assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
 		}
 	}
 
-	uint gltfToGlFilter(long gltfFilter, bool isMinFilter) {
+	auto gltfToGlFilter(bool isMinFilter)(long gltfFilter) {
+		static if (isMinFilter)
+			alias FilterType = Sampler.MinFilter;
+		else
+			alias FilterType = Sampler.MagFilter;
+
 		switch (gltfFilter) {
-			case 9728:
-				return GL_NEAREST;
-			case 9729:
-				return GL_LINEAR;
-			default:
-		}
-		enforce(isMinFilter, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
-		switch (gltfFilter) {
-			case 9984:
-				return GL_NEAREST_MIPMAP_NEAREST;
-			case 9985:
-				return GL_LINEAR_MIPMAP_NEAREST;
-			case 9986:
-				return GL_NEAREST_MIPMAP_LINEAR;
-			case 9987:
-				return GL_LINEAR_MIPMAP_LINEAR;
-			default:
+		case 9728:
+			return FilterType.NEAREST;
+		case 9729:
+			return FilterType.LINEAR;
+			static if (isMinFilter) {
+		case 9984:
+				return FilterType.NEAREST_MIPMAP_NEAREST;
+		case 9985:
+				return FilterType.LINEAR_MIPMAP_NEAREST;
+		case 9986:
+				return FilterType.NEAREST_MIPMAP_LINEAR;
+		case 9987:
+				return FilterType.LINEAR_MIPMAP_LINEAR;
+			}
+		default:
+			static if (isMinFilter)
 				assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
+			else
+				assert(0, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
 		}
 	}
 
@@ -470,14 +476,14 @@ private:
 	Material readMaterial(Json m_json) {
 		Material.AlphaBehaviour translateAlphaBehaviour(string behaviour) {
 			switch (behaviour) {
-				case "OPAQUE":
-					return Material.AlphaBehaviour.OPAQUE;
-				case "MASK":
-					return Material.AlphaBehaviour.MASK;
-				case "BLEND":
-					return Material.AlphaBehaviour.BLEND;
-				default:
-					assert(0, "Invalid alphabehaviour: " ~ behaviour);
+			case "OPAQUE":
+				return Material.AlphaBehaviour.OPAQUE;
+			case "MASK":
+				return Material.AlphaBehaviour.MASK;
+			case "BLEND":
+				return Material.AlphaBehaviour.BLEND;
+			default:
+				assert(0, "Invalid alphabehaviour: " ~ behaviour);
 			}
 		}
 
@@ -542,17 +548,17 @@ private:
 
 		string type = lj["type"].string_;
 		switch (type) {
-			case "directional":
-				return new Light(Light.Type.DIRECTIONAL, color, strength, range);
-			case "point":
-				return new Light(Light.Type.POINT, color, strength, range);
-			case "spot":
-				Json spotj = lj["spot"].object;
-				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
-				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
-				return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
-			default:
-				assert(0, "Light type unknown: " ~ type);
+		case "directional":
+			return new Light(Light.Type.DIRECTIONAL, color, strength, range);
+		case "point":
+			return new Light(Light.Type.POINT, color, strength, range);
+		case "spot":
+			Json spotj = lj["spot"].object;
+			precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
+			precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
+			return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
+		default:
+			assert(0, "Light type unknown: " ~ type);
 		}
 	}
 
@@ -582,48 +588,49 @@ private:
 			for (size_t j = 0; j < accessor.elementCount; j += 1) {
 				auto je = j * accessor.elementSize;
 				auto js = j * stride + relativeOffset;
-				accessor.content[je .. je + accessor.elementSize] = bufferView.content[js .. js + accessor.elementSize];
+				accessor.content[je .. je + accessor.elementSize] = bufferView
+					.content[js .. js + accessor.elementSize];
 			}
 		}
 	}
 
 	uint translateAttributeType(int type) {
 		switch (type) {
-			case 5120:
-				return GL_BYTE;
-			case 5121:
-				return GL_UNSIGNED_BYTE;
-			case 5122:
-				return GL_SHORT;
-			case 5123:
-				return GL_UNSIGNED_SHORT;
-			case 5125:
-				return GL_UNSIGNED_INT;
-			case 5126:
-				return GL_FLOAT;
-			default:
-				assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
+		case 5120:
+			return GL_BYTE;
+		case 5121:
+			return GL_UNSIGNED_BYTE;
+		case 5122:
+			return GL_SHORT;
+		case 5123:
+			return GL_UNSIGNED_SHORT;
+		case 5125:
+			return GL_UNSIGNED_INT;
+		case 5126:
+			return GL_FLOAT;
+		default:
+			assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
 		}
 	}
 
 	ubyte translateAttribyteTypeCount(string type) {
 		switch (type) {
-			case "SCALAR":
-				return 1;
-			case "VEC2":
-				return 2;
-			case "VEC3":
-				return 3;
-			case "VEC4":
-				return 4;
-			case "MAT2":
-				return 4;
-			case "MAT3":
-				return 9;
-			case "MAT4":
-				return 16;
-			default:
-				assert(0, "Unsupported accessor.type: " ~ type);
+		case "SCALAR":
+			return 1;
+		case "VEC2":
+			return 2;
+		case "VEC3":
+			return 3;
+		case "VEC4":
+			return 4;
+		case "MAT2":
+			return 4;
+		case "MAT3":
+			return 9;
+		case "MAT4":
+			return 16;
+		default:
+			assert(0, "Unsupported accessor.type: " ~ type);
 		}
 	}
 
@@ -654,7 +661,8 @@ private:
 
 			ubyte[] content = readURI(uri, dir);
 			enforce(content.length == size,
-				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size.to!string); // May result in padding issues (GLB).
+				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size
+					.to!string); // May result in padding issues (GLB).
 			buffers[i] = content;
 		}
 	}
