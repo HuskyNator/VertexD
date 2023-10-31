@@ -2,6 +2,7 @@ module vertexd.world.node;
 
 import std.conv : to;
 import std.datetime : Duration;
+import vertexd.core;
 import vertexd.core.mat;
 import vertexd.core.quaternions;
 import vertexd.mesh.mesh;
@@ -23,6 +24,7 @@ class Node {
 		void update();
 		void logicUpdate();
 		void originUpdate(Origin newOrigin);
+		// TODO improve
 	}
 
 	static ulong nodeCount = 0;
@@ -48,13 +50,13 @@ class Node {
 
 	private bool modified = true;
 
-	this(Mesh[] meshes){
-		this();
+	this(Mesh[] meshes, string name = null) {
+		this(name);
 		this.meshes = meshes;
 	}
 
-	this() {
-		this.name = "Node#" ~ nodeCount.to!string;
+	this(string name = null) {
+		this.name = (name is null) ? vdName!Node : name;
 		nodeCount += 1;
 		this.origin = Origin(this, null);
 	}
@@ -88,7 +90,7 @@ class Node {
 		}
 	}
 
-	Vec!3 worldLocation() {
+	Vec!3 worldLocation() nothrow {
 		return Vec!3([modelMatrix[0][3], modelMatrix[1][3], modelMatrix[2][3]]);
 	}
 

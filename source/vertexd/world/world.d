@@ -7,6 +7,7 @@ import vertexd.misc : remove;
 import vertexd.world.camera;
 import vertexd.world.light;
 import vertexd.world.node;
+import vertexd.core;
 
 class World {
 	static World[] worlds;
@@ -24,8 +25,8 @@ class World {
 		return currentCamera;
 	}
 
-	this() {
-		this.name = "World#" ~ worlds.length.to!string;
+	this(string name = null) {
+		this.name = (name is null) ? vdName!World : name;
 		World.worlds ~= this;
 		lightSet = new LightSet();
 	}

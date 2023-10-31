@@ -12,10 +12,12 @@ class Camera : Node.Attribute {
 
 	static Buffer uniformBuffer;
 
+	string name;
 	CameraS cameraS;
 	alias cameraS this;
 
-	this(Mat!4 projectionMatrix) {
+	this(Mat!4 projectionMatrix, string name = null) {
+		this.name = (name is null) ? vdName!Camera : name;
 		this.projectionMatrix = projectionMatrix;
 
 		if (uniformBuffer is null) {
@@ -59,13 +61,22 @@ class Camera : Node.Attribute {
 		precision nearplane = 0.1, precision backplane = 100) {
 		precision a = 1.0 / tan(horizontalFov / 2.0);
 		alias V = nearplane;
-		alias A = backplane;
+		alias A = farplane;
 		alias s = aspectRatio;
 		precision z = -(A + V) / (A - V);
 		precision y = -(2.0 * A * V) / (A - V);
 		return Mat!4([
 			[a, 0.0, 0.0, 0.0], [0.0, a * s, 0.0, 0.0], [0.0, 0.0, z, y],
 			[0.0, 0.0, -1.0, 0.0]
+		]);
+	}
+
+	static Mat!4 orthographicProjection(precision width = 100, precision height = 100,
+		precision nearplane = 0.1, precision farplane = 100) {
+		return Mat!4([
+			[1 / width, 0, 0, 0], [0, 1 / height, 0, 0],
+			[0, 0, 2 / (farplane - nearplane), -(farplane + nearplane) / (farplane - nearplane)],
+			[0, 0, 0, cast(precision) 1.0]
 		]);
 	}
 }
