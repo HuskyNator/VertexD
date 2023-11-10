@@ -550,23 +550,23 @@ struct Mat(uint rij_aantal, uint kolom_aantal, Soort = nauwkeurigheid)
 	import std.range : put;
 
 	string toString(bool mooi = false) const {
-		char[] cs;
-		cs.reserve(6 * grootte);
-		cs ~= '{';
+		string str;
+		str.reserve(6 * grootte);
+		str ~= '{';
 		static foreach (i; 0 .. rij_aantal) {
-			cs ~= '[';
+			str ~= '[';
 			static foreach (j; 0 .. kolom_aantal) {
-				cs ~= this.mat[i][j].to!string;
+				str ~= this.mat[i][j].to!string;
 				static if (j != kolom_aantal - 1)
-					cs ~= ", ";
+					str ~= ", ";
 			}
 			static if (i != rij_aantal - 1)
-				cs ~= mooi ? "],\n " : "], ";
+				str ~= mooi ? "],\n " : "], ";
 			else
-				cs ~= ']';
+				str ~= ']';
 		}
-		cs ~= '}';
-		return cast(string) cs[0 .. $];
+		str ~= '}';
+		return str;
 	}
 
 	void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {
