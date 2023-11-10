@@ -26,12 +26,12 @@ debug void vdShowConsole(bool visible) {
 }
 
 void vdInit() {
-	debug {
-		console = GetConsoleWindow();
-		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
-	} else {
-		FreeConsole();
-	}
+	// debug {
+	// 	console = GetConsoleWindow();
+	// 	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
+	// } else {
+	// 	FreeConsole();
+	// }
 
 	glfwSetErrorCallback(&glfw_error_callback);
 	glfwInit();
@@ -63,18 +63,27 @@ private StopWatch _vdTime;
 	return _vdTime.peek();
 }
 
+public Duration vdDelta(){
+	return _vdDeltaT;
+}
+
+public float vdFps() {
+	return 1_000_000.0f / _vdDeltaT.total!"usecs";
+}
+
+private Duration _vdDeltaT;
 public void vdStep() {
 	static Duration oldT = Duration.zero();
 	_vdStepCount += 1;
 	Duration newT = vdTime();
-	Duration deltaT = newT - oldT;
+	_vdDeltaT = newT - oldT;
 	oldT = newT;
 
 	foreach (Window window; Window.windows.values)
 		window.processInput();
 
 	foreach (World world; World.worlds)
-		world.logicStep(deltaT);
+		world.logicStep(_vdDeltaT);
 
 	foreach (World world; World.worlds)
 		world.update();

@@ -344,7 +344,7 @@ private:
 		Sampler.Wrap wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
 		string name = s_json.get("name", JsonVal("")).string_;
 
-		return new Sampler(wrapS, wrapT, minFilter, magFilter, true, name); //TODO: anisotroic true/false?
+		return new Sampler(name, wrapS, wrapT, minFilter, magFilter, true); //TODO: anisotroic true/false?
 	}
 
 	Sampler.Wrap gltfToGLWrap(long gltfWrap) {

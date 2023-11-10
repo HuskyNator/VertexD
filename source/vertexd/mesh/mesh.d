@@ -183,14 +183,15 @@ abstract class Mesh {
 		writeln(vao);
 	}
 
-	abstract void drawSetup(Node node);
-
-	void draw(Node node) {
+	void drawSetup(Node node) {
 		shaderProgram.use();
 		shaderProgram.setUniform("modelMatrix", node.modelMatrix);
 		// shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
-		glBindVertexArray(vao);
+	}
+
+	void draw(Node node) {
 		drawSetup(node);
+		glBindVertexArray(vao);
 
 		assert(index.attr.indexCount > 0);
 		if (indexed())

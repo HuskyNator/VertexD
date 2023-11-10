@@ -85,6 +85,7 @@ class GltfMesh : Mesh {
 	}
 
 	override void drawSetup(Node node) {
+		super.drawSetup(node);
 		material.use();
 		setMissingVertexAttributes();
 	}

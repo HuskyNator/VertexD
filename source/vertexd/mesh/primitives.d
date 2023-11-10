@@ -55,6 +55,7 @@ class Primitive(GLenum type, bool uv) : Mesh {
 		}
 
 	override void drawSetup(Node node) {
+		super.drawSetup(node);
 		static if (!uv)
 			if (1 !in associations)
 				glVertexAttrib4f(1, singleColor[0], singleColor[1], singleColor[2], singleColor[3]);
