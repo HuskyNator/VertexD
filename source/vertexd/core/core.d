@@ -63,7 +63,7 @@ private StopWatch _vdTime;
 	return _vdTime.peek();
 }
 
-public Duration vdDelta(){
+public Duration vdDelta() {
 	return _vdDeltaT;
 }
 
@@ -79,8 +79,11 @@ public void vdStep() {
 	_vdDeltaT = newT - oldT;
 	oldT = newT;
 
-	foreach (Window window; Window.windows.values)
+	foreach (Window window; Window.windows.values) {
 		window.processInput();
+		if (glfwWindowShouldClose(window.glfw_window))
+			destroy(window);
+	}
 
 	foreach (World world; World.worlds)
 		world.logicStep(_vdDeltaT);
@@ -88,13 +91,8 @@ public void vdStep() {
 	foreach (World world; World.worlds)
 		world.update();
 
-	foreach (Window window; Window.windows.values) {
-		GLFWwindow* glfw_window = window.glfw_window;
-		if (glfwWindowShouldClose(window.glfw_window))
-			window.close();
-		else
-			window.draw();
-	}
+	foreach (Window window; Window.windows.values)
+		window.draw();
 
 	foreach (Window window; Window.windows.values)
 		window.clearInput();
