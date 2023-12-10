@@ -1,32 +1,6 @@
 {
-	"name": "vertexd",
 	"authors": [
 		"HuskyNator"
-	],
-	"description": "Dutch OpenGL passion project",
-	"license": "proprietary",
-	"copyright": "Copyright © 2021, HuskyNator",
-	"sourceFiles-windows": [
-		"logo/logo.res"
-	],
-	"stringImportPaths": [
-		"source/vertexd"
-	],
-	"libs": [
-		"user32",
-		"glfw3dll"
-	],
-	"dependencies": {
-		"bindbc-glfw": "~>0.10.1",
-		"bindbc-opengl": "~>0.13.0",
-		"imageformats": "~>7.0.2"
-	},
-	"versions": [
-		"BindGLFW_Static",
-		"GLFW_33",
-		"GL_46",
-		"GL_ARB",
-		"GL_ARB_gpu_shader_int64"
 	],
 	"configurations": [
 		{
@@ -35,10 +9,36 @@
 		},
 		{
 			"name": "unittest",
-			"targetType": "executable",
 			"sourceFiles": [
 				"test/emptymain.d"
-			]
+			],
+			"targetType": "executable"
 		}
+	],
+	"copyright": "Copyright © 2021, HuskyNator",
+	"dependencies": {
+		"bindbc-glfw": "~>0.10.1",
+		"bindbc-opengl": "~>0.13.0",
+		"gamut": "~>2.3.0"
+	},
+	"description": "Dutch OpenGL passion project",
+	"libs": [
+		"user32",
+		"glfw3dll"
+	],
+	"license": "proprietary",
+	"name": "vertexd",
+	"sourceFiles-windows": [
+		"logo/logo.res"
+	],
+	"stringImportPaths": [
+		"source/vertexd"
+	],
+	"versions": [
+		"BindGLFW_Static",
+		"GLFW_33",
+		"GL_46",
+		"GL_ARB",
+		"GL_ARB_gpu_shader_int64"
 	]
 }

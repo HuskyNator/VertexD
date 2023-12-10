@@ -1,196 +1,207 @@
 module vertexd.shaders.texture;
+
 import bindbc.opengl;
+import gamut;
 import std.conv : to;
 import std.exception : enforce;
+import std.math;
 import std.stdio;
-import vertexd.core;
+import vertexd.core.mat;
 import vertexd.misc : bitWidth;
 import vertexd.shaders;
 
-// TODO: consider merging TextureHandle & Texture
-struct BindlessTexture {
-	TextureHandle handle = null;
+class BindlessTexture { // TextureHandle
+	Texture base;
+	Sampler sampler;
+	GLuint64 handleID = 0; // no handle
+	private bool loaded = false;
+
+	string name;
+
 	int texCoord;
 	float factor = 1;
 
-	bool present() {
-		return handle !is null;
-	}
+	static ubyte[] bufferBytes(BindlessTexture texture) {
+		ubyte[] bytes = new ubyte[16]; // 16 '0 bytes'
+		if (texture is null)
+			return bytes;
 
-	ubyte[] bufferBytes() {
-		ubyte[] bytes;
-		GLuint64 handleID = (handle is null) ? 0.to!GLuint64 : handle.handle;
-		bytes ~= (cast(ubyte*)&handleID)[0 .. GLuint64.sizeof];
-		bytes ~= (cast(ubyte*)&texCoord)[0 .. int.sizeof];
-		bytes ~= (cast(ubyte*)&factor)[0 .. float.sizeof];
+		bytes[0 .. 8] = (cast(ubyte*)&texture.handleID)[0 .. GLuint64.sizeof];
+		bytes[8 .. 12] = (cast(ubyte*)&texture.texCoord)[0 .. int.sizeof];
+		bytes[12 .. 16] = (cast(ubyte*)&texture.factor)[0 .. float.sizeof];
 		return bytes;
 	}
 
-	void initialize(bool srgb) {
-		if (handle !is null)
-			handle.initialize(srgb);
-	}
-
-	void load() {
-		if (handle !is null)
-			handle.load();
-	}
-
-	void unload() {
-		if (handle !is null)
-			handle.unload();
-	}
-}
-
-class TextureHandle {
-	string name;
-	Texture base;
-	Sampler sampler;
-	GLuint64 handle = 0; // no handle
-	private bool loaded = false;
-
 	@disable this();
 
-	this(Texture base, Sampler sampler, string name = null) {
-		this.name = (name is null) ? vdName!TextureHandle : name;
+	this(Texture base, Sampler sampler, string name = "BindlessTexture") {
 		this.base = base;
 		this.sampler = sampler;
-	}
-
-	void initialize(bool srgb) {
-		if (this.handle != 0)
-			return; // already initialized
-
-		//TODO: decide on default mipmap level or make it configurable.
-		int maxImageSize = (base.img.w > base.img.h) ? base.img.w : base.img.h;
-		GLsizei maxMipmapLevels = cast(GLsizei) bitWidth(maxImageSize);
-		base.initialize(srgb, maxMipmapLevels);
-
-		this.handle = glGetTextureSamplerHandleARB(base.id, sampler.id);
-		enforce(handle != 0, "An error occurred while creating a texture handle");
-
-		writeln("TextureHandle created: " ~ handle.to!string ~ "(" ~ name ~ ")");
-
-		debug {
-			float[4] borderColor;
-			glGetSamplerParameterfv(sampler.id, GL_TEXTURE_BORDER_COLOR, &borderColor[0]);
-			assert(Vec!4(borderColor) == Vec!4([0, 0, 0, 0]), "BindlessTexture handle border color should not be used");
-		}
+		this.name = name;
 	}
 
 	~this() {
 		unload();
 		write("TextureHandle removed (remains till base & sampler are removed): ");
-		write(handle);
-		write("(");
-		write(name);
-		writeln(")");
+		writeln(handleID);
+	}
+
+	void initialize(bool srgb, bool mipmap) {
+		if (this.handleID != 0) {
+			writeln("TextureHandle cannot be re-initialized!");
+			return;
+		}
+
+		if (!base.initialized) {
+			base.initialize(srgb, mipmap);
+			base.upload();
+		}
+
+		this.handleID = glGetTextureSamplerHandleARB(base.id, sampler.id);
+		enforce(handleID != 0, "An error occurred while creating a texture handle");
+
+		writeln("TextureHandle created: " ~ handleID.to!string);
 	}
 
 	void load() {
 		if (!loaded)
-			glMakeTextureHandleResidentARB(handle);
+			glMakeTextureHandleResidentARB(handleID);
 		this.loaded = true;
 	}
 
 	void unload() {
 		if (loaded)
-			glMakeTextureHandleNonResidentARB(handle);
+			glMakeTextureHandleNonResidentARB(handleID);
 		this.loaded = false;
 	}
 }
 
 class Texture {
-	import imageformats;
+	static ushort constraints = LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT;
+	static int loadConstraint = LOAD_8BIT | LOAD_RGB | LOAD_ALPHA;
 
 	string name;
-	IFImage img;
 	uint id;
+	Vec!(4, ubyte)[] pixels;
+	uint width;
+	uint height;
 
-	GLsizei levels;
 	bool srgb;
+	bool mipmap;
+	GLsizei levels = 0;
 
-	this(IFImage img, string name = null) {
-		this.name = (name is null) ? vdName!Texture : name;
+	private this(string name) {
+		this.name = name;
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
 		writeln("Texture created: " ~ id.to!string);
-		this.img = img;
 	}
 
-	this(string file, string name = null) {
-		IFImage i = read_image(file, ColFmt.RGBA);
-		this(i, name);
+	this(uint W, uint H, Vec!(4, ubyte)[] pixels = null, string name = "Texture") {
+		this(name);
+		this.width = W;
+		this.height = H;
+
+		this.pixels = pixels.dup;
+		if (pixels is null)
+			this.pixels = new Vec!(4, ubyte)[W * H];
+
+		assert(this.pixels.length == W * H);
 	}
 
-	this(ubyte[] content, string name = null) {
-		this(read_image_from_mem(content, ColFmt.RGBA), name);
+	this(Image img, string name = "Texture") {
+		this(img.width(), img.height(), cast(Vec!(4, ubyte)[])(img.allPixelsAtOnce()), name);
 	}
 
-	static IFImage readImage(string file) {
-		return read_image(file, ColFmt.RGBA);
+	this(string file, string name = "") {
+		this(this.readImage(file), name);
 	}
 
-	static IFImage readImage(ubyte[] content) {
-		return read_image_from_mem(content, ColFmt.RGBA);
+	static Image readImage(string file) {
+		Image image;
+		enforce(image.loadFromFile(file, constraints | loadConstraint), "Could not load image from file."); // rgba8
+		return image;
 	}
 
-	enum Access {
-		READ = GL_READ_ONLY,
-		WRITE = GL_WRITE_ONLY,
-		READWRITE = GL_READ_WRITE
-	}
-
-	// TODO: ???
-	void bindImage(GLuint index, Access access, GLint level = 0) {
-		assert(!srgb); // Note srgb can't be used for image load/store operations
-		glBindImageTexture(index, id, level, false, 0, access, GL_RGBA8);
-	}
-
-	void bind() {
-		glBindTexture(GL_TEXTURE_2D, id);
-	}
-
-	void saveImage(string path, GLint level = 0) {
-		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT); // TODO: check vs update bit
-
-		auto L = img.pixels;
-		auto L2 = img.pixels.length;
-		glGetTextureImage(id, level, GL_RGBA, GL_UNSIGNED_BYTE,
-			cast(int)(img.pixels.length * ubyte.sizeof), img.pixels.ptr);
-		write_png(path, img.w, img.h, img.pixels, ColFmt.RGBA);
-	}
-
-	void allocate(bool srgb, GLsizei levels, GLsizei width, GLsizei height, bool params, bool newImg) {
-		this.srgb = srgb;
-		this.levels = levels;
-		glTextureStorage2D(id, levels, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), width, height);
-
-		if (newImg) {
-			img.w = width;
-			img.h = height;
-			img.pixels = new ubyte[4 * width * height];
-		}
-
-		// Already defined by Sampler
-		if (!params)
-			return;
-		glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	}
-
-	void initialize(bool srgb, GLsizei mipmapLevels, bool params = false) {
-		allocate(srgb, mipmapLevels, img.w, img.h, params, false);
-		glTextureSubImage2D(id, 0, 0, 0, img.w, img.h, GL_RGBA, GL_UNSIGNED_BYTE, img.pixels.ptr);
-
-		if (mipmapLevels > 1) //TODO: What happens when the sampler defines mipmap filtering but the texture is only lage enough for 1 level?
-			glGenerateTextureMipmap(id);
+	static Image readImage(ubyte[] content) {
+		Image image;
+		enforce(image.loadFromMemory(content, constraints | loadConstraint), "Could not load image from memory."); // rgba8
+		return image;
 	}
 
 	~this() {
 		glDeleteTextures(1, &id);
 		write("Texture removed: ");
 		writeln(id);
+	}
+
+	/// Samples the texture bilinearly
+	///
+	/// Note return values range from 0 to 255.
+	/// Params:
+	///   uv = The uv coordinates applicable
+	/// Returns: The bilinear sampled texture value
+	Vec!(4, float) sampleTexture(Vec!2 uv) {
+		// TODO mipmaps?
+		Vec!(2, uint) size = Vec!(2, uint)(width, height);
+		Vec!(2, uint) low = cast(Vec!(2, uint))((uv.each!floor) % size);
+		Vec!(2, uint) high = cast(Vec!(2, uint))((uv.each!ceil) % size);
+		Vec!2 delta = uv - low;
+		Vec!(4, float) sample;
+		sample += pixels[low.x + low.y * width] * delta.x * delta.y;
+		sample += pixels[low.x + high.y * width] * delta.x * (1 - delta.y);
+		sample += pixels[high.x + low.y * width] * (1 - delta.x) * delta.y;
+		sample += pixels[high.x + high.y * width] * (1 - delta.x) * (1 - delta.y);
+		return sample;
+	}
+
+	// enum Access {
+	// 	READ = GL_READ_ONLY,
+	// 	WRITE = GL_WRITE_ONLY,
+	// 	READWRITE = GL_READ_WRITE
+	// }
+
+	// void bindImage(GLuint index, Access access, GLint level = 0) {
+	// 	assert(!srgb); // Note srgb can't be used for image load/store operations
+	// 	glBindImageTexture(index, id, level, false, 0, access, GL_RGBA8);
+	// }
+
+	// void bind() {
+	// 	glBindTexture(GL_TEXTURE_2D, id);
+	// }
+
+	void saveImage(string path) {
+		Image image;
+		image.createViewFromData(cast(ubyte*) pixels.ptr, cast(int) width, cast(int) height,
+			PixelType.rgba8, cast(int)(width * 4 * ubyte.sizeof));
+		image.flipVertical();
+		enforce(image.saveToFile(ImageFormat.PNG, path), "Could not save image to file.");
+	}
+
+	bool initialized() {
+		return levels > 0;
+	}
+
+	// Note mipmap map depend on sampler.usesMipMap()
+	void initialize(bool srgb, bool mipmap) { // Can't reinitialize while using texture handle.
+		assert(!initialized());
+		this.srgb = srgb;
+		this.levels = 1;
+		if (mipmap) { //TODO: decide on default mipmap level or make it configurable. (minimum grootte van laagste level?)
+			int maxImageSize = (width > height) ? width : height;
+			this.levels = cast(GLsizei) bitWidth(maxImageSize);
+		}
+		glTextureStorage2D(id, levels, (srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8), width, height);
+	}
+
+	void upload() { // (re)upload pixel data
+		glTextureSubImage2D(id, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.ptr);
+		if (mipmap)
+			glGenerateTextureMipmap(id);
+	}
+
+	void download(GLint level = 0) { // oposite of upload()
+		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT); // TODO: check vs update bit
+		glGetTextureImage(id, level, GL_RGBA, GL_UNSIGNED_BYTE, cast(int)(width * height * 4 * ubyte.sizeof),
+			pixels.ptr);
 	}
 }
