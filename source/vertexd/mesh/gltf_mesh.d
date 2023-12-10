@@ -39,7 +39,7 @@ class GltfMesh : Mesh {
 
 		if (drawMode == GL_TRIANGLES) //TODO: other triangle draw modes.
 		{
-			bool normalTexture = material.normal_texture.present;
+			bool normalTexture = material.normal_texture !is null;
 			bool shouldGenerateTangents = attributeSet.normal.present() && !attributeSet.tangent.present();
 
 			if (!attributeSet.normal.present()) {

@@ -126,12 +126,12 @@ class Window {
 		glfwSetWindowTitle(glfw_window, name.ptr);
 	}
 
-	import imageformats : IFImage;
+	import gamut;
 
-	void setIcon(IFImage[] images) {
+	void setIcon(Image*[] images) {
 		GLFWimage[] glfw_images = new GLFWimage[images.length];
-		foreach (i, IFImage image; images)
-			glfw_images[i] = GLFWimage(image.w, image.h, image.pixels.ptr);
+		foreach (i, Image* image; images)
+			glfw_images[i] = GLFWimage(image.width(), image.height(), image.allPixelsAtOnce().ptr);
 
 		glfwSetWindowIcon(glfw_window, cast(int) glfw_images.length, glfw_images.ptr);
 	}

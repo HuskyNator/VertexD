@@ -27,11 +27,17 @@ class Material {
 	// padding (44-48)
 
 	// 48 - 128
-	BindlessTexture baseColor_texture; // TODO: Potentially SRGB
-	BindlessTexture metal_roughness_texture;
-	BindlessTexture normal_texture;
-	BindlessTexture occlusion_texture;
-	BindlessTexture emission_texture;
+	union {
+		struct {
+			BindlessTexture baseColor_texture = null; // TODO: Potentially SRGB
+			BindlessTexture metal_roughness_texture = null;
+			BindlessTexture normal_texture = null;
+			BindlessTexture occlusion_texture = null;
+			BindlessTexture emission_texture = null;
+		}
+
+		BindlessTexture[5] textures;
+	}
 
 	// TODO
 	AlphaBehaviour alpha_behaviour = AlphaBehaviour.OPAQUE;
@@ -51,11 +57,16 @@ class Material {
 	}
 
 	Material initialize() {
-		baseColor_texture.initialize(true);
-		metal_roughness_texture.initialize(false);
-		normal_texture.initialize(false);
-		occlusion_texture.initialize(false);
-		emission_texture.initialize(true);
+		if (baseColor_texture !is null)
+			baseColor_texture.initialize(true, true);
+		if (metal_roughness_texture !is null)
+			metal_roughness_texture.initialize(false, true);
+		if (normal_texture !is null)
+			normal_texture.initialize(false, true);
+		if (occlusion_texture !is null)
+			occlusion_texture.initialize(false, true);
+		if (emission_texture !is null)
+			emission_texture.initialize(true, true);
 
 		ubyte[] content;
 		content ~= toBytes(baseColor_factor);
@@ -64,11 +75,8 @@ class Material {
 		content ~= padding(8);
 		content ~= toBytes(emission_factor);
 		content ~= padding(4);
-		content ~= baseColor_texture.bufferBytes();
-		content ~= metal_roughness_texture.bufferBytes();
-		content ~= normal_texture.bufferBytes();
-		content ~= occlusion_texture.bufferBytes();
-		content ~= emission_texture.bufferBytes();
+		foreach (texture; textures)
+			content ~= BindlessTexture.bufferBytes(texture);
 		buffer.setContent(content);
 		return this;
 	}
@@ -76,10 +84,8 @@ class Material {
 	void use() {
 		ShaderProgram.setUniformBuffer(2, buffer);
 
-		baseColor_texture.load();
-		metal_roughness_texture.load();
-		normal_texture.load();
-		occlusion_texture.load();
-		emission_texture.load();
+		foreach (texture; textures)
+			if (texture !is null)
+				texture.load();
 	}
 }

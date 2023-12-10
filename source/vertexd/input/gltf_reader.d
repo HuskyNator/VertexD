@@ -31,11 +31,10 @@ private:
 	Json json;
 
 	Sampler[] samplers;
-	Image[] images;
-	TextureHandle[] textureHandles;
+	Texture[] textures;
+	BindlessTexture[] bindlessTextures;
 
-	alias Image = Texture;
-	// alias BindlessTexture = TextureHandle;
+	// alias BindlessTexture = BindlessTexture;
 	// alias TextureInfo = BindlessTexture;
 
 	ubyte[][] buffers;
@@ -391,16 +390,15 @@ private:
 
 	void readImages(string dir) {
 		if (JsonVal* j = "images" in json) {
-			images.reserve(j.list.length);
+			textures.reserve(j.list.length);
 
 			version (MultiThreadImageLoad) {
 				import std.parallelism;
-				import imageformats;
 
 				auto tasks = taskPool();
-				__gshared IFImage[] sharedIFImages;
+				__gshared Image[] sharedImages;
 				__gshared string[] sharedNames;
-				sharedIFImages = new IFImage[j.list.length];
+				sharedImages = new Image[j.list.length];
 				sharedNames = new string[j.list.length];
 			}
 
@@ -417,19 +415,19 @@ private:
 
 				version (MultiThreadImageLoad) {
 					auto readImage = (ubyte[] content, string name, size_t index) {
-						sharedIFImages[index] = Image.readImage(content);
+						sharedImages[index] = Texture.readImage(content);
 						sharedNames[index] = name;
 					};
 					tasks.put(task(readImage, content, name, index));
 				} else {
-					images ~= new Image(content, name);
+					textures ~= new Texture(Texture.readImage(content), name);
 				}
 			}
 
 			version (MultiThreadImageLoad) {
 				tasks.finish(true);
-				foreach (i; 0 .. sharedIFImages.length)
-					images ~= new Image(sharedIFImages[i], sharedNames[i]);
+				foreach (i; 0 .. sharedImages.length)
+					textures ~= new Texture(sharedImages[i], sharedNames[i]);
 			}
 		}
 	}
@@ -437,14 +435,14 @@ private:
 	void readTextures() {
 		if (JsonVal* ts_json = "textures" in json) {
 			JsonVal[] ts = ts_json.list;
-			textureHandles = new TextureHandle[ts.length];
+			bindlessTextures = new BindlessTexture[ts.length];
 			foreach (long i; 0 .. ts.length) {
 				Json t_json = ts[i].object;
 
 				string name = t_json.get("name", JsonVal.NULL).string_;
 
 				assert("source" in t_json, "BindlessTexture has no image");
-				Texture base = images[t_json["source"].long_];
+				Texture base = textures[t_json["source"].long_];
 
 				Sampler sampler;
 				if (JsonVal* s = "sampler" in t_json)
@@ -452,7 +450,7 @@ private:
 				else
 					sampler = samplers[$ - 1];
 
-				textureHandles[i] = new TextureHandle(base, sampler, name);
+				bindlessTextures[i] = new BindlessTexture(base, sampler, name);
 			}
 		}
 	}
@@ -464,8 +462,7 @@ private:
 	}
 
 	BindlessTexture readTexture(Json t_json) {
-		BindlessTexture t;
-		t.handle = textureHandles[t_json["index"].long_];
+		BindlessTexture t = bindlessTextures[t_json["index"].long_];
 		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
 		return t;
 	}
