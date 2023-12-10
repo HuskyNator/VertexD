@@ -448,6 +448,14 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		assert(a.max() == 2);
 	}
 
+	auto each(alias fun)() const 
+			if (isCallable!fun && !is(ReturnType!fun == void) && __traits(compiles, fun(Type.init))) {
+		Mat!(row_count, column_count, ReturnType!fun) result;
+		static foreach (i; 0 .. size)
+			result.vec[i] = fun(this.vec[i]);
+		return result;
+	}
+
 	auto each(C)(C func) const 
 			if (isCallable!C && !is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!C) result;
@@ -472,9 +480,13 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			a.vec[i] = i;
 
 		auto b = a.each(&even);
+		auto c = a.each!even;
 		assert(is(typeof(b) == Mat!(2, 3, bool)));
+		assert(is(typeof(c) == Mat!(2, 3, bool)));
 		foreach (i; 0 .. b.size)
 			assert(b.vec[i] == (i % 2 == 0));
+		foreach (i; 0 .. c.size)
+			assert(c.vec[i] == (i % 2 == 0));
 	}
 
 	unittest {
@@ -665,8 +677,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			return (cast(MatType)(this - other)).each(&abs!Type).sum() < delta;
 		}
 
-		bool assertAlmostEq(const MatType other, precision delta = 1e-5) const {
-			MatType diffVec = (cast(MatType)(this - other)).each(&abs!Type);
+		bool assertAlmostEq(const MatType other, precision delta = 1e-5) const { // TODO: fix after abs is fixed
+			MatType diffVec = cast(MatType)(cast(MatType) (this-other)).each!(abs!Type)();
 			float diff = diffVec.sum();
 			// string a = other.to!string;
 			bool holds = diff < delta;
