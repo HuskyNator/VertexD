@@ -119,7 +119,7 @@ class Texture {
 
 	static Image readImage(string file) {
 		Image image;
-		enforce(image.loadFromFile(file, constraints | loadConstraint), "Could not load image from file."); // rgba8
+		enforce(image.loadFromFile(file, constraints | loadConstraint), "Could not load image from file: " ~ file); // rgba8
 		return image;
 	}
 
