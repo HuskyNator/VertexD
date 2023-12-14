@@ -73,6 +73,15 @@ public float vdFps() {
 
 private Duration _vdDeltaT;
 public void vdStep() {
+	vdUpdate();
+	vdDraw();
+}
+
+public void vdUpdate() {
+	foreach (Window window; Window.windows.values)
+		window.clearInput();
+	glfwPollEvents();
+
 	static Duration oldT = Duration.zero();
 	_vdStepCount += 1;
 	Duration newT = vdTime();
@@ -90,14 +99,11 @@ public void vdStep() {
 
 	foreach (World world; World.worlds)
 		world.update();
+}
 
+public void vdDraw() {
 	foreach (Window window; Window.windows.values)
 		window.draw();
-
-	foreach (Window window; Window.windows.values)
-		window.clearInput();
-
-	glfwPollEvents();
 }
 
 bool vdShouldClose() {
