@@ -27,11 +27,13 @@ abstract class Mesh {
 			}
 		}
 
-		this(M : T[R], T, uint R)(M[] content, bool normalised = false) if (!isList!T) {
+		this(M : T[R], T, uint R)(M[] content, bool normalised = false)
+				if (!isList!T) {
 			this(cast(T[1][R][]) content, normalised);
 		}
 
-		this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false) if (!isList!T) {
+		this(M : T[C][R], T, uint R, uint C)(M[] content, bool normalised = false)
+				if (!isList!T) {
 			this.type = getGLenum!T;
 			this.typeCount = R * C;
 			// writeln("TYPECOUNT R" ~ R.to!string ~ " * C" ~ C.to!string ~ " = " ~ typeCount.to!string);
@@ -78,21 +80,31 @@ abstract class Mesh {
 			this.content = attr.content;
 		}
 
+		static IndexAttr merge(IndexAttr l, IndexAttr r) {
+			GLuint type = (r.type > l.type) ? r.type : l.type;
+			alias A = to!(uint[]);
+			pragma(msg, typeof( &(A!(int[]) ) ));
+			return IndexAttr();
+		}
+
 		bool present() {
 			return content.ptr !is null;
 		}
 
-		uint[T][] getContent(uint T)() {
-			// assert(T == getGLenumDrawModeCount(drawMode));
+		R getContent(uint L)() {
+			alias R = uint[L][];
+			static if (L == 1)
+				alias R = uint[];
+			// assert(L == getGLenumDrawModeCount(drawMode));
 			switch (type) {
-				case GL_UNSIGNED_BYTE:
-					return (cast(ubyte[T][]) content).to!(uint[T][]);
-				case GL_UNSIGNED_SHORT:
-					return (cast(ushort[T][]) content).to!(uint[T][]);
-				case GL_UNSIGNED_INT:
-					return (cast(uint[T][]) content);
-				default:
-					assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
+			case GL_UNSIGNED_BYTE:
+				return (cast(ubyte[L][]) content).to!(R);
+			case GL_UNSIGNED_SHORT:
+				return (cast(ushort[L][]) content).to!(R);
+			case GL_UNSIGNED_INT:
+				return (cast(uint[L][]) content).to!(R);
+			default:
+				assert(0, "IndexAttribute type incorrect: " ~ type.to!string);
 			}
 		}
 	}
@@ -189,13 +201,13 @@ abstract class Mesh {
 		// shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
 	}
 
-	void draw(Node node) {
-		drawSetup(node);
+	void draw() {
 		glBindVertexArray(vao);
 
 		assert(index.attr.indexCount > 0);
 		if (indexed())
-			glDrawElements(drawMode, index.attr.indexCount, index.attr.type, cast(void*) index.attr.offset);
+			glDrawElements(drawMode, index.attr.indexCount, index.attr.type, cast(void*) index
+					.attr.offset);
 		else
 			glDrawArrays(drawMode, index.attr.offset, index.attr.indexCount);
 	}
@@ -269,7 +281,8 @@ private:
 		Mesh.Attribute attr = assoc.attr;
 
 		glEnableVertexArrayAttrib(vao, attrIndex);
-		glVertexArrayAttribFormat(vao, attrIndex, attr.typeCount, attr.type, attr.normalised, assoc.relativeOffset);
+		glVertexArrayAttribFormat(vao, attrIndex, attr.typeCount, attr.type, attr.normalised, assoc
+				.relativeOffset);
 		glVertexArrayAttribBinding(vao, attrIndex, assoc.bindingIndex);
 
 		this.associations[attrIndex] = assoc;
@@ -298,7 +311,8 @@ private:
 	}
 
 	uint setBinding(Binding binding) {
-		assert(binding.stride > 0, "Stride should be higher than 0 but was: " ~ binding.stride.to!string);
+		assert(binding.stride > 0, "Stride should be higher than 0 but was: " ~ binding
+				.stride.to!string);
 
 		uint bindingIndex = 0;
 		int maxBindings = getMaxBindings();
@@ -310,7 +324,8 @@ private:
 			bindingIndex += 1;
 		}
 
-		glVertexArrayVertexBuffer(vao, bindingIndex, binding.buffer.buffer, binding.offset, binding.stride);
+		glVertexArrayVertexBuffer(vao, bindingIndex, binding.buffer.buffer, binding.offset, binding
+				.stride);
 		this.bindings[bindingIndex] = binding;
 		return bindingIndex;
 	}
@@ -323,7 +338,8 @@ private:
 	// TODO: adopt below for non GL_TRIANGLES draw mode? Or exclude?
 
 	public static Vec!3[] generateNormals(Mesh.Attribute positions, IndexAttribute indices) {
-		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent!3() : null);
+		return generateNormals(cast(Vec!3[]) positions.content, indices.present() ? indices.getContent!3()
+				: null);
 	}
 
 	/// Calculates a normal attribute using the positions attribute.
@@ -346,7 +362,8 @@ private:
 			normals = new Vec!3[positions.length];
 			foreach (uint[3] triangle; indices) {
 				Vec!3[3] pos = [
-					positions[triangle[0]], positions[triangle[1]], positions[triangle[2]],
+					positions[triangle[0]], positions[triangle[1]],
+					positions[triangle[2]],
 				];
 				Vec!3 a = pos[1] - pos[0];
 				Vec!3 b = pos[2] - pos[0];
@@ -413,14 +430,16 @@ private:
 			tangents = new Vec!4[positions.length];
 			foreach (uint[3] triangle; indices) {
 				Vec!3[3] pos = [
-					positions[triangle[0]], positions[triangle[1]], positions[triangle[2]]
+					positions[triangle[0]], positions[triangle[1]],
+					positions[triangle[2]]
 				];
 				Vec!3 AB = pos[1] - pos[0];
 				Vec!3 AC = pos[2] - pos[0];
 				Mat!(2, 3) deltaPosM = [AB, AC];
 
 				Vec!2[3] uv = [
-					texCoords[triangle[0]], texCoords[triangle[1]], texCoords[triangle[2]]
+					texCoords[triangle[0]], texCoords[triangle[1]],
+					texCoords[triangle[2]]
 				];
 				Vec!2 ABUV = uv[1] - uv[0];
 				Vec!2 ACUV = uv[2] - uv[0];

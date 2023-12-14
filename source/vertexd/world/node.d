@@ -96,7 +96,8 @@ class Node {
 
 	void draw() {
 		foreach (Mesh mesh; meshes) {
-			mesh.draw(this);
+			mesh.drawSetup(this);
+			mesh.draw();
 		}
 		foreach (Node child; children)
 			child.draw();

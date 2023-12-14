@@ -55,39 +55,100 @@ bool isList(T, uint n = 1)() if (n > 0) {
 // OpenGL type enum to size
 GLsizei getGLenumTypeSize(GLenum type) {
 	switch (type) {
-		case GL_BOOL:
-			return ubyte.sizeof;
-		case GL_BYTE:
-			return byte.sizeof;
-		case GL_SHORT:
-			return short.sizeof;
-		case GL_INT:
-			return int.sizeof;
-		case GL_UNSIGNED_BYTE:
-			return ubyte.sizeof;
-		case GL_UNSIGNED_SHORT:
-			return ushort.sizeof;
-		case GL_UNSIGNED_INT:
-			return uint.sizeof;
-		case GL_FLOAT:
-			return float.sizeof;
-		case GL_DOUBLE:
-			return double.sizeof;
-		default:
-			assert(0, "Unsupported GLenum to type: " ~ type.to!string);
+	case GL_BOOL:
+		return ubyte.sizeof;
+	case GL_BYTE:
+		return byte.sizeof;
+	case GL_SHORT:
+		return short.sizeof;
+	case GL_INT:
+		return int.sizeof;
+	case GL_UNSIGNED_BYTE:
+		return ubyte.sizeof;
+	case GL_UNSIGNED_SHORT:
+		return ushort.sizeof;
+	case GL_UNSIGNED_INT:
+		return uint.sizeof;
+	case GL_FLOAT:
+		return float.sizeof;
+	case GL_DOUBLE:
+		return double.sizeof;
+	default:
+		assert(0, "Unsupported GLenum to type: " ~ type.to!string);
+	}
+}
+
+private string _GLenumCase(string function(string type, string glEnumName) caseFunc)() {
+	GLenum[] types = [
+		GL_BOOL,
+		GL_BYTE,
+		GL_SHORT,
+		GL_INT,
+		GL_UNSIGNED_BYTE,
+		GL_UNSIGNED_SHORT,
+		GL_UNSIGNED_INT,
+		GL_FLOAT,
+		GL_DOUBLE
+	];
+	import std : AliasSeq;
+
+	auto Types = AliasSeq!(bool, byte, short, int, ubyte, ushort, uint, float, double);
+
+	string cases;
+	foreach (i, type; types) {
+		cases ~= "case " ~ type.stringof ~ ":\n";
+		cases ~= "return " ~ caseFunc(Types[i], type.stringof) ~ ";";
+	}
+	return cases;
+}
+
+ubyte[] _castGLenumTypeData(T)(T[] data, GLenum targetType) {
+	string _castArray(string type, string glEnumName) {
+		return "data.to!(" ~ type ~ "[])";
+	}
+
+	switch (targetType) {
+		mixin(_GLenumCase!(_castArray));
+	default:
+		assert(0, "Unsupported GLenum to type: " ~ type.to!string);
+	}
+}
+
+ubyte[] castGLenumTypeData(ubyte[] data, GLenum type, GLenum targetType) {
+	switch (type) {
+	case GL_BOOL:
+		return _castGLenumTypeData!bool(cast(bool[]) data, targetType);
+	case GL_BYTE:
+		return _castGLenumTypeData!byte(cast(byte[]) data, targetType);
+	case GL_SHORT:
+		return _castGLenumTypeData!short(cast(short[]) data, targetType);
+	case GL_INT:
+		return _castGLenumTypeData!int(cast(int[]) data, targetType);
+	case GL_UNSIGNED_BYTE:
+		return _castGLenumTypeData!ubyte(cast(ubyte[]) data, targetType);
+	case GL_UNSIGNED_SHORT:
+		return _castGLenumTypeData!ushort(cast(ushort[]) data, targetType);
+	case GL_UNSIGNED_INT:
+		return _castGLenumTypeData!uint(cast(uint[]) data, targetType);
+	case GL_FLOAT:
+		return _castGLenumTypeData!float(cast(float[]) data, targetType);
+	case GL_DOUBLE:
+		return _castGLenumTypeData!double(cast(double[]) data, targetType);
+	default:
+		assert(0, "Unsupported GLenum to type: " ~ type.to!string);
 	}
 }
 
 uint getGLenumDrawModeCount(GLenum drawMode) {
 	switch (drawMode) {
-		case GL_POINTS:
-			return 1;
-		case GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP:
-			return 2;
-		case GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
-			return 3;
-		default:
-			assert(0, "DrawMode unknown: " ~ drawMode.to!string);
+	case GL_POINTS, GL_LINE_LOOP, GL_LINE_STRIP, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
+		return 1;
+	case GL_LINES:
+		return 2;
+	case GL_TRIANGLES:
+		return 3;
+	default:
+		assert(0, "DrawMode unknown: " ~ drawMode.to!string);
 	}
 }
 
@@ -166,5 +227,5 @@ void assertEqual(T)(T left, T right) {
 void assertAlmostEqual(T)(T left, T right, float delta = 1e-5) {
 	assert(abs(left - right) < delta,
 		"Expected abs(" ~ left.to!string ~ " - " ~ right.to!string ~ ") = " ~ (left - right)
-		.to!string ~ " < " ~ delta.to!string);
+			.to!string ~ " < " ~ delta.to!string);
 }

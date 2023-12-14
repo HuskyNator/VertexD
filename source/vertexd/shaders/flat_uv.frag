@@ -13,6 +13,8 @@ layout(row_major,std140,binding=1)uniform Texture{
 	uint64_t bindlessTexture;
 };
 
+uniform vec4 color;
+
 // in vec4 gl_Position;
 in vec2 frag_TEXCOORD0;
 
@@ -20,7 +22,7 @@ out vec4 out_color;
 
 void main(){
 	if(bindlessTexture==0){
-		out_color=vec4(0,1,0,1);}
+		out_color=color;}
 	else{
 		out_color = texture(sampler2D(bindlessTexture), frag_TEXCOORD0);}
 }
