@@ -143,14 +143,15 @@ class Texture {
 	Vec!4 sampleTexture(Vec!2 uv) {
 		// TODO mipmaps?
 		Vec!(2, uint) size = Vec!(2, uint)(width, height);
+		uv *= size;
 		Vec!(2, uint) low = cast(Vec!(2, uint))((uv.each!floor) % size);
 		Vec!(2, uint) high = (low + 1) % size;
 		Vec!2 delta = uv - low;
 		Vec!(4, float) sample;
-		sample += (cast(Vec!(4, float)) pixels[low.x + low.y * width]) / 256 * (1 - delta.x) * (1 - delta.y);
-		sample += (cast(Vec!(4, float)) pixels[low.x + high.y * width]) / 256 * (1 - delta.x) * delta.y;
-		sample += (cast(Vec!(4, float)) pixels[high.x + low.y * width]) / 256 * delta.x * (1 - delta.y);
-		sample += (cast(Vec!(4, float)) pixels[high.x + high.y * width]) / 256 * delta.x * delta.y;
+		sample += (cast(Vec!(4, float)) pixels[low.x + low.y * width]) / 256.0f * (1 - delta.x) * (1 - delta.y);
+		sample += (cast(Vec!(4, float)) pixels[low.x + high.y * width]) / 256.0f * (1 - delta.x) * delta.y;
+		sample += (cast(Vec!(4, float)) pixels[high.x + low.y * width]) / 256.0f * delta.x * (1 - delta.y);
+		sample += (cast(Vec!(4, float)) pixels[high.x + high.y * width]) / 256.0f * delta.x * delta.y;
 		return sample;
 	}
 
