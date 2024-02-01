@@ -611,7 +611,7 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 
 	static if (isVec)
 		string toString() const {
-			char[] cs;
+			char[] cs = ['['];
 			foreach (v; vec)
 				cs ~= v.to!string ~ ", ";
 			cs = cs[0 .. $ - 2] ~ ']';
