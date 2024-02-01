@@ -90,14 +90,15 @@ class Texture {
 	bool mipmap;
 	GLsizei levels = 0;
 
-	private this(string name) {
+	private this() {
 		this.name = name;
 		glCreateTextures(GL_TEXTURE_2D, 1, &id);
 		writeln("Texture created: " ~ id.to!string);
 	}
 
 	this(uint W, uint H, Vec!(4, ubyte)[] pixels = null, string name = "Texture") {
-		this(name);
+		this();
+		this.name = name;
 		this.width = W;
 		this.height = H;
 
@@ -118,7 +119,7 @@ class Texture {
 
 	static Image readImage(string file) {
 		Image image;
-		enforce(image.loadFromFile(file, constraints | loadConstraint), "Could not load image from file."); // rgba8
+		enforce(image.loadFromFile(file, constraints | loadConstraint), "Could not load image from file: " ~ file); // rgba8
 		return image;
 	}
 
@@ -136,21 +137,21 @@ class Texture {
 
 	/// Samples the texture bilinearly
 	///
-	/// Note return values range from 0 to 255.
 	/// Params:
 	///   uv = The uv coordinates applicable
 	/// Returns: The bilinear sampled texture value
-	Vec!(4, float) sampleTexture(Vec!2 uv) {
+	Vec!4 sampleTexture(Vec!2 uv) {
 		// TODO mipmaps?
 		Vec!(2, uint) size = Vec!(2, uint)(width, height);
+		uv *= size;
 		Vec!(2, uint) low = cast(Vec!(2, uint))((uv.each!floor) % size);
-		Vec!(2, uint) high = cast(Vec!(2, uint))((uv.each!ceil) % size);
+		Vec!(2, uint) high = (low + 1) % size;
 		Vec!2 delta = uv - low;
 		Vec!(4, float) sample;
-		sample += pixels[low.x + low.y * width] * delta.x * delta.y;
-		sample += pixels[low.x + high.y * width] * delta.x * (1 - delta.y);
-		sample += pixels[high.x + low.y * width] * (1 - delta.x) * delta.y;
-		sample += pixels[high.x + high.y * width] * (1 - delta.x) * (1 - delta.y);
+		sample += (cast(Vec!(4, float)) pixels[low.x + low.y * width]) / 256.0f * (1 - delta.x) * (1 - delta.y);
+		sample += (cast(Vec!(4, float)) pixels[low.x + high.y * width]) / 256.0f * (1 - delta.x) * delta.y;
+		sample += (cast(Vec!(4, float)) pixels[high.x + low.y * width]) / 256.0f * delta.x * (1 - delta.y);
+		sample += (cast(Vec!(4, float)) pixels[high.x + high.y * width]) / 256.0f * delta.x * delta.y;
 		return sample;
 	}
 
