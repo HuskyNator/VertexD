@@ -168,31 +168,30 @@ abstract class Mesh {
 		}
 	}
 
-	this(ShaderProgram shaderProgram, string name = "", GLenum drawMode = GL_TRIANGLES) {
+	this(ShaderProgram shaderProgram, string name = null, GLenum drawMode = GL_TRIANGLES) {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
-		// TODO: create global id-tracker/namer, not just for meshes.
-		this.name = name.length > 0 ? name : "Mesh#" ~ vao.to!string;
+		this.name = (name is null) ? vdName!Mesh : name;
 		this.shaderProgram = shaderProgram;
 		this.drawMode = drawMode;
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteVertexArrays(1, &vao);
-		printf("Mesh removed: %u\n", vao);
+		write("Mesh removed: ");
+		writeln(vao);
 	}
 
-	abstract void drawSetup(Node node);
+	void drawSetup(Node node) {
+		shaderProgram.use();
+		shaderProgram.setUniform("modelMatrix", node.modelMatrix);
+		// shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
+	}
 
 	void draw(Node node) {
-		shaderProgram.use();
-		// shader.setUniform("modelMatrix", node.modelMatrix);
-		shaderProgram.setUniform(0, node.modelMatrix); // modelMatrix
-		glBindVertexArray(vao);
 		drawSetup(node);
+		glBindVertexArray(vao);
 
 		assert(index.attr.indexCount > 0);
 		if (indexed())

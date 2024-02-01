@@ -18,10 +18,8 @@ class GltfMesh : Mesh {
 	AttributeSet attributeSet;
 
 	public this(Material material, AttributeSet attributeSet, IndexAttribute indexAttribute,
-		string name = "", ShaderProgram shader = ShaderProgram.gltfShaderProgram(), GLenum drawMode = GL_TRIANGLES) {
+		string name = null, ShaderProgram shader = ShaderProgram.gltfShaderProgram(), GLenum drawMode = GL_TRIANGLES) {
 		super(shader, name, drawMode);
-		if (name.length == 0)
-			this.name = "GltfMesh#" ~ vao.to!string;
 		this.material = material;
 		this.attributeSet = attributeSet;
 		setIndex(indexAttribute);
@@ -41,7 +39,7 @@ class GltfMesh : Mesh {
 
 		if (drawMode == GL_TRIANGLES) //TODO: other triangle draw modes.
 		{
-			bool normalTexture = material.normal_texture.present;
+			bool normalTexture = material.normal_texture !is null;
 			bool shouldGenerateTangents = attributeSet.normal.present() && !attributeSet.tangent.present();
 
 			if (!attributeSet.normal.present()) {
@@ -87,6 +85,7 @@ class GltfMesh : Mesh {
 	}
 
 	override void drawSetup(Node node) {
+		super.drawSetup(node);
 		material.use();
 		setMissingVertexAttributes();
 	}

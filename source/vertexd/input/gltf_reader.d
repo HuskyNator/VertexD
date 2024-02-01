@@ -31,11 +31,10 @@ private:
 	Json json;
 
 	Sampler[] samplers;
-	Image[] images;
-	TextureHandle[] textureHandles;
+	Texture[] textures;
+	BindlessTexture[] bindlessTextures;
 
-	alias Image = Texture;
-	// alias BindlessTexture = TextureHandle;
+	// alias BindlessTexture = BindlessTexture;
 	// alias TextureInfo = BindlessTexture;
 
 	ubyte[][] buffers;
@@ -108,9 +107,10 @@ private:
 	}
 
 	World readWorld(Json world_json) {
-		World world = new World();
+		string name = null;
 		if (JsonVal* j = "name" in world_json)
-			world.name = j.string_;
+			name = j.string_;
+		World world = new World(name);
 
 		JsonVal[] children = world_json.get("nodes", JsonVal(cast(JsonVal[])[])).list;
 		foreach (JsonVal child; children)
@@ -123,18 +123,18 @@ private:
 		JsonVal[] nodes_json = json["nodes"].list;
 		nodes = new Node[nodes_json.length];
 
-		foreach (i; 0 .. nodes_json.length)
-			nodes[i] = new Node(); // Preinitialize to permit child references
+		foreach (i, JsonVal node; nodes_json) {
+			string name = null;
+			if (JsonVal* j = "name" in node.object)
+				name = j.string_;
+			nodes[i] = new Node(name); // Preinitialize to permit child references
+		}
 
 		foreach (i, JsonVal node; nodes_json)
 			readNode(nodes[i], node.object);
 	}
 
 	Node readNode(ref Node node, Json node_json) {
-		string name = "";
-		if (JsonVal* j = "name" in node_json)
-			node.name = j.string_;
-
 		if (JsonVal* j = "mesh" in node_json)
 			node.meshes = cast(Mesh[]) this.meshes[j.long_];
 
@@ -181,7 +181,7 @@ private:
 	}
 
 	Camera readCamera(Json camera_json) {
-		string name = "";
+		string name = null;
 		if (JsonVal* j = "name" in camera_json)
 			name = j.string_;
 
@@ -196,14 +196,20 @@ private:
 			precision nearplane = setting["znear"].getType!double();
 			precision backplane = setting["zfar"].getType!double();
 
-			// Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
-			Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
+			Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
+			// Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection();
-			return new Camera(projectionMatrix);
+			return new Camera(projectionMatrix, name);
 		} else {
 			enforce(type == "orthographic");
-			assert(0, "Orthographic camera not yet implemented");
-			// TODO Orthographic camera
+			Json setting = camera_json["orthographic"].object;
+			precision width = setting["xmag"].getType!double();
+			precision height = setting["ymag"].getType!double();
+			precision nearplane = setting["znear"].getType!double();
+			precision farplane = setting["zfar"].getType!double();
+
+			Mat!4 projectionMatrix = Camera.orthographicProjection(width, height, nearplane, farplane);
+			return new Camera(projectionMatrix, name);
 		}
 	}
 
@@ -213,7 +219,9 @@ private:
 
 		foreach (JsonVal mesh; meshes_json) {
 			Json mesh_json = mesh.object;
-			string name = mesh_json.get("name", JsonVal("")).string_;
+			string name = null;
+			if (JsonVal* j = "name" in mesh_json)
+				name = j.string_;
 
 			GltfMesh[] primitives;
 			JsonVal[] primitives_json = mesh_json["primitives"].list;
@@ -293,22 +301,22 @@ private:
 
 	GLenum getRenderTypeGLenum(uint drawMode) {
 		switch (drawMode) {
-			case 0:
-				return GL_POINTS;
-			case 1:
-				return GL_LINES;
-			case 2:
-				return GL_LINE_LOOP;
-			case 3:
-				return GL_LINE_STRIP;
-			case 4:
-				return GL_TRIANGLES;
-			case 5:
-				return GL_TRIANGLE_STRIP;
-			case 6:
-				return GL_TRIANGLE_FAN;
-			default:
-				assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
+		case 0:
+			return GL_POINTS;
+		case 1:
+			return GL_LINES;
+		case 2:
+			return GL_LINE_LOOP;
+		case 3:
+			return GL_LINE_STRIP;
+		case 4:
+			return GL_TRIANGLES;
+		case 5:
+			return GL_TRIANGLE_STRIP;
+		case 6:
+			return GL_TRIANGLE_FAN;
+		default:
+			assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
 		}
 	}
 
@@ -323,69 +331,74 @@ private:
 
 	Sampler readSampler(Json s_json) {
 		//TODO: decide on defaults
-		uint minFilter = GL_NEAREST;
-		uint magFilter = GL_NEAREST;
+		Sampler.MinFilter minFilter = Sampler.MinFilter.NEAREST;
+		Sampler.MagFilter magFilter = Sampler.MagFilter.NEAREST;
 
 		if (JsonVal* j = "minFilter" in s_json)
-			minFilter = gltfToGlFilter(j.long_, true);
+			minFilter = gltfToGlFilter!true(j.long_);
 		if (JsonVal* j = "magFilter" in s_json)
-			magFilter = gltfToGlFilter(j.long_, false);
+			magFilter = gltfToGlFilter!false(j.long_);
 
-		uint wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
-		uint wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
+		Sampler.Wrap wrapS = gltfToGLWrap(s_json.get("wrapS", JsonVal(10497)).long_);
+		Sampler.Wrap wrapT = gltfToGLWrap(s_json.get("wrapT", JsonVal(10497)).long_);
 		string name = s_json.get("name", JsonVal("")).string_;
 
-		return new Sampler(name, wrapS, wrapT, minFilter, magFilter);
+		return new Sampler(name, wrapS, wrapT, minFilter, magFilter, true); //TODO: anisotroic true/false?
 	}
 
-	uint gltfToGLWrap(long gltfWrap) {
+	Sampler.Wrap gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
-			case 33071:
-				return GL_CLAMP_TO_EDGE;
-			case 33648:
-				return GL_MIRRORED_REPEAT;
-			case 10497:
-				return GL_REPEAT;
-			default:
-				assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
+		case 33071:
+			return Sampler.Wrap.CLAMP_TO_EDGE;
+		case 33648:
+			return Sampler.Wrap.MIRRORED_REPEAT;
+		case 10497:
+			return Sampler.Wrap.REPEAT;
+		default:
+			assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
 		}
 	}
 
-	uint gltfToGlFilter(long gltfFilter, bool isMinFilter) {
+	auto gltfToGlFilter(bool isMinFilter)(long gltfFilter) {
+		static if (isMinFilter)
+			alias FilterType = Sampler.MinFilter;
+		else
+			alias FilterType = Sampler.MagFilter;
+
 		switch (gltfFilter) {
-			case 9728:
-				return GL_NEAREST;
-			case 9729:
-				return GL_LINEAR;
-			default:
-		}
-		enforce(isMinFilter, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
-		switch (gltfFilter) {
-			case 9984:
-				return GL_NEAREST_MIPMAP_NEAREST;
-			case 9985:
-				return GL_LINEAR_MIPMAP_NEAREST;
-			case 9986:
-				return GL_NEAREST_MIPMAP_LINEAR;
-			case 9987:
-				return GL_LINEAR_MIPMAP_LINEAR;
-			default:
+		case 9728:
+			return FilterType.NEAREST;
+		case 9729:
+			return FilterType.LINEAR;
+			static if (isMinFilter) {
+		case 9984:
+				return FilterType.NEAREST_MIPMAP_NEAREST;
+		case 9985:
+				return FilterType.LINEAR_MIPMAP_NEAREST;
+		case 9986:
+				return FilterType.NEAREST_MIPMAP_LINEAR;
+		case 9987:
+				return FilterType.LINEAR_MIPMAP_LINEAR;
+			}
+		default:
+			static if (isMinFilter)
 				assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
+			else
+				assert(0, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
 		}
 	}
 
 	void readImages(string dir) {
 		if (JsonVal* j = "images" in json) {
-			images.reserve(j.list.length);
+			textures.reserve(j.list.length);
 
 			version (MultiThreadImageLoad) {
 				import std.parallelism;
-				import imageformats;
 
 				auto tasks = taskPool();
-				__gshared IFImage[] sharedIFImages;
+				__gshared Image[] sharedImages;
 				__gshared string[] sharedNames;
-				sharedIFImages = new IFImage[j.list.length];
+				sharedImages = new Image[j.list.length];
 				sharedNames = new string[j.list.length];
 			}
 
@@ -398,23 +411,23 @@ private:
 				} else {
 					content = this.gltfBufferViews[image_json["bufferView"].long_].content;
 				}
-				string name = image_json.get("name", JsonVal("")).string_;
+				string name = image_json.get("name", JsonVal.NULL).string_;
 
 				version (MultiThreadImageLoad) {
 					auto readImage = (ubyte[] content, string name, size_t index) {
-						sharedIFImages[index] = Image.readImage(content);
+						sharedImages[index] = Texture.readImage(content);
 						sharedNames[index] = name;
 					};
 					tasks.put(task(readImage, content, name, index));
 				} else {
-					images ~= new Image(content, name);
+					textures ~= new Texture(Texture.readImage(content), name);
 				}
 			}
 
 			version (MultiThreadImageLoad) {
 				tasks.finish(true);
-				foreach (i; 0 .. sharedIFImages.length)
-					images ~= new Image(sharedIFImages[i], sharedNames[i]);
+				foreach (i; 0 .. sharedImages.length)
+					textures ~= new Texture(sharedImages[i], sharedNames[i]);
 			}
 		}
 	}
@@ -422,14 +435,14 @@ private:
 	void readTextures() {
 		if (JsonVal* ts_json = "textures" in json) {
 			JsonVal[] ts = ts_json.list;
-			textureHandles = new TextureHandle[ts.length];
+			bindlessTextures = new BindlessTexture[ts.length];
 			foreach (long i; 0 .. ts.length) {
 				Json t_json = ts[i].object;
 
-				string name = t_json.get("name", JsonVal("")).string_;
+				string name = t_json.get("name", JsonVal.NULL).string_;
 
 				assert("source" in t_json, "BindlessTexture has no image");
-				Texture base = images[t_json["source"].long_];
+				Texture base = textures[t_json["source"].long_];
 
 				Sampler sampler;
 				if (JsonVal* s = "sampler" in t_json)
@@ -437,7 +450,7 @@ private:
 				else
 					sampler = samplers[$ - 1];
 
-				textureHandles[i] = new TextureHandle(name, base, sampler);
+				bindlessTextures[i] = new BindlessTexture(base, sampler, name);
 			}
 		}
 	}
@@ -449,8 +462,7 @@ private:
 	}
 
 	BindlessTexture readTexture(Json t_json) {
-		BindlessTexture t;
-		t.handle = textureHandles[t_json["index"].long_];
+		BindlessTexture t = bindlessTextures[t_json["index"].long_];
 		t.texCoord = cast(int) t_json.get("texCoord", JsonVal(0)).long_;
 		return t;
 	}
@@ -470,19 +482,19 @@ private:
 	Material readMaterial(Json m_json) {
 		Material.AlphaBehaviour translateAlphaBehaviour(string behaviour) {
 			switch (behaviour) {
-				case "OPAQUE":
-					return Material.AlphaBehaviour.OPAQUE;
-				case "MASK":
-					return Material.AlphaBehaviour.MASK;
-				case "BLEND":
-					return Material.AlphaBehaviour.BLEND;
-				default:
-					assert(0, "Invalid alphabehaviour: " ~ behaviour);
+			case "OPAQUE":
+				return Material.AlphaBehaviour.OPAQUE;
+			case "MASK":
+				return Material.AlphaBehaviour.MASK;
+			case "BLEND":
+				return Material.AlphaBehaviour.BLEND;
+			default:
+				assert(0, "Invalid alphabehaviour: " ~ behaviour);
 			}
 		}
 
-		Material material = new Material();
-		material.name = m_json.get("name", JsonVal("")).string_;
+		string name = m_json.get("name", JsonVal.NULL).string_;
+		Material material = new Material(name);
 
 		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json) {
 			Json pbr_j = pbr_jval.object;
@@ -527,7 +539,7 @@ private:
 	}
 
 	Light readLight(Json lj) {
-		string name = "";
+		string name = null;
 		Vec!3 color = Vec!3(1);
 		precision strength = 1;
 
@@ -543,14 +555,14 @@ private:
 		string type = lj["type"].string_;
 		switch (type) {
 			case "directional":
-				return new Light(Light.Type.DIRECTIONAL, color, strength, range);
+				return new Light(Light.Type.DIRECTIONAL, color, name, strength, range);
 			case "point":
-				return new Light(Light.Type.FRAGMENT, color, strength, range);
+				return new Light(Light.Type.POINT, color, name, strength, range);
 			case "spot":
 				Json spotj = lj["spot"].object;
 				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
 				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
-				return new Light(Light.Type.SPOTLIGHT, color, strength, range, innerAngle, outerAngle);
+				return new Light(Light.Type.SPOTLIGHT, color, name, strength, range, innerAngle, outerAngle);
 			default:
 				assert(0, "Light type unknown: " ~ type);
 		}
@@ -582,48 +594,49 @@ private:
 			for (size_t j = 0; j < accessor.elementCount; j += 1) {
 				auto je = j * accessor.elementSize;
 				auto js = j * stride + relativeOffset;
-				accessor.content[je .. je + accessor.elementSize] = bufferView.content[js .. js + accessor.elementSize];
+				accessor.content[je .. je + accessor.elementSize] = bufferView
+					.content[js .. js + accessor.elementSize];
 			}
 		}
 	}
 
 	uint translateAttributeType(int type) {
 		switch (type) {
-			case 5120:
-				return GL_BYTE;
-			case 5121:
-				return GL_UNSIGNED_BYTE;
-			case 5122:
-				return GL_SHORT;
-			case 5123:
-				return GL_UNSIGNED_SHORT;
-			case 5125:
-				return GL_UNSIGNED_INT;
-			case 5126:
-				return GL_FLOAT;
-			default:
-				assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
+		case 5120:
+			return GL_BYTE;
+		case 5121:
+			return GL_UNSIGNED_BYTE;
+		case 5122:
+			return GL_SHORT;
+		case 5123:
+			return GL_UNSIGNED_SHORT;
+		case 5125:
+			return GL_UNSIGNED_INT;
+		case 5126:
+			return GL_FLOAT;
+		default:
+			assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
 		}
 	}
 
 	ubyte translateAttribyteTypeCount(string type) {
 		switch (type) {
-			case "SCALAR":
-				return 1;
-			case "VEC2":
-				return 2;
-			case "VEC3":
-				return 3;
-			case "VEC4":
-				return 4;
-			case "MAT2":
-				return 4;
-			case "MAT3":
-				return 9;
-			case "MAT4":
-				return 16;
-			default:
-				assert(0, "Unsupported accessor.type: " ~ type);
+		case "SCALAR":
+			return 1;
+		case "VEC2":
+			return 2;
+		case "VEC3":
+			return 3;
+		case "VEC4":
+			return 4;
+		case "MAT2":
+			return 4;
+		case "MAT3":
+			return 9;
+		case "MAT4":
+			return 16;
+		default:
+			assert(0, "Unsupported accessor.type: " ~ type);
 		}
 	}
 
@@ -654,7 +667,8 @@ private:
 
 			ubyte[] content = readURI(uri, dir);
 			enforce(content.length == size,
-				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size.to!string); // May result in padding issues (GLB).
+				"Buffer size incorrect: " ~ content.length.to!string ~ " in stead of " ~ size
+					.to!string); // May result in padding issues (GLB).
 			buffers[i] = content;
 		}
 	}
