@@ -108,7 +108,7 @@ void main(){
 			vec3 halfway_world=normalize(lightDir_world+cameraDir_world);
 			float diffuse=u_diffuse*clamp(dot(normal_world,lightDir_world),0.,1.);
 			float specular=u_specular*clamp(pow(dot(halfway_world,normal_world),u_specular_power),0.,1.);
-			light_sum+=u_occlusion+diffuse+specular;
+			light_sum+=(u_occlusion+diffuse+specular)*l.strength;
 		}
 	}
 	

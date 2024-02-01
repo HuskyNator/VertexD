@@ -2,9 +2,18 @@ module vertexd.misc;
 
 import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
-import std.math : PI;
 import std.conv : to;
-import std.traits : isScalarType;
+import std.math : abs, PI;
+import std.traits : isFloatingPoint, isScalarType;
+
+void tryWriteln(T)(T output) nothrow {
+	import std.stdio : writeln;
+
+	try {
+		writeln(output);
+	} catch (Exception e) {
+	}
+}
 
 void remove(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);
@@ -128,12 +137,12 @@ ubyte[] padding(size_t size) {
 	return (b).replicate(size);
 }
 
-D degreesToRadians(D)(D degrees) {
+D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
 	static real factor = PI / 180;
 	return cast(D)(degrees * factor);
 }
 
-R radiansToDegrees(R)(R radians) {
+R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
 	static real factor = 180 / PI;
 	return cast(R)(radians * factor);
 }
@@ -148,4 +157,14 @@ auto bitWidth(T)(T x) if (isScalarType!T) {
 		result += 1;
 	}
 	return result;
+}
+
+void assertEqual(T)(T left, T right) {
+	assert(left == right, "Expected " ~ left.to!string ~ " == " ~ right.to!string);
+}
+
+void assertAlmostEqual(T)(T left, T right, float delta = 1e-5) {
+	assert(abs(left - right) < delta,
+		"Expected abs(" ~ left.to!string ~ " - " ~ right.to!string ~ ") = " ~ (left - right)
+		.to!string ~ " < " ~ delta.to!string);
 }

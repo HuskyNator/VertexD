@@ -35,10 +35,9 @@ public:
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteBuffers(1, &buffer);
-		printf("Buffer removed: %u\n", buffer);
+		write("Buffer removed: ");
+		writeln(buffer);
 	}
 
 	void reset(size_t size) {

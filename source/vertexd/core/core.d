@@ -26,55 +26,73 @@ debug void vdShowConsole(bool visible) {
 }
 
 void vdInit() {
-	debug {
-		console = GetConsoleWindow();
-		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
-	} else {
-		FreeConsole();
-	}
+	// debug {
+	// 	console = GetConsoleWindow();
+	// 	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
+	// } else {
+	// 	FreeConsole();
+	// }
 
 	glfwSetErrorCallback(&glfw_error_callback);
 	glfwInit();
 	_vdTime = StopWatch(AutoStart.yes); // Restores to 0 once vdLoop is called
 }
 
+ulong[ClassInfo] _vdClassCounts;
+
+string vdName(C)() if (is(C == class)) {
+	return vdName(C.classinfo);
+}
+
+string vdName(ClassInfo cinfo) {
+	ulong newCount = 1uL;
+	if (cinfo in _vdClassCounts)
+		newCount = _vdClassCounts[cinfo] + 1; // wraps around to 0
+	_vdClassCounts[cinfo] = newCount;
+	return cinfo.name ~ '#' ~ newCount.to!string;
+}
+
 private ulong _vdStepCount = 0;
 private StopWatch _vdTime;
 
-@property
-public ulong vdStepcount() {
+@property public ulong vdStepcount() {
 	return _vdStepCount;
 }
 
-@property
-public Duration vdTime() {
+@property public Duration vdTime() {
 	return _vdTime.peek();
 }
 
+public Duration vdDelta() {
+	return _vdDeltaT;
+}
+
+public float vdFps() {
+	return 1_000_000.0f / _vdDeltaT.total!"usecs";
+}
+
+private Duration _vdDeltaT;
 public void vdStep() {
 	static Duration oldT = Duration.zero();
 	_vdStepCount += 1;
 	Duration newT = vdTime();
-	Duration deltaT = newT - oldT;
+	_vdDeltaT = newT - oldT;
 	oldT = newT;
 
-	foreach (Window window; Window.windows.values)
+	foreach (Window window; Window.windows.values) {
 		window.processInput();
+		if (glfwWindowShouldClose(window.glfw_window))
+			destroy(window);
+	}
 
 	foreach (World world; World.worlds)
-		world.logicStep(deltaT);
+		world.logicStep(_vdDeltaT);
 
 	foreach (World world; World.worlds)
 		world.update();
 
-	foreach (Window window; Window.windows.values) {
-		GLFWwindow* glfw_window = window.glfw_window;
-		if (glfwWindowShouldClose(window.glfw_window)) {
-			glfwDestroyWindow(glfw_window);
-			Window.windows.remove(glfw_window);
-		} else
-			window.draw();
-	}
+	foreach (Window window; Window.windows.values)
+		window.draw();
 
 	foreach (Window window; Window.windows.values)
 		window.clearInput();
@@ -82,8 +100,13 @@ public void vdStep() {
 	glfwPollEvents();
 }
 
+bool vdShouldClose() {
+	return Window.windows.length == 0;
+}
+
 public void vdLoop() {
 	_vdTime.reset();
-	while (Window.windows.length > 0)
+	while (!vdShouldClose())
 		vdStep();
+	writeln("\nLast window removed. Halting loop.\n");
 }

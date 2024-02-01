@@ -3,26 +3,43 @@ import bindbc.opengl;
 import std.conv;
 import std.stdio;
 import std.typecons : Nullable;
+import vertexd.core.core;
 
 class Sampler {
-	string name;
 	uint id;
+	string name;
 
-	uint wrapS;
-	uint wrapT;
-	uint minFilter;
-	uint magFilter;
+	Wrap wrapS;
+	Wrap wrapT;
+	MinFilter minFilter;
+	MagFilter magFilter;
+
+	enum Wrap : uint {
+		CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,
+		MIRROR_CLAMP_TO_EDGE = GL_MIRROR_CLAMP_TO_EDGE,
+		CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER,
+		REPEAT = GL_REPEAT,
+		MIRRORED_REPEAT = GL_MIRRORED_REPEAT
+	}
+
+	enum MinFilter : uint {
+		NEAREST = GL_NEAREST,
+		LINEAR = GL_LINEAR,
+		NEAREST_MIPMAP_NEAREST = GL_NEAREST_MIPMAP_NEAREST,
+		LINEAR_MIPMAP_NEAREST = GL_LINEAR_MIPMAP_NEAREST,
+		NEAREST_MIPMAP_LINEAR = GL_NEAREST_MIPMAP_LINEAR,
+		LINEAR_MIPMAP_LINEAR = GL_LINEAR_MIPMAP_LINEAR
+	}
+
+	enum MagFilter : uint {
+		NEAREST = GL_NEAREST,
+		LINEAR = GL_LINEAR
+	}
 
 	@disable this();
 
-	this(string name, uint wrapS = GL_REPEAT, uint wrapT = GL_REPEAT, uint minFilter = GL_NEAREST,
-		uint magFilter = GL_NEAREST, bool anisotropic = true) {
-		assert(minFilter == GL_NEAREST || minFilter == GL_LINEAR
-				|| minFilter == GL_NEAREST_MIPMAP_NEAREST || minFilter == GL_LINEAR_MIPMAP_NEAREST
-				|| minFilter == GL_NEAREST_MIPMAP_LINEAR
-				|| minFilter == GL_LINEAR_MIPMAP_LINEAR, "Invalid minFilter:" ~ minFilter.to!string);
-		assert(magFilter == GL_NEAREST || magFilter == GL_LINEAR, "Invalid magFilter:" ~ magFilter.to!string);
-
+	this(string name, Wrap wrapS = Wrap.REPEAT, Wrap wrapT = Wrap.REPEAT,
+		MinFilter minFilter = MinFilter.NEAREST, MagFilter magFilter = MagFilter.NEAREST, bool anisotropic = false) {
 		this.name = name;
 		this.wrapS = wrapS;
 		this.wrapT = wrapT;
@@ -45,10 +62,9 @@ class Sampler {
 	}
 
 	~this() {
-		import core.stdc.stdio : printf;
-
 		glDeleteSamplers(1, &id);
-		printf("Sampler removed: %u\n", id);
+		write("Sampler removed: ");
+		writeln(id);
 	}
 
 	void use(uint location) {

@@ -1,9 +1,10 @@
 module vertexd.core.mat;
-import vertexd.misc;
+import std.conv : to;
 import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
-import std.traits : isCallable, ReturnType;
+import std.traits : isCallable, isFloatingPoint, ReturnType;
+import vertexd.misc;
 
 alias prec = precision;
 version (HoekjeD_Double) {
@@ -50,17 +51,22 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 	}
 
-	this(Type[size] n) {
-		this.vec = n;
-	}
-
-	this(Type[] n) {
-		enforce(n.length == size);
+	this(Type[] n...) {
 		this.vec = n;
 	}
 
 	this(Type[column_count][row_count] n) {
 		this.mat = n;
+	}
+
+	unittest {
+		Vec!3 a = Vec!3([1, 2, 3]);
+		Vec!3 b = Vec!3(1, 2, 3);
+		assert(a == b);
+
+		Mat!3 c = Mat!3(0, 1, 2, 3, 4, 5, 6, 7, 8);
+		Mat!3 d = Mat!3([[0, 1, 2], [3, 4, 5], [6, 7, 8]]);
+		assert(c == d);
 	}
 
 	static if (isVec)
@@ -176,7 +182,7 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			Mat!2 M = Mat!2([3, 5, 7, 11]);
 			Mat!2 I = M.inverse().mult(M);
 			Vec!2 i = Vec!2(1);
-			assert(i.isRoughly(I.mult(i)));
+			assert(i.almostEqs(I.mult(i)));
 		}
 
 		unittest {
@@ -184,17 +190,17 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 
 			Mat!3 I = M.inverse().mult(M);
 			Vec!3 i = Vec!3(1);
-			assert(i.isRoughly(I.mult(i)));
+			assert(i.almostEqs(I.mult(i)));
 		}
 
 		unittest {
 			Mat!4 M = Mat!4([1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16]); // Determinant 512
 			Mat!4 I = M.inverse().mult(M);
 			Vec!4 i = Vec!4(1);
-			assert(i.isRoughly(I.mult(i)));
+			assert(i.almostEqs(I.mult(i)));
 		}
 
-		static if (row_count == 3 || row_count == 4) {
+		static if ((row_count == 3 || row_count == 4) && isFloatingPoint!Type) {
 			static {
 				MatType rotationMx(precision angle) {
 					MatType rotationM = MatType(1);
@@ -212,7 +218,7 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 
 					Mat!4 rotation = Mat!(4).rotationMx(0);
 					Mat!4 rotation2 = Mat!4(1);
-					assert(rotation.isRoughly(rotation2));
+					assert(rotation.almostEqs(rotation2));
 
 					rotation = Mat!(4).rotationMx(PI_2);
 					rotation2 = Mat!4();
@@ -408,6 +414,48 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		assert(a.sum() == 12);
 	}
 
+	static if (__traits(isFloating, Type) || __traits(isIntegral, Type))
+		Type min() const {
+			Type minVal = Type.max;
+			foreach (i; 0 .. size) {
+				if (vec[i] < minVal)
+					minVal = vec[i];
+			}
+			return minVal;
+		}
+
+	unittest {
+		Vec!3 a = Vec!3(-2, 1, 2);
+		assert(a.min() == -2);
+	}
+
+	static if (__traits(isFloating, Type) || __traits(isIntegral, Type))
+		Type max() const {
+			static if (__traits(isFloating, Type))
+				Type maxVal = -Type.max;
+			else
+				Type maxVal = Type.min;
+
+			foreach (i; 0 .. size) {
+				if (vec[i] > maxVal)
+					maxVal = vec[i];
+			}
+			return maxVal;
+		}
+
+	unittest {
+		Vec!3 a = Vec!3(-2, 1, 2);
+		assert(a.max() == 2);
+	}
+
+	auto each(alias fun)() const 
+			if (isCallable!fun && !is(ReturnType!fun == void) && __traits(compiles, fun(Type.init))) {
+		Mat!(row_count, column_count, ReturnType!fun) result;
+		static foreach (i; 0 .. size)
+			result.vec[i] = fun(this.vec[i]);
+		return result;
+	}
+
 	auto each(C)(C func) const 
 			if (isCallable!C && !is(ReturnType!C == void) && __traits(compiles, func(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!C) result;
@@ -432,9 +480,13 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			a.vec[i] = i;
 
 		auto b = a.each(&even);
+		auto c = a.each!even;
 		assert(is(typeof(b) == Mat!(2, 3, bool)));
+		assert(is(typeof(c) == Mat!(2, 3, bool)));
 		foreach (i; 0 .. b.size)
 			assert(b.vec[i] == (i % 2 == 0));
+		foreach (i; 0 .. c.size)
+			assert(c.vec[i] == (i % 2 == 0));
 	}
 
 	unittest {
@@ -536,41 +588,35 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			assert(b.vec[i] == cast(int) a.vec[i]);
 	}
 
-	import std.conv : to;
-	import std.format : FormatSpec;
-	import std.range : put;
-
-	string toString(bool nice = false) const {
-		char[] cs;
-		cs.reserve(6 * size);
-		cs ~= '{';
-		static foreach (i; 0 .. row_count) {
-			cs ~= '[';
-			static foreach (j; 0 .. column_count) {
-				cs ~= this.mat[i][j].to!string;
-				static if (j != column_count - 1)
-					cs ~= ", ";
+	static if (isMat)
+		string toString(bool nice = false)() const {
+			char[] cs;
+			cs.reserve(6 * size);
+			cs ~= '{';
+			static foreach (i; 0 .. row_count) {
+				cs ~= '[';
+				static foreach (j; 0 .. column_count) {
+					cs ~= this.mat[i][j].to!string;
+					static if (j != column_count - 1)
+						cs ~= ", ";
+				}
+				static if (i != row_count - 1)
+					cs ~= nice ? "],\n " : "], ";
+				else
+					cs ~= ']';
 			}
-			static if (i != row_count - 1)
-				cs ~= nice ? "],\n " : "], ";
-			else
-				cs ~= ']';
+			cs ~= '}';
+			return cast(string) cs;
 		}
-		cs ~= '}';
-		return cast(string) cs[0 .. $];
-	}
 
-	void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {
-		sink.put("[");
-		const string _insert = fmt.spec == 'l' ? ",\n " : ", ";
-		static foreach (i; 0 .. row_count - 1) {
-			sink.put(mat[i].to!string);
-			sink.put(_insert);
+	static if (isVec)
+		string toString() const {
+			char[] cs = ['['];
+			foreach (v; vec)
+				cs ~= v.to!string ~ ", ";
+			cs = cs[0 .. $ - 2] ~ ']';
+			return cast(string) cs;
 		}
-		static if (row_count > 0)
-			sink.put(mat[row_count - 1].to!string);
-		sink.put("]");
-	}
 
 	bool opEquals(S)(const Mat!(row_count, column_count, S) other) const @safe pure nothrow {
 		foreach (uint i; 0 .. size)
@@ -626,6 +672,22 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		assert(vec1 == [1.0f, 2.0f]);
 	}
 
+	static if (is(typeof(abs!Type))) {
+		bool almostEq(const MatType other, precision delta = 1e-5) const {
+			return (cast(MatType)(this - other)).each(&abs!Type).sum() < delta;
+		}
+
+		bool assertAlmostEq(const MatType other, precision delta = 1e-5) const { // TODO: fix after abs is fixed
+			MatType diffVec = cast(MatType)(cast(MatType) (this-other)).each!(abs!Type)();
+			float diff = diffVec.sum();
+			// string a = other.to!string;
+			bool holds = diff < delta;
+			assert(holds, "Expected " ~ this.toString ~ " ==(delta=" ~ delta.to!string ~ ") " ~ to!string(
+					other) ~ " but found difference: " ~ to!string(diffVec) ~ " (diff=" ~ diff.to!string ~ ")");
+			return holds;
+		}
+	}
+
 	// Hashes required for associative lists
 	static if (is(Type == byte) || is(Type == ubyte) || is(Type == short) || is(Type == ushort)
 		|| is(Type == int) || is(Type == uint) || is(Type == long) || is(Type == ulong)) {
@@ -672,12 +734,6 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 		}
 	}
 
-	static if (is(typeof(abs!Type))) {
-		bool isRoughly(const MatType other, precision delta = 1e-5) const {
-			return (cast(MatType)(this - other)).each(&abs!Type).sum() < delta;
-		}
-	}
-
 	unittest {
 		float delta = 1e-6;
 		Mat!3 a = Mat!(3)(1);
@@ -685,8 +741,8 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			[delta, -delta, delta], [delta, delta, -delta], [-delta, -delta, delta]
 		];
 		Mat!3 b = a + diff;
-		assert(a.isRoughly(b));
-		assert(!a.isRoughly(b, 8 * delta));
+		assert(a.almostEqs(b));
+		assert(!a.almostEqs(b, 8 * delta));
 	}
 
 	// Get rotation required to rotate a vector from the y axis towards the direction.

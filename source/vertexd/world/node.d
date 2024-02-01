@@ -2,6 +2,7 @@ module vertexd.world.node;
 
 import std.conv : to;
 import std.datetime : Duration;
+import vertexd.core;
 import vertexd.core.mat;
 import vertexd.core.quaternions;
 import vertexd.mesh.mesh;
@@ -19,8 +20,11 @@ class Node {
 	static abstract class Attribute { //TODO: add originUpdate? see propogateOrigin todo
 		Node owner;
 		void addUpdate();
-		void update();
 		void removeUpdate();
+		void update();
+		void logicUpdate();
+		void originUpdate(Origin newOrigin);
+		// TODO improve
 	}
 
 	static ulong nodeCount = 0;
@@ -33,7 +37,7 @@ class Node {
 
 	struct Origin {
 		Node root;
-		World[] worlds; // Plural!
+		World world;
 	}
 
 	Origin origin;
@@ -46,10 +50,15 @@ class Node {
 
 	private bool modified = true;
 
-	this() {
-		this.name = "Node#" ~ nodeCount.to!string;
+	this(Mesh[] meshes, string name = null) {
+		this(name);
+		this.meshes = meshes;
+	}
+
+	this(string name = null) {
+		this.name = (name is null) ? vdName!Node : name;
 		nodeCount += 1;
-		this.origin = Origin(this, []);
+		this.origin = Origin(this, null);
 	}
 
 	public @property {
@@ -81,7 +90,7 @@ class Node {
 		}
 	}
 
-	Vec!3 worldLocation() {
+	Vec!3 worldLocation() nothrow {
 		return Vec!3([modelMatrix[0][3], modelMatrix[1][3], modelMatrix[2][3]]);
 	}
 
@@ -134,7 +143,7 @@ class Node {
 	public void addChild(Node child)
 	in (child !is null)
 	in (child.parent is null)
-	in (child.worlds.length == 0) {
+	in (child.world is null) {
 		child.parent = this;
 		child.propogateOrigin(this.origin);
 		this.children ~= child;
@@ -144,14 +153,18 @@ class Node {
 	in (child !is null)
 	in (child.parent is this)
 	in (child.root == root)
-	in (child.worlds == worlds) {
+	in (child.world == world) {
 		remove(children, child);
-		child.propogateOrigin(Origin(child, []));
+		child.propogateOrigin(Origin(child, null));
 		child.parent = null;
 	}
 
 	void propogateOrigin(Origin newOrigin) { //TODO: provide old & new see attribute todo
+		foreach (Node.Attribute attribute; attributes)
+			attribute.originUpdate(newOrigin); // Perform before overwriting old origin
+
 		this.origin = newOrigin;
+
 		foreach (child; children)
 			child.propogateOrigin(newOrigin);
 	}
