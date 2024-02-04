@@ -1,0 +1,14 @@
+{
+	"authors": [
+		"HuskyNator"
+	],
+	"copyright": "Copyright © 2024, HuskyNator",
+	"description": "VertexD Example",
+	"license": "proprietary",
+	"name": "example",
+	"dependencies": {
+		"vertexd":{
+			"path": "../"
+		}
+	}
+}
