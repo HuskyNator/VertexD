@@ -5,10 +5,12 @@ import vertexd.core;
 import vertexd.world;
 import std.conv : to;
 import std.datetime.stopwatch;
-import std.stdio : writefln;
+import core.atomic;
 import std.stdio;
+import core.sync.mutex;
 
-private extern (C) void glfw_error_callback(int type, const char* description) nothrow {
+private:
+extern (C) void glfw_error_callback(int type, const char* description) nothrow {
 	try {
 		writefln("GLFW Exception %d: %s", type, description.to!string);
 	} catch (Exception e) {
@@ -17,45 +19,39 @@ private extern (C) void glfw_error_callback(int type, const char* description) n
 
 debug {
 	package HWND console = null;
-	package bool _console_visible = false;
+	public bool console_visible = false;
+
+	public void vdShowConsole(bool visible) {
+		ShowWindow(console, visible ? SW_SHOW : SW_HIDE);
+		console_visible = visible;
+	}
 }
 
-debug void vdShowConsole(bool visible) {
-	ShowWindow(console, visible ? SW_SHOW : SW_HIDE);
-	_console_visible = visible;
-}
-
-void vdInit() {
-	// debug {
-	// 	console = GetConsoleWindow();
-	// 	SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
-	// } else {
-	// 	FreeConsole();
-	// }
+public void vdInit() {
+	debug {
+		console = GetConsoleWindow();
+		SetWindowPos(console, HWND_BOTTOM, 0, 0, 1920 / 3, 1080 / 3, SWP_HIDEWINDOW);
+	} else {
+		FreeConsole();
+	}
 
 	glfwSetErrorCallback(&glfw_error_callback);
 	glfwInit();
-	_vdTime = StopWatch(AutoStart.yes); // Restores to 0 once vdLoop is called
+
+	_vdStepCount = 0;
+	_vdTime = StopWatch(AutoStart.yes);
+	_vdDeltaT = _vdDeltaT.zero();
 }
 
-ulong[ClassInfo] _vdClassCounts;
-
-string vdName(C)() if (is(C == class)) {
-	return vdName(C.classinfo);
+public void vdTerminate() {
+	glfwTerminate();
 }
 
-string vdName(ClassInfo cinfo) {
-	ulong newCount = 1uL;
-	if (cinfo in _vdClassCounts)
-		newCount = _vdClassCounts[cinfo] + 1; // wraps around to 0
-	_vdClassCounts[cinfo] = newCount;
-	return cinfo.name ~ '#' ~ newCount.to!string;
-}
+ulong _vdStepCount;
+StopWatch _vdTime;
+Duration _vdDeltaT;
 
-private ulong _vdStepCount = 0;
-private StopWatch _vdTime;
-
-@property public ulong vdStepcount() {
+@property public ulong vdStepCount() {
 	return _vdStepCount;
 }
 
@@ -63,39 +59,35 @@ private StopWatch _vdTime;
 	return _vdTime.peek();
 }
 
-public Duration vdDelta() {
+public Duration vdDeltaT() {
 	return _vdDeltaT;
 }
 
 public float vdFps() {
-	return 1_000_000.0f / _vdDeltaT.total!"usecs";
+	return 1_000_000.0f / vdDeltaT().total!"usecs";
 }
 
-private Duration _vdDeltaT;
 public void vdStep() {
-	static Duration oldT = Duration.zero();
 	_vdStepCount += 1;
+	static Duration oldT = Duration.zero();
 	Duration newT = vdTime();
 	_vdDeltaT = newT - oldT;
 	oldT = newT;
 
-	foreach (Window window; Window.windows.values) {
-		window.processInput();
-		if (glfwWindowShouldClose(window.glfw_window))
-			destroy(window);
-	}
+	// foreach (Window window; Window.windows.values) {
+	// 	window.processInput();
+	// 	if (glfwWindowShouldClose(window.glfw_window))
+	// 		destroy(window);
+	// }
 
-	foreach (World world; World.worlds)
-		world.logicStep(_vdDeltaT);
+	// foreach (World world; World.worlds)
+	// 	world.update();
 
-	foreach (World world; World.worlds)
-		world.update();
+	// foreach (Window window; Window.windows.values)
+	// 	window.draw();
 
-	foreach (Window window; Window.windows.values)
-		window.draw();
-
-	foreach (Window window; Window.windows.values)
-		window.clearInput();
+	// foreach (Window window; Window.windows.values)
+	// 	window.clearInput();
 
 	glfwPollEvents();
 }
@@ -105,7 +97,6 @@ bool vdShouldClose() {
 }
 
 public void vdLoop() {
-	_vdTime.reset();
 	while (!vdShouldClose())
 		vdStep();
 	writeln("\nLast window removed. Halting loop.\n");

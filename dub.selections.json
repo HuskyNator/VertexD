@@ -4,6 +4,8 @@
 		"bindbc-glfw": "0.10.1",
 		"bindbc-loader": "0.3.2",
 		"bindbc-opengl": "0.13.0",
-		"imageformats": "7.0.2"
+		"gamut": "2.3.3",
+		"imageformats": "7.0.2",
+		"intel-intrinsics": "1.11.18"
 	}
 }

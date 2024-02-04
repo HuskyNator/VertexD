@@ -15,13 +15,13 @@
 			"targetType": "executable"
 		}
 	],
-	"copyright": "Copyright © 2021, HuskyNator",
+	"copyright": "Copyright © 2024, HuskyNator",
 	"dependencies": {
 		"bindbc-glfw": "~>0.10.1",
 		"bindbc-opengl": "~>0.13.0",
 		"gamut": "~>2.3.0"
 	},
-	"description": "Dutch OpenGL passion project",
+	"description": "OpenGL Framework",
 	"libs": [
 		"user32",
 		"glfw3dll"
