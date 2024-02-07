@@ -1,38 +1,25 @@
+module app;
 import std.stdio;
-import vertexd;
 
-void main() {
-	App app = new MyApp();
-	app.run();
-}
+abstract class App {
+private:
+	int appCount = 0;
 
-class MyApp : App {
-
-	Player player;
-	Scene scene;
-
-	this() {
-		Cube cube = new Cube();
-		cube.rotation = Vec!3(0, 0, PI / 2);
-		cube.position = Vec!3(3, 3, 3);
-		
-		Player player = new Player();
-		Camera cam = new ProjectiveCamera(w, h, 0, 100);
-		cam.bind(player);
-		// set cam to inherit/child player?
-
-		Scene scene = new Scene();
-		scene.add(cube);
-		scene.add(player);
-		
-
-		Window window = app.addWindow("Test", 800, 800);
-		window.setScene(scene);
-		window.bind(player);
+	this(Engine engine) {
+		if (appCount == 0)
+			Engine.initialize();
+		appCount += 1;
 	}
 
-	override void update() {
-
+	~this() {
+		appCount -= 1;
+		if (appCount == 0)
+			Engine.terminate();
 	}
 
+	abstract void update();
+	final void run() {
+		update();
+		// vdInit();
+	}
 }
