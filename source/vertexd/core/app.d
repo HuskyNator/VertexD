@@ -1,12 +1,23 @@
-module vertexd.core.app;
+module app;
+import mat;
+import bindbc.glfw;
 
-class App {
+abstract class App {
+private:
 	
-	void update();
 
-	void addWindow(Window window){
-		// make window current here?
-		// or rather: create window _here_ (dont instantiate before adding to app?) & have the context be local to the App
-		// or change to `Window addWindow(string name, int width, int height)` ?
+public:
+	Window[] windows;
+
+	this(Window[] windows...) {
+		foreach (Window window; windows)
+			registerWindow(window);
 	}
+
+	final void registerWindow(Window window) {
+		this.windows ~= window;
+		glfwSetKeyCallback(window.glfw_window, &key_callback);
+	}
+
+	abstract void update();
 }
