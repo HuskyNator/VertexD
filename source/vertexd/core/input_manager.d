@@ -1,9 +1,9 @@
-module vertexd.core.input;
+module vertexd.core.input_manager;
 import bindbc.glfw;
 import std.algorithm : min, max;
 
-abstract class Input {
-private static:
+final class InputManager {
+private:
 	uint nextID = 0;
 	uint[int] keyIDs;
 
@@ -35,10 +35,6 @@ private static:
 		return buttonStates[button][action];
 	}
 
-	Vec!(2, double)[Window] mousePos; // persistent
-	Vec!(2, double)[Window] mouseWheel; // persistent??
-	bool[Window] mouseHover;
-
 	void unset() {
 		keyStates[] = [false, false, false];
 		minKeyUpdated[] = 0;
@@ -58,11 +54,11 @@ private static:
 		buttonStates[action][button] = true;
 	}
 
-	extern (C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow {
+	static extern (C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow {
 		App.setKey(scancode, action, true);
 	}
 
-	extern (C) void button_callback(GLFWwindow* window, int button, int action, int mods) nothrow {
+	static extern (C) void button_callback(GLFWwindow* window, int button, int action, int mods) nothrow {
 		App.setButton(button, action);
 	}
 }

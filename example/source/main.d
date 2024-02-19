@@ -4,7 +4,8 @@ import std.stdio;
 import vertexd;
 
 void main() {
-	App app = new MyApp();
+	Engine engine = new Engine();
+	App app = new MyApp(engine);
 	Engine.run(app);
 }
 

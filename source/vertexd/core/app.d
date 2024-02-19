@@ -1,22 +1,22 @@
 module app;
-import mat;
 import bindbc.glfw;
 
 abstract class App {
-private:
-	
-
 public:
+	InputManager inputManager;
 	Window[] windows;
 
-	this(Window[] windows...) {
-		foreach (Window window; windows)
-			registerWindow(window);
+	this(Engine engine) {
 	}
 
-	final void registerWindow(Window window) {
+	final void addWindow(Window window) {
 		this.windows ~= window;
-		glfwSetKeyCallback(window.glfw_window, &key_callback);
+		window.bind(inputManager);
+	}
+
+	final void removeWindow(Window window) {
+		this.windows.remove(window);
+		window.unbind();
 	}
 
 	abstract void update();

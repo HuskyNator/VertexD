@@ -21,9 +21,22 @@ enum MouseType {
 
 class Window {
 public:
+	InputManager inputManager;
 	string title;
 	int width;
 	int height;
+
+	void bind(InputManager manager) {
+		this.inputManager = inputManager;
+		glfwSetKeyCallback(glfw_window, &inputManager.key_callback);
+		glfwSetMouseButtonCallback(glfw_window, &inputManager.button_callback);
+	}
+
+	void unbind() {
+		this.inputManager = null;
+		glfwSetKeyCallback(glfw_window, null);
+		glfwSetMouseButtonCallback(glfw_window, null);
+	}
 
 private:
 	GLFWwindow* glfw_window;
@@ -31,10 +44,8 @@ private:
 
 	Vec!(2, int) windowPos; // global (virtual)
 	Vec!(2, double) mousePos; // on window
-	Vec!(2, double) mouseWheelPos;
+	Vec!(2, double) mouseWheel;
 	bool mouseHover;
-
-	glfwSetWindowPosCallback(glfw_window,  & window_position_callback);
 
 	static void setStandardVisible(bool visible) {
 		glfwWindowHint(GLFW_VISIBLE, visible);
@@ -48,23 +59,18 @@ private:
 		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, transparent);
 	}
 
-	static void setWindowHints() {
-		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: on/off multisampling
+	void setWindowCallbacks() {
+		glfwSetWindowPosCallback(glfw_window, &window_position_callback);
+		glfwSetCursorPosCallback(glfw_window, &mouse_position_callback);
+		glfwSetScrollCallback(glfw_window, &mouse_wheel_callback);
+		glfwSetCursorEnterCallback(glfw_window, &mouse_enter_callback);
 
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		glfwWindowHint(GLFW_CENTER_CURSOR, false);
-
-		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+		glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
+		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
 	}
 
-	static uint winCount = 0;
-
-	public this(string title = "VertexD", int width = 960, int height = 540, Window share = null) {
-		if (winCount == 0)
-			Engine.initialize();
-		winCount += 1;
-
+	/// See_Also: Engine.createWindow
+	package this(string title = "VertexD", int width = 960, int height = 540, Window share = null) {
 		// C null terminated string:
 		if (title is null || title.length == 0)
 			title = "\0";
@@ -77,32 +83,17 @@ private:
 		this.keyInput = new KeyInput[typeof(GLFW_KEY_LAST)];
 		this.mouseButtonInput = new MouseButtonInput[typeof(GLFW_MOUSE_BUTTON_LAST)];
 
-		setWindowHints();
-
 		this.glfw_window = glfwCreateWindow(width, height, title.ptr, null, share.glfw_window);
 		enforce(glfw_window !is null, "GLFW could not create a window.");
-		glfwSetWindowUserPointer(glfw_window, cast(void*) this);
 		glfwMakeContextCurrent(glfw_window); // TODO: multithreading
+		glfwSetWindowUserPointer(glfw_window, cast(void*) this);
 
 		// glfwSwapInterval(0); Can use vsynch with 1
-
-		glfwSetKeyCallback(glfw_window, &Input.key_callback);
-		glfwSetMouseButtonCallback(glfw_window, &Input.button_callback);
-
-		// TODO: move
-		glfwSetCursorPosCallback(glfw_window, &window_mouseposition_callback);
-		glfwSetScrollCallback(glfw_window, &windows_mousewheel_callback);
-		glfwSetCursorEnterCallback(glfw_window, &windows_mouse_enter_callback);
-		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
-
-		Engine.register();
+		setWindowCallbacks(glfw_window);
 	}
 
 	~this() {
 		glfwDestroyWindow(glfw_window);
-		winCount -= 1;
-		if (winCount == 0)
-			Engine.destroy();
 	}
 
 	void setTitle(string title) {
@@ -152,8 +143,7 @@ private:
 	void setIcon(Image*[] images) { // RGBA8 images
 		this.icons = new GLFWimage[images.length];
 		foreach (i, Image* image; images)
-			this.icons[i] = GLFWimage(image.width(), image.height(), image.allPixelsAtOnce()
-					.dup.ptr);
+			this.icons[i] = GLFWimage(image.width(), image.height(), image.allPixelsAtOnce().dup.ptr);
 
 		glfwSetWindowIcon(glfw_window, cast(int) icons.length, icons.ptr);
 	}
@@ -226,11 +216,26 @@ private:
 }
 
 extern (C) void window_position_callback(GLFWwindow* glfw_window, int x, int y) {
-	Window window = glfwGetWindowUserPointer(glfw_window);
+	Window* window = cast(Window*) glfwGetWindowUserPointer(glfw_window);
 	window.windowPos = Vec!(2, int)(x, y);
 }
 
-extern (C) void windows_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
+extern (C) void mouse_position_callback(GLFWwindow* glfw_window, double x, double y) {
+	Window* window = cast(Window*) glfwGetWindowUserPointer(glfw_window);
+	window.mousePos = Vec!(2, double)(x, y);
+}
+
+extern (C) void mouse_wheel_callback(GLFWwindow* glfw_window, double x, double y) {
+	Window* window = cast(Window*) glfwGetWindowUserPointer(glfw_window);
+	window.mouseWheel = Vec!(2, double)(x, y);
+}
+
+extern (C) void mouse_enter_callback(GLFWwindow* glfw_window, int entered) {
+	Window* window = cast(Window*) glfwGetWindowUserPointer(glfw_window);
+	window.mouseHover = entered;
+}
+
+extern (C) void window_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
 	Window* window = cast(Window*) glfwGetWindowUserPointer(glfw_window);
 	window.width = width;
 	window.height = height;
