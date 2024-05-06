@@ -8,7 +8,7 @@ import std.stdio : write, writeln;
 import std.typecons : Nullable;
 import std.traits : isIntegral;
 import vertexd;
-import math.misc;
+import misc;
 
 abstract class Mesh {
 	alias Attr = Attribute;

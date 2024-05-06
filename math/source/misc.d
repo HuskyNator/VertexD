@@ -1,9 +1,41 @@
-module vertexd.misc;
+module misc;
 
 import std.algorithm : countUntil, removeAt = remove;
 import std.conv : to;
 import std.math : abs, PI;
 import std.traits : isFloatingPoint, isScalarType;
+
+alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));
+
+D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
+	static real factor = PI / 180;
+	return cast(D)(degrees * factor);
+}
+
+R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
+	static real factor = 180 / PI;
+	return cast(R)(radians * factor);
+}
+
+// a.isType!B
+bool isType(B, A)(A a) {
+	return is(A == B);
+}
+
+// a.isType(b)
+bool isType(A, B)(A a, B b) {
+	return is(A == B);
+}
+
+void assertEqual(T)(T left, T right) {
+	assert(left == right, "Expected " ~ left.to!string ~ " == " ~ right.to!string);
+}
+
+void assertAlmostEqual(T)(T left, T right, float delta = 1e-5) {
+	assert(abs(left - right) < delta,
+		"Expected abs(" ~ left.to!string ~ " - " ~ right.to!string ~ ") = " ~ (left - right)
+		.to!string ~ " < " ~ delta.to!string);
+}
 
 void tryWriteln(T)(T output) nothrow {
 	import std.stdio : writeln;
@@ -12,6 +44,16 @@ void tryWriteln(T)(T output) nothrow {
 		writeln(output);
 	} catch (Exception e) {
 	}
+}
+
+/**
+ * Tells whether T is a list with n dimensions, taking anything with an index operator as a list.
+ * This is different from traits.isArray, which does not see associative arrays like uint[uint] as lists.
+*/
+bool isList(T, uint n = 1)() if (n > 0) {
+	import std.array : replicate;
+
+	return is(typeof(mixin("T.init" ~ "[0]".replicate(n))));
 }
 
 void remove(Type)(ref Type[] list, Type element) {
@@ -26,16 +68,6 @@ bool tryRemove(Type)(ref Type[] list, Type element) {
 		return false; // Element not in list
 	list = list.removeAt(i);
 	return true;
-}
-
-// a.isType!B
-bool isType(B, A)(A a) {
-	return is(A == B);
-}
-
-// a.isType(b)
-bool isType(A, B)(A a, B b) {
-	return is(A == B);
 }
 
 alias Set(T) = void[0][T];
@@ -55,16 +87,6 @@ ubyte[] padding(size_t size) {
 	return (b).replicate(size);
 }
 
-D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
-	static real factor = PI / 180;
-	return cast(D)(degrees * factor);
-}
-
-R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
-	static real factor = 180 / PI;
-	return cast(R)(radians * factor);
-}
-
 // Based on std::bit_width (c++20) and https://stackoverflow.com/a/63987820.
 // Identical to floor(log2(x))+1.
 auto bitWidth(T)(T x) if (isScalarType!T) {
@@ -75,14 +97,4 @@ auto bitWidth(T)(T x) if (isScalarType!T) {
 		result += 1;
 	}
 	return result;
-}
-
-void assertEqual(T)(T left, T right) {
-	assert(left == right, "Expected " ~ left.to!string ~ " == " ~ right.to!string);
-}
-
-void assertAlmostEqual(T)(T left, T right, float delta = 1e-5) {
-	assert(abs(left - right) < delta,
-		"Expected abs(" ~ left.to!string ~ " - " ~ right.to!string ~ ") = " ~ (left - right)
-		.to!string ~ " < " ~ delta.to!string);
 }

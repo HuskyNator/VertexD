@@ -4,7 +4,7 @@ import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
 import std.traits : isCallable, isFloatingPoint, ReturnType;
-import math.misc;
+import misc;
 
 alias prec = precision;
 version (HoekjeD_Double) {
