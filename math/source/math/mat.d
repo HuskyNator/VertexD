@@ -1,10 +1,10 @@
-module vertexd.core.mat;
+module math.mat;
 import std.conv : to;
 import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.stdio;
 import std.traits : isCallable, isFloatingPoint, ReturnType;
-import vertexd.misc;
+import math.misc;
 
 alias prec = precision;
 version (HoekjeD_Double) {

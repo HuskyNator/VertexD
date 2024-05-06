@@ -1,5 +1,5 @@
 module vertexd.input.json;
-import vertexd.core.mat;
+import math.mat;
 import std.algorithm : canFind;
 import std.conv : to;
 import std.exception : enforce;

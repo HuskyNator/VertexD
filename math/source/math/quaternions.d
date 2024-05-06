@@ -1,5 +1,5 @@
-module vertexd.core.quaternions;
-import vertexd.core.mat;
+module math.quaternions;
+import math.mat;
 import std.math;
 
 alias Quat = Quaternion!precision;

@@ -1,6 +1,5 @@
 module vertexd.misc;
 
-import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;
 import std.conv : to;
 import std.math : abs, PI;
@@ -29,8 +28,6 @@ bool tryRemove(Type)(ref Type[] list, Type element) {
 	return true;
 }
 
-alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));
-
 // a.isType!B
 bool isType(B, A)(A a) {
 	return is(A == B);
@@ -39,85 +36,6 @@ bool isType(B, A)(A a) {
 // a.isType(b)
 bool isType(A, B)(A a, B b) {
 	return is(A == B);
-}
-
-/**
- * Geeft aan of T een lijst is, waarbij alles met een index gezien wordt als een lijst.
- * Dit is anders dan traits.isArray, welk een toewijzingstabel als uint[uint] niet ziet als lijst.
- * (Blijkbaar is een associatieve lijst in het duits een Zuordnungstabelle, oftewel een toeördeningstabel).
-*/
-bool isList(T, uint n = 1)() if (n > 0) {
-	import std.array : replicate;
-
-	return is(typeof(mixin("T.init" ~ "[0]".replicate(n))));
-}
-
-// OpenGL type enum to size
-GLsizei getGLenumTypeSize(GLenum type) {
-	switch (type) {
-		case GL_BOOL:
-			return ubyte.sizeof;
-		case GL_BYTE:
-			return byte.sizeof;
-		case GL_SHORT:
-			return short.sizeof;
-		case GL_INT:
-			return int.sizeof;
-		case GL_UNSIGNED_BYTE:
-			return ubyte.sizeof;
-		case GL_UNSIGNED_SHORT:
-			return ushort.sizeof;
-		case GL_UNSIGNED_INT:
-			return uint.sizeof;
-		case GL_FLOAT:
-			return float.sizeof;
-		case GL_DOUBLE:
-			return double.sizeof;
-		default:
-			assert(0, "Unsupported GLenum to type: " ~ type.to!string);
-	}
-}
-
-uint getGLenumDrawModeCount(GLenum drawMode) {
-	switch (drawMode) {
-		case GL_POINTS:
-			return 1;
-		case GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP:
-			return 2;
-		case GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN:
-			return 3;
-		default:
-			assert(0, "DrawMode unknown: " ~ drawMode.to!string);
-	}
-}
-
-GLenum getGLenum(T)() {
-	static if (is(T == bool))
-		return GL_BOOL;
-	// else static if (is(T == char))
-	// 	return GLchar;
-	else static if (is(T == byte))
-		return GL_BYTE;
-	else static if (is(T == short))
-		return GL_SHORT;
-	else static if (is(T == int))
-		return GL_INT;
-	else static if (is(T == ubyte))
-		return GL_UNSIGNED_BYTE;
-	else static if (is(T == ushort))
-		return GL_UNSIGNED_SHORT;
-	else static if (is(T == uint))
-		return GL_UNSIGNED_INT;
-	else static if (is(T == float))
-		return GL_FLOAT;
-	else static if (is(T == double))
-		return GL_DOUBLE;
-	// else static if (is(T == long))
-	// 	return  GLint64;
-	// else static if (is(T == ulong))
-	// 	return GLuint64;
-	else
-		static assert(0, "Type conversion to GLenum not supported: " ~ T.stringof);
 }
 
 alias Set(T) = void[0][T];

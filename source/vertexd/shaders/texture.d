@@ -6,7 +6,7 @@ import std.conv : to;
 import std.exception : enforce;
 import std.math;
 import std.stdio;
-import vertexd.core.mat;
+import math.mat;
 import vertexd.misc : bitWidth;
 import vertexd.shaders;
 

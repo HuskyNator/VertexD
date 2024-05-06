@@ -3,8 +3,6 @@ module vertexd.world.node;
 import std.conv : to;
 import std.datetime : Duration;
 import vertexd.core;
-import vertexd.core.mat;
-import vertexd.core.quaternions;
 import vertexd.mesh.mesh;
 import vertexd.misc;
 import vertexd.world.world;

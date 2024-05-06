@@ -5,7 +5,7 @@ import std.file : readText;
 import std.path;
 import std.regex;
 import std.stdio : write, writeln;
-import vertexd.core.mat : precision;
+import math.mat: precision;
 import vertexd.shaders;
 
 class Shader {
