@@ -1,5 +1,5 @@
 module vertexd.core.engine;
-import app;
+import vertexd.core.app;
 import bindbc.glfw;
 import bindbc.opengl;
 import std.conv : to;

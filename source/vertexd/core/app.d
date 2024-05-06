@@ -1,4 +1,4 @@
-module app;
+module vertexd.core.app;
 import bindbc.glfw;
 
 abstract class App {

@@ -339,7 +339,7 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			}
 		}
 
-		auto length(T = precision)() const {
+		auto length(T = precision)() const { // TODO: remove default T?
 			T l = 0;
 			static foreach (i; 0 .. row_count) {
 				l += this.vec[i] * this.vec[i];
@@ -347,7 +347,7 @@ struct Mat(uint row_count, uint column_count, Type = precision) if (row_count > 
 			return sqrt(l);
 		}
 
-		auto normalize(T = precision)() const {
+		auto normalize(T = precision)() const { // TODO: remove default T?
 			Mat!(row_count, column_count, T) n;
 			n.vec[] = this.vec[];
 			n = n * cast(T)(1 / this.length());
