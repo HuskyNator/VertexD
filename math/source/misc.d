@@ -8,12 +8,12 @@ import std.traits : isFloatingPoint, isScalarType;
 alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));
 
 D degreesToRadians(D)(D degrees) if (isFloatingPoint!D) {
-	static real factor = PI / 180;
+	enum factor = PI / 180.0;
 	return cast(D)(degrees * factor);
 }
 
-R radiansToDegrees(R)(R radians) if (isFloatingPoint!D) {
-	static real factor = 180 / PI;
+R radiansToDegrees(R)(R radians) if (isFloatingPoint!R) {
+	enum factor = 180.0 / PI;
 	return cast(R)(radians * factor);
 }
 
