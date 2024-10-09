@@ -41,7 +41,7 @@ class Material {
 
 	// TODO
 	AlphaBehaviour alpha_behaviour = AlphaBehaviour.OPAQUE;
-	prec alpha_threshold = 0.5;
+	float alpha_threshold = 0.5;
 	bool twosided = false;
 
 	private static Material _defaultMaterial = null;

@@ -2,7 +2,7 @@ module vertexd.shaders.shaderprogram;
 
 import bindbc.opengl;
 import vertexd.mesh.buffer;
-import vertexd.core.mat;
+import vdmath.mat;
 import vertexd.shaders.shader;
 import std.array : replace;
 import std.conv : to;
