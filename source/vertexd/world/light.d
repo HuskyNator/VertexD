@@ -91,8 +91,8 @@ class Light : Node.Attribute {
 	alias lightS this;
 
 	// TODO: rename strength to intensity
-	this(Type type, Vec!3 color, string name = null, precision strength = 1.0,
-		precision range = precision.infinity, precision innerAngle = precision.nan, precision outerAngle = precision
+	this(Type type, Vec!3 color, string name = null, float strength = 1.0,
+		float range = float.infinity, float innerAngle = float.nan, float outerAngle = float
 		.nan) {
 		this.name = (name is null) ? vdName!Light : name;
 		this.type = type;

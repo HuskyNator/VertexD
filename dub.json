@@ -2,24 +2,12 @@
 	"authors": [
 		"HuskyNator"
 	],
-	"configurations": [
-		{
-			"name": "library",
-			"targetType": "library"
-		},
-		{
-			"name": "unittest",
-			"sourceFiles": [
-				"test/emptymain.d"
-			],
-			"targetType": "executable"
-		}
-	],
 	"copyright": "Copyright © 2021, HuskyNator",
 	"dependencies": {
 		"bindbc-glfw": "~>0.10.1",
 		"bindbc-opengl": "~>0.13.0",
-		"gamut": "~>2.3.0"
+		"gamut": "~>2.3.0",
+		"vdmath": "~>1.0.0"
 	},
 	"description": "Dutch OpenGL passion project",
 	"libs": [
@@ -40,5 +28,6 @@
 		"GL_46",
 		"GL_ARB",
 		"GL_ARB_gpu_shader_int64"
-	]
+	],
+	"targetType": "library"
 }
