@@ -3,8 +3,7 @@ module vertexd.world.node;
 import std.conv : to;
 import std.datetime : Duration;
 import vertexd.core;
-import vdmath.mat;
-import vdmath.quaternions;
+import vdmath;
 import vertexd.mesh.mesh;
 import vertexd.misc;
 import vertexd.world.world;
@@ -17,6 +16,8 @@ struct Pose {
 }
 
 class Node {
+	mixin ID;
+
 	static abstract class Attribute { //TODO: add originUpdate? see propogateOrigin todo
 		Node owner;
 		void addUpdate();
@@ -56,7 +57,7 @@ class Node {
 	}
 
 	this(string name = null) {
-		this.name = (name is null) ? vdName!Node : name;
+		this.name = (name is null) ? idName() : name;
 		nodeCount += 1;
 		this.origin = Origin(this, null);
 	}
@@ -154,7 +155,7 @@ class Node {
 	in (child.parent is this)
 	in (child.root == root)
 	in (child.world == world) {
-		remove(children, child);
+		removeElement(children, child);
 		child.propogateOrigin(Origin(child, null));
 		child.parent = null;
 	}
@@ -181,7 +182,7 @@ class Node {
 		assert(attr.owner is this);
 		attr.removeUpdate();
 
-		remove(attributes, attr);
+		removeElement(attributes, attr);
 		attr.owner = null;
 	}
 }

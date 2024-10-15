@@ -9,6 +9,8 @@ import vertexd.shaders.shaderprogram;
 import vertexd.shaders.texture;
 
 class Material {
+	mixin ID;
+
 	enum AlphaBehaviour {
 		OPAQUE,
 		MASK,
@@ -52,7 +54,7 @@ class Material {
 	}
 
 	this(string name = null) {
-		this.name = (name is null) ? vdName!Material : name;
+		this.name = (name is null) ? idName() : name;
 		buffer = new Buffer(false);
 	}
 

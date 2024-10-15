@@ -1,4 +1,5 @@
-module vertexd.input.json;
+module vertexd.files.json;
+
 import vdmath.mat;
 import std.algorithm : canFind;
 import std.conv : to;
@@ -85,13 +86,15 @@ struct JsonVal {
 				static if (isPointer!T || is(T == class))
 					return null;
 				else
-					assert(0, "Cant `getType` of JsonType.NULL on nonPointer/Class type " ~ T.stringof);
+					assert(0, "Cant `getType` of JsonType.NULL on nonPointer/Class type " ~ T
+							.stringof);
 		}
 	}
 
 	Vec!(L, S) vec(uint L, S)() {
 		enforce(type == JsonType.LIST, "Type must be list");
-		enforce(L == list.length, "Expected list of length " ~ L.to!string ~ " but got " ~ list.length.to!string);
+		enforce(L == list.length, "Expected list of length " ~ L.to!string ~ " but got " ~ list
+				.length.to!string);
 		import std.traits;
 
 		Vec!(L, S) v;
@@ -165,7 +168,8 @@ private:
 	}
 
 	void require(char expected)() {
-		enforce(c == expected, "Expected '" ~ expected ~ "' but found '" ~ c ~ "' on line " ~ line.to!string);
+		enforce(c == expected, "Expected '" ~ expected ~ "' but found '" ~ c ~ "' on line " ~ line
+				.to!string);
 	}
 
 	static char[] whitespace_characters = [' ', '\n', '\r', '\t'];
@@ -243,7 +247,8 @@ private:
 				if (c == 'u') {
 					static foreach (_; 0 .. 4) {
 						step();
-						enforce(isHex(c), "Expected hecadecimal number but got " ~ c ~ " on line " ~ line.to!string);
+						enforce(isHex(c), "Expected hecadecimal number but got " ~ c ~ " on line " ~ line
+								.to!string);
 					}
 				} else {
 					enforce(string_characters.canFind(c),

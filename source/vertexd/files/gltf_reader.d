@@ -1,4 +1,4 @@
-module vertexd.input.gltf_reader;
+module vertexd.files.gltf_reader;
 
 import bindbc.opengl;
 import vertexd;
@@ -158,14 +158,14 @@ private:
 
 		Pose pose;
 		if (JsonVal* j = "translation" in node_json) {
-			pose.location = j.vec!(3, precision);
+			pose.location = j.vec!(3, float);
 		}
 		if (JsonVal* j = "rotation" in node_json) {
-			Vec!4 r = j.vec!(4, precision);
+			Vec!4 r = j.vec!(4, float);
 			pose.rotation = Quat(r.w, r.x, r.y, r.z);
 		}
 		if (JsonVal* j = "scale" in node_json) {
-			pose.size = j.vec!(3, precision);
+			pose.size = j.vec!(3, float);
 		}
 
 		node.pose = pose;
@@ -188,13 +188,13 @@ private:
 		string type = camera_json["type"].string_;
 		if (type == "perspective") {
 			Json setting = camera_json["perspective"].object;
-			precision aspect = setting["aspectRatio"].getType!double();
+			float aspect = setting["aspectRatio"].getType!double();
 
 			double yfov = setting["yfov"].getType!double();
-			precision xfov = yfov * aspect;
+			float xfov = yfov * aspect;
 
-			precision nearplane = setting["znear"].getType!double();
-			precision backplane = setting["zfar"].getType!double();
+			float nearplane = setting["znear"].getType!double();
+			float backplane = setting["zfar"].getType!double();
 
 			Mat!4 projectionMatrix = Camera.perspectiveProjection(aspect, xfov, nearplane, backplane);
 			// Mat!4 projectionMatrix = Camera.perspectiveProjection(1920.0 / 1080.0, 2.1118483949, 0.1, 100);
@@ -203,10 +203,10 @@ private:
 		} else {
 			enforce(type == "orthographic");
 			Json setting = camera_json["orthographic"].object;
-			precision width = setting["xmag"].getType!double();
-			precision height = setting["ymag"].getType!double();
-			precision nearplane = setting["znear"].getType!double();
-			precision farplane = setting["zfar"].getType!double();
+			float width = setting["xmag"].getType!double();
+			float height = setting["ymag"].getType!double();
+			float nearplane = setting["znear"].getType!double();
+			float farplane = setting["zfar"].getType!double();
 
 			Mat!4 projectionMatrix = Camera.orthographicProjection(width, height, nearplane, farplane);
 			return new Camera(projectionMatrix, name);
@@ -301,22 +301,22 @@ private:
 
 	GLenum getRenderTypeGLenum(uint drawMode) {
 		switch (drawMode) {
-		case 0:
-			return GL_POINTS;
-		case 1:
-			return GL_LINES;
-		case 2:
-			return GL_LINE_LOOP;
-		case 3:
-			return GL_LINE_STRIP;
-		case 4:
-			return GL_TRIANGLES;
-		case 5:
-			return GL_TRIANGLE_STRIP;
-		case 6:
-			return GL_TRIANGLE_FAN;
-		default:
-			assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
+			case 0:
+				return GL_POINTS;
+			case 1:
+				return GL_LINES;
+			case 2:
+				return GL_LINE_LOOP;
+			case 3:
+				return GL_LINE_STRIP;
+			case 4:
+				return GL_TRIANGLES;
+			case 5:
+				return GL_TRIANGLE_STRIP;
+			case 6:
+				return GL_TRIANGLE_FAN;
+			default:
+				assert(0, "Not a gltf primitive.mode: " ~ drawMode.to!string);
 		}
 	}
 
@@ -348,14 +348,14 @@ private:
 
 	Sampler.Wrap gltfToGLWrap(long gltfWrap) {
 		switch (gltfWrap) {
-		case 33071:
-			return Sampler.Wrap.CLAMP_TO_EDGE;
-		case 33648:
-			return Sampler.Wrap.MIRRORED_REPEAT;
-		case 10497:
-			return Sampler.Wrap.REPEAT;
-		default:
-			assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
+			case 33071:
+				return Sampler.Wrap.CLAMP_TO_EDGE;
+			case 33648:
+				return Sampler.Wrap.MIRRORED_REPEAT;
+			case 10497:
+				return Sampler.Wrap.REPEAT;
+			default:
+				assert(0, "Incorrect value for wrapS/T: " ~ gltfWrap.to!string);
 		}
 	}
 
@@ -366,25 +366,25 @@ private:
 			alias FilterType = Sampler.MagFilter;
 
 		switch (gltfFilter) {
-		case 9728:
-			return FilterType.NEAREST;
-		case 9729:
-			return FilterType.LINEAR;
-			static if (isMinFilter) {
-		case 9984:
-				return FilterType.NEAREST_MIPMAP_NEAREST;
-		case 9985:
-				return FilterType.LINEAR_MIPMAP_NEAREST;
-		case 9986:
-				return FilterType.NEAREST_MIPMAP_LINEAR;
-		case 9987:
-				return FilterType.LINEAR_MIPMAP_LINEAR;
-			}
-		default:
-			static if (isMinFilter)
-				assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
-			else
-				assert(0, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
+			case 9728:
+				return FilterType.NEAREST;
+			case 9729:
+				return FilterType.LINEAR;
+				static if (isMinFilter) {
+					case 9984:
+						return FilterType.NEAREST_MIPMAP_NEAREST;
+					case 9985:
+						return FilterType.LINEAR_MIPMAP_NEAREST;
+					case 9986:
+						return FilterType.NEAREST_MIPMAP_LINEAR;
+					case 9987:
+						return FilterType.LINEAR_MIPMAP_LINEAR;
+				}
+			default:
+				static if (isMinFilter)
+					assert(0, "Incorrect value for minFilter: " ~ gltfFilter.to!string);
+				else
+					assert(0, "Incorrect value for magFilter: " ~ gltfFilter.to!string);
 		}
 	}
 
@@ -482,14 +482,14 @@ private:
 	Material readMaterial(Json m_json) {
 		Material.AlphaBehaviour translateAlphaBehaviour(string behaviour) {
 			switch (behaviour) {
-			case "OPAQUE":
-				return Material.AlphaBehaviour.OPAQUE;
-			case "MASK":
-				return Material.AlphaBehaviour.MASK;
-			case "BLEND":
-				return Material.AlphaBehaviour.BLEND;
-			default:
-				assert(0, "Invalid alphabehaviour: " ~ behaviour);
+				case "OPAQUE":
+					return Material.AlphaBehaviour.OPAQUE;
+				case "MASK":
+					return Material.AlphaBehaviour.MASK;
+				case "BLEND":
+					return Material.AlphaBehaviour.BLEND;
+				default:
+					assert(0, "Invalid alphabehaviour: " ~ behaviour);
 			}
 		}
 
@@ -499,7 +499,7 @@ private:
 		if (JsonVal* pbr_jval = "pbrMetallicRoughness" in m_json) {
 			Json pbr_j = pbr_jval.object;
 			if (JsonVal* j = "baseColorFactor" in pbr_j)
-				material.baseColor_factor = j.vec!(4, precision);
+				material.baseColor_factor = j.vec!(4, float);
 			if (JsonVal* j = "baseColorTexture" in pbr_j)
 				material.baseColor_texture = readTexture(j.object);
 			if (JsonVal* j = "metallicFactor" in pbr_j)
@@ -517,11 +517,11 @@ private:
 		if (JsonVal* j = "emissiveTexture" in m_json)
 			material.emission_texture = readTexture(j.object);
 		if (JsonVal* j = "emissiveFactor" in m_json)
-			material.emission_factor = j.vec!(3, prec);
+			material.emission_factor = j.vec!(3, float);
 		if (JsonVal* j = "alphaMode" in m_json)
 			material.alpha_behaviour = translateAlphaBehaviour(j.string_);
 		if (JsonVal* j = "alphaCutoff" in m_json)
-			material.alpha_threshold = cast(prec) j.getType!double();
+			material.alpha_threshold = cast(float) j.getType!double();
 		if (JsonVal* j = "doubleSided" in m_json)
 			material.twosided = j.bool_;
 
@@ -541,16 +541,16 @@ private:
 	Light readLight(Json lj) {
 		string name = null;
 		Vec!3 color = Vec!3(1);
-		precision strength = 1;
+		float strength = 1;
 
 		if (JsonVal* nj = "name" in lj)
 			name = nj.string_;
 		if (JsonVal* cj = "color" in lj)
-			color = cj.vec!(3, precision);
+			color = cj.vec!(3, float);
 		if (JsonVal* sj = "intensity" in lj)
 			strength = sj.getType!double();
 
-		precision range = lj.get("range", JsonVal(double.infinity)).getType!double();
+		float range = lj.get("range", JsonVal(double.infinity)).getType!double();
 
 		string type = lj["type"].string_;
 		switch (type) {
@@ -560,8 +560,8 @@ private:
 				return new Light(Light.Type.POINT, color, name, strength, range);
 			case "spot":
 				Json spotj = lj["spot"].object;
-				precision innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
-				precision outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
+				float innerAngle = spotj.get("innerConeAngle", JsonVal(0.0)).getType!double();
+				float outerAngle = spotj.get("outerConeAngle", JsonVal(PI_4)).getType!double();
 				return new Light(Light.Type.SPOTLIGHT, color, name, strength, range, innerAngle, outerAngle);
 			default:
 				assert(0, "Light type unknown: " ~ type);
@@ -602,41 +602,41 @@ private:
 
 	uint translateAttributeType(int type) {
 		switch (type) {
-		case 5120:
-			return GL_BYTE;
-		case 5121:
-			return GL_UNSIGNED_BYTE;
-		case 5122:
-			return GL_SHORT;
-		case 5123:
-			return GL_UNSIGNED_SHORT;
-		case 5125:
-			return GL_UNSIGNED_INT;
-		case 5126:
-			return GL_FLOAT;
-		default:
-			assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
+			case 5120:
+				return GL_BYTE;
+			case 5121:
+				return GL_UNSIGNED_BYTE;
+			case 5122:
+				return GL_SHORT;
+			case 5123:
+				return GL_UNSIGNED_SHORT;
+			case 5125:
+				return GL_UNSIGNED_INT;
+			case 5126:
+				return GL_FLOAT;
+			default:
+				assert(0, "Unsupported acessor.componentType: " ~ type.to!string);
 		}
 	}
 
 	ubyte translateAttribyteTypeCount(string type) {
 		switch (type) {
-		case "SCALAR":
-			return 1;
-		case "VEC2":
-			return 2;
-		case "VEC3":
-			return 3;
-		case "VEC4":
-			return 4;
-		case "MAT2":
-			return 4;
-		case "MAT3":
-			return 9;
-		case "MAT4":
-			return 16;
-		default:
-			assert(0, "Unsupported accessor.type: " ~ type);
+			case "SCALAR":
+				return 1;
+			case "VEC2":
+				return 2;
+			case "VEC3":
+				return 3;
+			case "VEC4":
+				return 4;
+			case "MAT2":
+				return 4;
+			case "MAT3":
+				return 9;
+			case "MAT4":
+				return 16;
+			default:
+				assert(0, "Unsupported accessor.type: " ~ type);
 		}
 	}
 

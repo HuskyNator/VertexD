@@ -3,13 +3,15 @@ module vertexd.world.world;
 import std.algorithm.searching : canFind;
 import std.conv : to;
 import std.datetime : Duration;
-import vertexd.misc : remove;
+import vertexd.misc : removeElement;
 import vertexd.world.camera;
 import vertexd.world.light;
 import vertexd.world.node;
 import vertexd.core;
 
 class World {
+	mixin ID;
+
 	static World[] worlds;
 
 	string name;
@@ -26,7 +28,7 @@ class World {
 	}
 
 	this(string name = null) {
-		this.name = (name is null) ? vdName!World : name;
+		this.name = (name is null) ? idName() : name;
 		World.worlds ~= this;
 		lightSet = new LightSet();
 	}
@@ -57,7 +59,7 @@ class World {
 
 	void removeNode(Node n) {
 		assert(n.root is n && n.world is this);
-		remove(roots, n);
+		removeElement(roots, n);
 		n.propogateOrigin(Node.Origin(n, null));
 	}
 }
