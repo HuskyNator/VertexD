@@ -10,25 +10,15 @@ import std.stdio : write, writeln;
 import vertexd.core;
 import vertexd.world;
 
-struct KeyInput {
-	int key, key_id, event, modifier;
+extern (C) void window_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
+	Window window = Window.windows[glfw_window];
+	window.width = width;
+	window.height = height;
 }
 
-struct MousebuttonInput {
-	int button, event, modifier;
+extern (C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow {
+	glViewport(0, 0, width, height);
 }
-
-alias MousepositionInput = Vec!(2, double);
-
-alias MousewheelInput = Vec!(2, double);
-
-alias MouseEnterInput = int;
-
-alias KeyCallback = void delegate(KeyInput input);
-alias MousebuttonCallback = void delegate(MousebuttonInput input);
-alias MousepositionCallback = void delegate(MousepositionInput input);
-alias MousewheelCallback = void delegate(MousewheelInput input);
-alias MouseEnterCallback = void delegate(MouseEnterInput entered);
 
 enum MouseType {
 	NORMAL = GLFW_CURSOR_NORMAL,
@@ -37,7 +27,7 @@ enum MouseType {
 }
 
 class Window {
-	// Window Properties
+	// mixin ID!true;
 	string name;
 	union {
 		Vec!(2, int) bounds;
@@ -46,71 +36,137 @@ class Window {
 			int height;
 		}
 	}
-	// package GLFWwindow* glfw_window;
+
 	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
 
-	// World
-	World world;
-
-	// Input
-	KeyCallback[] keyCallbacks = [];
-	MousebuttonCallback[] mousebuttonCallbacks = [];
-	MousepositionCallback[] mousepositionCallbacks = [];
-	MousewheelCallback[] mousewheelCallbacks = [];
-	MouseEnterCallback[] mouseEnterCallbacks = [];
-	KeyInput[] keyInput = [];
-	MousepositionInput[] mousepositionInput = [];
-	MousebuttonInput[] mousebuttonInput = [];
-	MousewheelInput[] mousewheelInput = [];
-	MouseEnterInput[] mouseEnterInput = [];
-
-	static void setStandardVisible(bool visible) {
-		glfwWindowHint(GLFW_VISIBLE, visible);
+	struct Hints {
+		static immutable int[] glfwMapping = [GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED, GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR, GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW, GLFW_SCALE_TO_MONITOR];
+		bool resizable = true;
+		bool visible = true;
+		bool decorated = true;
+		bool focused = true;
+		bool auto_iconify = true;
+		bool floating = false;
+		bool maximized = false;
+		bool center_cursor = true;
+		bool transparent_framebuffer = false;
+		bool focus_on_show = true;
+		bool scale_to_monitor = false;
 	}
 
-	static void setStandardBorder(bool rand) {
-		glfwWindowHint(GLFW_DECORATED, rand);
+	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540, Hints hints = Hints()) {
+		this.name = name;
+		this.width = glfw_width;
+		this.height = glfw_height;
+
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+
+		static foreach(i; 0..hints.tupleof.length)
+			glfwWindowHint(hints.glfwMapping[i], hints.tupleof[i]);
+
+		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
+		enforce(glfw_window !is null, "GLFW could not create a window.");
+
+		Window.windows[glfw_window] = this;
+		glfwMakeContextCurrent(glfw_window); // TODO: multithreading
+		// glfwSwapInterval(0); Can use vsynch with 1
+
+		InputManager.register(this);
+		glfwSetInputMode(glfw_window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
+		glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
+		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
+
+		GLSupport opengl_version = loadOpenGL();
+		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version
+				.to!string);
+		enforce(hasARBBindlessTexture, "No support for bindless textures");
+
+		debug {
+			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+			glDebugMessageCallback(&gl_error_callback, null);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
+		}
+
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 	}
 
-	static void setStandardTransparency(bool transparent) {
-		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, transparent);
+	~this() {
+		Window.windows.remove(glfw_window);
+		glfwDestroyWindow(glfw_window);
+		writeln(i"Window#${glfw_window} removed.");
 	}
 
-	void setBackgroundColor(Vec!(4, float) color) {
-		glClearColor(color.x, color.y, color.z, color.w);
+	void close(bool close = true) nothrow {
+		glfwSetWindowShouldClose(glfw_window, close);
+	}
+
+	// TODO
+	// void draw() {
+	// 	assert(world !is null, "No world set.");
+	// 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
+	// 	glfwSwapBuffers(glfw_window);
+	// }
+
+	void focus() {
+		glfwFocusWindow(glfw_window);
+	}
+
+	void show() {
+		glfwShowWindow(glfw_window);
+	}
+
+	void hide() {
+		glfwHideWindow(glfw_window);
+	}
+
+	void setFloating(bool floating){
+		glfwSetWindowAttrib(glfw_window, GLFW_FLOATING, floating);
+	}
+
+	/// See_Also: setAspectRatio, setSize, setSizeLimit
+	void setResizable(bool resizable){
+		glfwSetWindowAttrib(glfw_window, GLFW_RESIZABLE, resizable);
+	}
+
+	void setDecorated(bool decorated){
+		glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, decorated);
+	}
+
+	void setBackgroundColor(float[4] rgba...) {
+		glClearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
 	}
 
 	void setMouseType(MouseType type) {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
 	}
 
-	/// Locks ratio
-	void setAspectRatio(int width, int height) {
-		glfwSetWindowAspectRatio(glfw_window, width, height);
+	void setAspectRatio(int[2] aspect ...) {
+		glfwSetWindowAspectRatio(glfw_window, aspect[0], aspect[1]);
 	}
 
-	/// Unlocks ratio
 	void unsetAspectRatio() {
 		glfwSetWindowAspectRatio(glfw_window, GLFW_DONT_CARE, GLFW_DONT_CARE);
 	}
 
-	void setSize(int width, int height) {
-		glfwSetWindowSize(glfw_window, width, height);
-		this.width = width;
-		this.height = height;
+	void setSize(int[2] size ...) {
+		glfwSetWindowSize(glfw_window, size[0], size[1]);
 	}
 
 	/// Sets minimum & maximum size limits for window.
-	///
 	/// Note -1 disables individual limits.
 	void setSizeLimit(int width_min, int height_min, int width_max, int height_max) {
 		glfwSetWindowSizeLimits(glfw_window, width_min, height_min, width_max, height_max);
 	}
 
 	/// Set top left coordinate of window.
-	void setPosition(int x, int y) {
-		glfwSetWindowPos(glfw_window, x, y);
+	void setPosition(int[2] pos ...) {
+		glfwSetWindowPos(glfw_window, pos[0], pos[1]);
 	}
 
 	/// Get top left coordinate of window.
@@ -121,7 +177,7 @@ class Window {
 	}
 
 	void setName(string name) {
-		debug writeln("Renaming window \"" ~ this.name ~ "\" to \"" ~ name ~ "\"");
+		debug writeln(i"Renaming window \"${this.name}\" to \"${name}\"");
 		this.name = name;
 		glfwSetWindowTitle(glfw_window, name.ptr);
 	}
@@ -139,206 +195,6 @@ class Window {
 	void unsetIcon() {
 		glfwSetWindowIcon(glfw_window, 0, null);
 	}
-
-	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540) {
-		this.name = name;
-		this.width = glfw_width;
-		this.height = glfw_height;
-
-		glfwWindowHint(GLFW_SAMPLES, 4); //TODO: instelbaar
-
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-
-		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
-		assert(glfw_window !is null, "GLFW coult not create a window.");
-
-		Window.windows[glfw_window] = this;
-		glfwMakeContextCurrent(glfw_window); // TODO: Should still find a solution for multithreading & using multiple windows
-		// glfwSwapInterval(0); Can use vsynch with 1
-
-		glfwSetKeyCallback(glfw_window, &window_key_callback);
-		glfwSetMouseButtonCallback(glfw_window, &window_mousebutton_callback);
-		glfwSetCursorPosCallback(glfw_window, &window_mouseposition_callback);
-		glfwSetScrollCallback(glfw_window, &windows_mousewheel_callback);
-		glfwSetCursorEnterCallback(glfw_window, &windows_mouse_enter_callback);
-		// glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
-		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
-
-		glfwSetCursorPos(glfw_window, 0, 0);
-
-		GLSupport opengl_version = loadOpenGL();
-		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version.to!string);
-		enforce(hasARBBindlessTexture, "No support for bindless textures");
-
-		debug {
-			glEnable(GL_DEBUG_OUTPUT);
-			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-			glDebugMessageCallback(&gl_error_callback, null);
-			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
-		}
-
-		glEnable(GL_MULTISAMPLE); //TODO: instelbaar
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-	}
-
-	~this() {
-		Window.windows.remove(glfw_window); // ensures removal regardless of vdStep behaviour
-
-		glfwDestroyWindow(glfw_window);
-		write("\nWindow removed: ");
-		writeln(name);
-	}
-
-	/// Sets flag the window should be closed
-	// Note actual closure happens upon the deconstructor being called
-	/// See_Also:
-	/// reinstate
-	void close() nothrow {
-		glfwSetWindowShouldClose(glfw_window, true);
-	}
-
-	/// Signals the windows should actually not be closed.
-	void reinstate() nothrow {
-		glfwSetWindowShouldClose(glfw_window, false);
-	}
-
-	void draw() {
-		assert(world !is null, "No world set.");
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
-		world.draw();
-		glfwSwapBuffers(glfw_window);
-	}
-
-	void focus() {
-		glfwFocusWindow(glfw_window);
-	}
-
-	void show() {
-		glfwShowWindow(glfw_window);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glfwSwapBuffers(glfw_window);
-	}
-
-	void hide() {
-		glfwHideWindow(glfw_window);
-	}
-
-	void processInput() {
-		// Retains order of input for all callbacks
-		foreach (KeyInput input; keyInput)
-			foreach (KeyCallback callback; keyCallbacks)
-				callback(input);
-
-		foreach (MousebuttonInput input; mousebuttonInput)
-			foreach (MousebuttonCallback callback; mousebuttonCallbacks)
-				callback(input);
-
-		foreach (MousepositionInput input; mousepositionInput)
-			foreach (MousepositionCallback callback; mousepositionCallbacks)
-				callback(input);
-
-		foreach (MousewheelInput input; mousewheelInput)
-			foreach (MousewheelCallback callback; mousewheelCallbacks)
-				callback(input);
-
-		foreach (MouseEnterInput input; mouseEnterInput)
-			foreach (MouseEnterCallback callback; mouseEnterCallbacks) {
-				callback(input);
-			}
-
-		//WARNING: assumed independence of mouse & keyboard over small time intervals
-	}
-
-	//Warning: May need to test what the modifier is with absence or double modifier
-	// Documentation unclear.
-	public bool getKey(int key) {
-		foreach (KeyInput t; this.keyInput)
-			if (t.key == key && (t.event == GLFW_PRESS || t.event == GLFW_REPEAT))
-				return true;
-		return false;
-	}
-
-	void clearInput() {
-		keyInput = [];
-		mousebuttonInput = [];
-		mousepositionInput = [];
-		mousewheelInput = [];
-		mouseEnterInput = [];
-	}
-
-	unittest {
-		import vertexd.core;
-
-		vdInit();
-		Window.setStandardTransparency(true);
-
-		bool called = false;
-		KeyCallback foo = (KeyInput input) { called = true; };
-		Window window = new Window();
-		window.keyCallbacks ~= foo;
-
-		window_key_callback(window.glfw_window, 0, 0, 0, 0);
-		window.processInput();
-
-		assert(called);
-	}
-}
-
-extern (C) void windows_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
-	Window window = Window.windows[glfw_window];
-	window.width = width;
-	window.height = height;
-}
-
-extern (C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow {
-	glViewport(0, 0, width, height);
-}
-
-extern (C) void window_key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
-	debug {
-		import core.sys.windows.windows;
-
-		if (key == GLFW_KEY_GRAVE_ACCENT) {
-			ShowWindow(console, _console_visible ? SW_HIDE : SW_RESTORE);
-			glfwFocusWindow(glfw_window);
-			_console_visible = !_console_visible;
-		}
-	}
-	Window window = Window.windows[glfw_window];
-	KeyInput input = KeyInput(key, key_code, event, modifier);
-	window.keyInput ~= input;
-
-	if (key == GLFW_KEY_ESCAPE)
-		glfwSetWindowShouldClose(glfw_window, true);
-}
-
-extern (C) void window_mousebutton_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
-	Window window = Window.windows[glfw_window];
-	MousebuttonInput input = MousebuttonInput(button, event, modifier);
-	window.mousebuttonInput ~= input;
-	import vertexd.misc : tryWriteln;
-
-	tryWriteln(input);
-}
-
-extern (C) void window_mouseposition_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
-	Window window = Window.windows[glfw_window];
-	MousepositionInput input = MousepositionInput(x, y);
-	window.mousepositionInput ~= input;
-}
-
-extern (C) void windows_mousewheel_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
-	Window window = Window.windows[glfw_window];
-	MousewheelInput input = MousewheelInput(x, y);
-	window.mousewheelInput ~= input;
-}
-
-extern (C) void windows_mouse_enter_callback(GLFWwindow* glfw_window, int entered) nothrow {
-	Window window = Window.windows[glfw_window];
-	window.mouseEnterInput ~= entered;
 }
 
 debug {

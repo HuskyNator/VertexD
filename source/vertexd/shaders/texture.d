@@ -144,7 +144,7 @@ class Texture {
 		// TODO mipmaps?
 		Vec!(2, uint) size = Vec!(2, uint)(width, height);
 		uv *= size;
-		Vec!(2, uint) low = cast(Vec!(2, uint))((uv.each!floor) % size);
+		Vec!(2, uint) low = cast(Vec!(2, uint))((uv.map!floor) % size);
 		Vec!(2, uint) high = (low + 1) % size;
 		Vec!2 delta = uv - low;
 		Vec!(4, float) sample;

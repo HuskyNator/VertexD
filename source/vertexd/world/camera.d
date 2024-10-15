@@ -4,6 +4,8 @@ import vertexd;
 import std.math : tan;
 
 class Camera : Node.Attribute {
+	mixin ID;
+
 	struct CameraS {
 		Mat!4 projectionMatrix = Mat!4(1); // 0-64
 		Mat!4 cameraMatrix = Mat!4(1); // 64-128
@@ -17,7 +19,7 @@ class Camera : Node.Attribute {
 	alias cameraS this;
 
 	this(Mat!4 projectionMatrix, string name = null) {
-		this.name = (name is null) ? vdName!Camera : name;
+		this.name = (name is null) ? idName() : name;
 		this.projectionMatrix = projectionMatrix;
 
 		if (uniformBuffer is null) {
@@ -33,7 +35,7 @@ class Camera : Node.Attribute {
 
 	override void removeUpdate() {
 		if (owner.world !is null)
-			owner.world.cameras.remove(this);
+			owner.world.cameras.removeElement(this);
 	}
 
 	override void logicUpdate() {
@@ -42,7 +44,7 @@ class Camera : Node.Attribute {
 	override void originUpdate(Node.Origin newOrigin) { // WARNING: assuming no transplanting worlds (only remove or add)
 		bool removed = newOrigin.world is null;
 		if (removed)
-			remove(owner.world.cameras, this);
+			removeElement(owner.world.cameras, this);
 		else
 			newOrigin.world.cameras ~= this;
 	}

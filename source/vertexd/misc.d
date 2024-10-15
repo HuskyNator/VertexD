@@ -15,7 +15,7 @@ void tryWriteln(T)(T output) nothrow {
 	}
 }
 
-void remove(Type)(ref Type[] list, Type element) {
+void removeElement(Type)(ref Type[] list, Type element) {
 	const long i = list.countUntil(element);
 	assert(i >= 0, "Element not in list");
 	list = list.removeAt(i);
@@ -166,5 +166,5 @@ void assertEqual(T)(T left, T right) {
 void assertAlmostEqual(T)(T left, T right, float delta = 1e-5) {
 	assert(abs(left - right) < delta,
 		"Expected abs(" ~ left.to!string ~ " - " ~ right.to!string ~ ") = " ~ (left - right)
-		.to!string ~ " < " ~ delta.to!string);
+			.to!string ~ " < " ~ delta.to!string);
 }

@@ -8,8 +8,11 @@ import std.stdio : write, writeln;
 import std.typecons : Nullable;
 import std.traits : isIntegral;
 import vertexd;
+import vertexd.core.ids;
 
 abstract class Mesh {
+	mixin ID;
+
 	alias Attr = Attribute;
 	static struct Attribute {
 		uint type; // GLuint
@@ -172,7 +175,7 @@ abstract class Mesh {
 		glCreateVertexArrays(1, &vao);
 		writeln("Mesh created: " ~ vao.to!string);
 
-		this.name = (name is null) ? vdName!Mesh : name;
+		this.name = (name is null) ? idName() : name;
 		this.shaderProgram = shaderProgram;
 		this.drawMode = drawMode;
 	}
@@ -406,7 +409,7 @@ private:
 				Vec!3 normal = AB.cross(AC); //.normalize();
 				float sign = normal.cross(T).dot(B).signbit;
 
-				Vec!4 tangent = T ~ sign;
+				Vec!4 tangent = Vec!4(T, sign);
 				tangents ~= [tangent, tangent, tangent];
 			}
 		} else {
@@ -441,7 +444,7 @@ private:
 				Vec!3 normal = AB.cross(AC); //.normalize();
 				float sign = normal.cross(T).dot(B).signbit;
 
-				Vec!4 tangent = T * normal.length() ~ sign; // TODO surface weighted, could use 'uv surface area' instead?
+				Vec!4 tangent = Vec!4(T * normal.length(), sign); // TODO surface weighted, could use 'uv surface area' instead?
 				void addTangent(ref Vec!4 oldT, Vec!4 newT, uint index) {
 					if (oldT.w == 0)
 						oldT.w = newT.w;

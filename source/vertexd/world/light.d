@@ -46,6 +46,8 @@ class LightSet { // TODO: rework lights ubo's & seperate different light types
 }
 
 class Light : Node.Attribute {
+	mixin ID;
+
 	static enum Type : uint {
 		POINT = 0,
 		DIRECTIONAL = 1,
@@ -93,8 +95,8 @@ class Light : Node.Attribute {
 	// TODO: rename strength to intensity
 	this(Type type, Vec!3 color, string name = null, float strength = 1.0,
 		float range = float.infinity, float innerAngle = float.nan, float outerAngle = float
-		.nan) {
-		this.name = (name is null) ? vdName!Light : name;
+			.nan) {
+		this.name = (name is null) ? idName() : name;
 		this.type = type;
 		this.color = color;
 		this.strength = strength;

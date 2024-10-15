@@ -38,20 +38,6 @@ void vdInit() {
 	_vdTime = StopWatch(AutoStart.yes); // Restores to 0 once vdLoop is called
 }
 
-ulong[ClassInfo] _vdClassCounts;
-
-string vdName(C)() if (is(C == class)) {
-	return vdName(C.classinfo);
-}
-
-string vdName(ClassInfo cinfo) {
-	ulong newCount = 1uL;
-	if (cinfo in _vdClassCounts)
-		newCount = _vdClassCounts[cinfo] + 1; // wraps around to 0
-	_vdClassCounts[cinfo] = newCount;
-	return cinfo.name ~ '#' ~ newCount.to!string;
-}
-
 private ulong _vdStepCount = 0;
 private StopWatch _vdTime;
 
@@ -72,41 +58,46 @@ public float vdFps() {
 }
 
 private Duration _vdDeltaT;
-public void vdStep() {
-	static Duration oldT = Duration.zero();
-	_vdStepCount += 1;
-	Duration newT = vdTime();
-	_vdDeltaT = newT - oldT;
-	oldT = newT;
+// public void vdStep() {
+// 	static Duration oldT = Duration.zero();
+// 	_vdStepCount += 1;
+// 	Duration newT = vdTime();
+// 	_vdDeltaT = newT - oldT;
+// 	oldT = newT;
 
-	foreach (Window window; Window.windows.values) {
-		window.processInput();
-		if (glfwWindowShouldClose(window.glfw_window))
-			destroy(window);
-	}
+// 	foreach (Window window; Window.windows.values) {
+// 		window.processInput();
+// 		if (glfwWindowShouldClose(window.glfw_window))
+// 			destroy(window);
+// 	}
 
-	foreach (World world; World.worlds)
-		world.logicStep(_vdDeltaT);
+// 	foreach (World world; World.worlds)
+// 		world.logicStep(_vdDeltaT);
 
-	foreach (World world; World.worlds)
-		world.update();
+// 	foreach (World world; World.worlds)
+// 		world.update();
 
-	foreach (Window window; Window.windows.values)
-		window.draw();
+// 	foreach (Window window; Window.windows.values)
+// 		window.draw();
 
-	foreach (Window window; Window.windows.values)
-		window.clearInput();
+// 	foreach (Window window; Window.windows.values)
+// 		window.clearInput();
 
-	glfwPollEvents();
-}
+// 	glfwPollEvents();
+// }
 
 bool vdShouldClose() {
 	return Window.windows.length == 0;
 }
 
-public void vdLoop() {
-	_vdTime.reset();
-	while (!vdShouldClose())
-		vdStep();
-	writeln("\nLast window removed. Halting loop.\n");
+// public void vdLoop() {
+// 	_vdTime.reset();
+// 	while (!vdShouldClose())
+// 		vdStep();
+// 	writeln("\nLast window removed. Halting loop.\n");
+// }
+
+public void vdGetInput(){
+	glfwPollEvents();
+	
 }

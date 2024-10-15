@@ -149,18 +149,18 @@ class ShaderProgram {
 				~ "v(id, uniformLocation, cast(uint) value.length, cast(" ~ S.stringof ~ "*) value.ptr);");
 	}
 
-	void setUniform(V : Mat!(R, K, precision), uint R, uint K)(int uniformLocation, V value)
+	void setUniform(V : Mat!(R, K, float), uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
 				: (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(precision == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, value[0].ptr);");
+				is(float == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, value[0].ptr);");
 	}
 
-	void setUniform(V : Mat!(R, K, precision)[], uint R, uint K)(int uniformLocation, V value)
+	void setUniform(V : Mat!(R, K, float)[], uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat[]
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
 				: (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(precision == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
+				is(float == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
 	}
 
 	override string toString() const {
