@@ -37,11 +37,28 @@ class Window {
 		}
 	}
 
+	Vec!(2, double) mousePosition;
+
 	GLFWwindow* glfw_window;
 	static package Window[GLFWwindow* ] windows;
 
+	static bool testShouldClose() {
+		Window[] closeArr;
+		foreach (glfw_window, window; Window.windows)
+			if (window.shouldClose())
+				closeArr ~= window;
+		foreach (window; closeArr)
+			destroy(window);
+		return Window.windows.length == 0;
+	}
+
 	struct Hints {
-		static immutable int[] glfwMapping = [GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED, GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR, GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW, GLFW_SCALE_TO_MONITOR];
+		static immutable int[] glfwMapping = [
+			GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED,
+			GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR,
+			GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW,
+			GLFW_SCALE_TO_MONITOR
+		];
 		bool resizable = true;
 		bool visible = true;
 		bool decorated = true;
@@ -64,7 +81,7 @@ class Window {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		debug glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
-		static foreach(i; 0..hints.tupleof.length)
+		static foreach (i; 0 .. hints.tupleof.length)
 			glfwWindowHint(hints.glfwMapping[i], hints.tupleof[i]);
 
 		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
@@ -106,6 +123,10 @@ class Window {
 		glfwSetWindowShouldClose(glfw_window, close);
 	}
 
+	bool shouldClose() {
+		return glfwWindowShouldClose(glfw_window) >= 1;
+	}
+
 	// TODO
 	// void draw() {
 	// 	assert(world !is null, "No world set.");
@@ -125,16 +146,16 @@ class Window {
 		glfwHideWindow(glfw_window);
 	}
 
-	void setFloating(bool floating){
+	void setFloating(bool floating) {
 		glfwSetWindowAttrib(glfw_window, GLFW_FLOATING, floating);
 	}
 
 	/// See_Also: setAspectRatio, setSize, setSizeLimit
-	void setResizable(bool resizable){
+	void setResizable(bool resizable) {
 		glfwSetWindowAttrib(glfw_window, GLFW_RESIZABLE, resizable);
 	}
 
-	void setDecorated(bool decorated){
+	void setDecorated(bool decorated) {
 		glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, decorated);
 	}
 
@@ -146,7 +167,7 @@ class Window {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
 	}
 
-	void setAspectRatio(int[2] aspect ...) {
+	void setAspectRatio(int[2] aspect...) {
 		glfwSetWindowAspectRatio(glfw_window, aspect[0], aspect[1]);
 	}
 
@@ -154,7 +175,7 @@ class Window {
 		glfwSetWindowAspectRatio(glfw_window, GLFW_DONT_CARE, GLFW_DONT_CARE);
 	}
 
-	void setSize(int[2] size ...) {
+	void setSize(int[2] size...) {
 		glfwSetWindowSize(glfw_window, size[0], size[1]);
 	}
 
@@ -165,7 +186,7 @@ class Window {
 	}
 
 	/// Set top left coordinate of window.
-	void setPosition(int[2] pos ...) {
+	void setPosition(int[2] pos...) {
 		glfwSetWindowPos(glfw_window, pos[0], pos[1]);
 	}
 

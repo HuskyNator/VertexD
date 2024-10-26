@@ -56,7 +56,8 @@ class Shader {
 		string infoLog = getInfoLog();
 
 		if (completed == 0)
-			throw new ShaderException("Could not compile SubShader " ~ id.to!string ~ ":\n__" ~ infoLog);
+			throw new ShaderException(
+				"Could not compile SubShader " ~ id.to!string ~ ":\n__" ~ infoLog);
 
 		if (infoLog.length > 0)
 			writeln("SubShader compilation completed, infolog: " ~ infoLog);

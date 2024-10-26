@@ -21,7 +21,8 @@ public:
 		this.type = modifiable ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
 		glCreateBuffers(1, &buffer);
-		writeln("Buffer(" ~ (modifiable ? "modifiable" : "unmodifiable") ~ ") created: " ~ buffer.to!string);
+		writeln("Buffer(" ~ (modifiable ? "modifiable" : "unmodifiable") ~ ") created: " ~ buffer
+				.to!string);
 	}
 
 	this(ubyte[] content, bool modifiable = false) {

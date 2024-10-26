@@ -54,7 +54,7 @@ class Material {
 	}
 
 	this(string name = null) {
-		this.name = (name is null) ? idName() : name;
+		setID();
 		buffer = new Buffer(false);
 	}
 

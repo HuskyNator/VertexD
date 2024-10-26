@@ -108,7 +108,7 @@ class ShaderProgram {
 		glProgramUniformHandleui64ARB(id, uniformLocation, handleID);
 	}
 
-	GLint getUniformLocation(string name){
+	GLint getUniformLocation(string name) {
 		GLint uniformLocation = glGetUniformLocation(id, name.ptr);
 		if (uniformLocation == -1)
 			error_message_missing_uniform(name);
@@ -149,6 +149,14 @@ class ShaderProgram {
 				~ "v(id, uniformLocation, cast(uint) value.length, cast(" ~ S.stringof ~ "*) value.ptr);");
 	}
 
+	void setUniform(V : Mat!(R, K, float), uint R, uint K)(int uniformLocation, V* ptr)
+			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
+		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
+				: (K.to!string ~ "x" ~ R.to!string)) ~ (
+				is(float == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, ptr);");
+	}
+
+	// TODO: add doubles
 	void setUniform(V : Mat!(R, K, float), uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
@@ -185,8 +193,8 @@ class ShaderProgram {
 	static ShaderProgram gltfShaderProgram() {
 		if (gltfShaderProgram_ is null)
 			gltfShaderProgram_ = new ShaderProgram([
-				gltfVertShader, gltfFragShader
-			],
+			gltfVertShader, gltfFragShader
+		],
 			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return gltfShaderProgram_;
 	}
@@ -197,8 +205,8 @@ class ShaderProgram {
 	static ShaderProgram flatColorShaderProgram() {
 		if (flatColorShaderProgram_ is null)
 			flatColorShaderProgram_ = new ShaderProgram([
-				flatColorVertShader, flatColorFragShader
-			],
+			flatColorVertShader, flatColorFragShader
+		],
 			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return flatColorShaderProgram_;
 	}
@@ -208,8 +216,10 @@ class ShaderProgram {
 	static ShaderProgram flatUVShaderProgram_;
 	static ShaderProgram flatUVShaderProgram() {
 		if (flatUVShaderProgram_ is null)
-			flatUVShaderProgram_ = new ShaderProgram([flatUVVertShader, flatUVFragShader],
-				[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+			flatUVShaderProgram_ = new ShaderProgram([
+			flatUVVertShader, flatUVFragShader
+		],
+			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
 		return flatUVShaderProgram_;
 	}
 }

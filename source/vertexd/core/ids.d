@@ -1,25 +1,25 @@
 module vertexd.core.ids;
 
-shared size_t global_id = 0;
+shared uint globalID = 0;
 
 mixin template ID(bool global = false) {
-    import core.atomic: atomicFetchAdd;
-    import std.conv: to;
+    import core.atomic : atomicFetchAdd;
+    import std.conv : to;
 
     static if (!global)
-        shared size_t private_id;
-    size_t id;
+        shared static uint privateID;
+    uint id;
 
     size_t setID() {
         static if (global)
-            this.id = atomicFetchAdd(global_id, 1);
+            this.id = atomicFetchAdd(globalID, 1);
         else
-            this.id = atomicFetchAdd(private_id, 1);
+            this.id = atomicFetchAdd(privateID, 1);
         return this.id;
     }
 
-    string idName(){
-        return typeof(this).stringof~"#"~id.to!string;
+    string idName() {
+        return typeof(this).stringof ~ "#" ~ id.to!string;
     }
 }
 
