@@ -1,4 +1,4 @@
-module vertexd.misc;
+module vertexd.util.misc;
 
 import bindbc.opengl;
 import std.algorithm : countUntil, removeAt = remove;

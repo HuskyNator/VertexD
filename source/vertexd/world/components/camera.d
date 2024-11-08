@@ -4,17 +4,28 @@ import vdmath;
 import vdmath.misc : degreesToRadians;
 import vertexd.core.ids;
 import vertexd.world.components.component;
-import vertexd.renderer.renderable;
 import std.math.trigonometry : tan;
+import vertexd.util.templates;
 
 class Camera : Component {
-    mixin ID;
+    struct Data {
+        Mat!4 projectionMatrix = Mat!4(1);
+        Mat!4 cameraMatrix = Mat!4(1);
+    }
 
-    Mat!4 projectionMatrix = Mat!4(1);
-    Mat!4 cameraMatrix = Mat!4(1);
+    mixin ID;
+    mixin TrackedProperties!(Data, "data");
+    mixin BufferStruct!(_data, true);
+
+    this() {
+        setID();
+        initBuffer();
+    }
 
     this(Mat!4 projectionMatrix) {
-        this.projectionMatrix = projectionMatrix;
+        this._data.projectionMatrix = projectionMatrix;
+        this._data.cameraMatrix = Mat!4(1); // Bug: compiler
+        this();
     }
 
     override void update(Node owner) {
@@ -28,13 +39,13 @@ class Camera : Component {
         float horizontalFov = degreesToRadians(121.0), // vertical fov 90°
         float nearplane = 0.1, float farplane = 100) {
         float hSlope = 1.0 / tan(horizontalFov / 2.0);
-        float vSlope = hSlope * aspectRatio;
-        float zConstant = -(farplane + nearplane) / (farplane - nearplane);
-        float zNuminator = -(2.0 * farplane * nearplane) / (farplane - nearplane);
+        float vSlope = hSlope / aspectRatio;
+        float zConstant = (farplane + nearplane) / (farplane - nearplane);
+        float zNuminator = (2.0 * farplane * nearplane) / (farplane - nearplane);
         return Mat!4([
             [hSlope, 0.0, 0.0, 0.0],
             [0.0, vSlope, 0.0, 0.0],
-            [0.0, 0.0, zConstant, zNuminator],
+            [0.0, 0.0, -zConstant, -zNuminator],
             [0.0, 0.0, -1.0, 0.0]
         ]);
     }

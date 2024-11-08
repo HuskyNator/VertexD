@@ -4,6 +4,7 @@
 docs.json
 __dummy.html
 docs/
+build/
 /vertexd
 vertexd.so
 vertexd.dylib

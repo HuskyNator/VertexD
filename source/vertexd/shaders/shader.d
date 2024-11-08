@@ -1,15 +1,15 @@
 module vertexd.shaders.shader;
+
 import bindbc.opengl;
 import std.conv : to;
-import std.file : readText;
-import std.path;
-import std.regex;
+import std.file : exists, readText;
+import std.path : extension;
 import std.stdio : write, writeln;
 import vertexd.shaders;
 
 class Shader {
 	Type type;
-	uint id;
+	uint shader;
 	string source;
 
 	enum Type {
@@ -42,22 +42,22 @@ class Shader {
 
 	final string getInfoLog() {
 		int length;
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 		if (length == 0)
 			return "";
 		char[] notification = new char[length];
-		glGetShaderInfoLog(id, length, null, &notification[0]);
+		glGetShaderInfoLog(shader, length, null, &notification[0]);
 		return cast(string) notification.idup;
 	}
 
 	final void assertCompiled() {
 		int completed;
-		glGetShaderiv(id, GL_COMPILE_STATUS, &completed);
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &completed);
 		string infoLog = getInfoLog();
 
 		if (completed == 0)
 			throw new ShaderException(
-				"Could not compile SubShader " ~ id.to!string ~ ":\n__" ~ infoLog);
+				"Could not compile SubShader " ~ shader.to!string ~ ":\n__" ~ infoLog);
 
 		if (infoLog.length > 0)
 			writeln("SubShader compilation completed, infolog: " ~ infoLog);
@@ -68,6 +68,7 @@ class Shader {
 	this(string file) {
 		string ext = extension(file);
 		Type type = extensionToType(ext);
+		assert(exists(file));
 		this(readText(file), type);
 	}
 
@@ -77,25 +78,24 @@ class Shader {
 	}
 
 	void initialize() {
-		if (this.id != 0)
+		if (this.shader != 0)
 			return;
-		this.id = glCreateShader(type);
-		writeln("SubShader(" ~ type.to!string ~ ") created: " ~ id.to!string);
+		this.shader = glCreateShader(type);
+		writeln("SubShader(" ~ type.to!string ~ ") created: " ~ shader.to!string);
 
 		auto p = source.ptr;
 		int l = cast(int) source.length;
-		glShaderSource(id, 1, &p, &l);
-		glCompileShader(id);
+		glShaderSource(shader, 1, &p, &l);
+		glCompileShader(shader);
 		assertCompiled();
 	}
 
 	~this() {
-		glDeleteShader(id);
-		write("SubShader removed: ");
-		writeln(id);
+		glDeleteShader(shader);
+		write("SubShader removed: ", shader);
 	}
 
 	override string toString() const {
-		return type.to!string ~ '#' ~ id.to!string;
+		return type.to!string ~ '#' ~ shader.to!string;
 	}
 }

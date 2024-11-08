@@ -4,7 +4,7 @@
 // import std.exception : enforce;
 // import vertexd.core;
 // import vertexd.mesh.buffer;
-// import vertexd.misc;
+// import vertexd.util.misc;
 // import vertexd.shaders.shaderprogram;
 // import vertexd.world.node;
 // import vertexd.world.world;

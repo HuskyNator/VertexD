@@ -1,7 +1,6 @@
 module vertexd.shaders.shaderprogram;
 
 import bindbc.opengl;
-import vertexd.mesh.buffer;
 import vdmath.mat;
 import vertexd.shaders.shader;
 import std.array : replace;
@@ -9,6 +8,7 @@ import std.conv : to;
 import std.regex;
 import std.stdio;
 import std.traits : isInstanceOf;
+import vertexd.memory.buffer;
 
 class ShaderException : Exception {
 	this(string notification) {
@@ -16,16 +16,17 @@ class ShaderException : Exception {
 	}
 }
 
+// TODO: add caching
 class ShaderProgram {
 	static ShaderProgram current = null;
 
 	Shader[] shaders;
-	protected uint id;
+	uint shaderProgram;
 
 	final void use() {
 		if (current is this)
 			return;
-		glUseProgram(id);
+		glUseProgram(shaderProgram);
 		current = this;
 	}
 
@@ -46,54 +47,53 @@ class ShaderProgram {
 
 	@disable this();
 
-	this(string[] files, bool initialize = true) {
+	this(string[] files...) {
 		Shader[] shaders = new Shader[files.length];
 		foreach (i, string file; files)
 			shaders[i] = new Shader(file);
-		this(shaders, initialize);
+		this(shaders);
 	}
 
-	this(string[] sources, Shader.Type[] types, bool initialize = true) {
+	this(string[] sources, Shader.Type[] types) {
 		assert(sources.length == types.length);
 		Shader[] shaders = new Shader[sources.length];
 		foreach (i; 0 .. sources.length)
 			shaders[i] = new Shader(sources[i], types[i]);
-		this(shaders, initialize);
+		this(shaders);
 	}
 
-	this(Shader[] shaders, bool initialize = true) {
+	this(Shader[] shaders) {
 		this.shaders = shaders.dup;
-		if (initialize)
-			this.initialize();
+		initialize();
 	}
 
 	final ShaderProgram initialize() {
-		if (this.id != 0)
+		if (this.shaderProgram != 0)
 			return this;
 
 		foreach (Shader shader; shaders)
 			shader.initialize();
 
-		this.id = glCreateProgram();
+		this.shaderProgram = glCreateProgram();
 
 		foreach (Shader shader; shaders)
-			glAttachShader(id, shader.id);
-		glLinkProgram(id);
+			glAttachShader(shaderProgram, shader.shader);
+		glLinkProgram(shaderProgram);
 
 		int completed;
-		glGetProgramiv(id, GL_LINK_STATUS, &completed);
+		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &completed);
 		if (completed == 0)
 			throw new ShaderException(
-				"Could not compose ShaderProgram " ~ id.to!string ~ ":\n_" ~ getInfoLog());
+				"Could not compose ShaderProgram " ~ shaderProgram.to!string ~ ":\n_" ~ getInfoLog());
 
 		writeln("ShaderProgram created:" ~ toString());
 		return this;
 	}
 
 	~this() {
-		glDeleteProgram(id);
+		glDeleteProgram(shaderProgram);
 		write("Shader removed: ");
-		writeln(id);
+		writeln(shaderProgram);
 	}
 
 	static void setUniformBuffer(int binding, Buffer buffer) {
@@ -105,29 +105,27 @@ class ShaderProgram {
 	}
 
 	void setUniformHandle(GLint uniformLocation, GLuint64 handleID) {
-		glProgramUniformHandleui64ARB(id, uniformLocation, handleID);
+		glProgramUniformHandleui64ARB(shaderProgram, uniformLocation, handleID);
 	}
 
 	GLint getUniformLocation(string name) {
-		GLint uniformLocation = glGetUniformLocation(id, name.ptr);
+		GLint uniformLocation = glGetUniformLocation(shaderProgram, name.ptr);
 		if (uniformLocation == -1)
 			error_message_missing_uniform(name);
 		return uniformLocation;
 	}
 
 	void setUniform(V)(string name, V value) {
-		const int uniformLocation = glGetUniformLocation(id, name.ptr);
+		const int uniformLocation = glGetUniformLocation(shaderProgram, name.ptr);
 		if (uniformLocation == -1)
 			return error_message_missing_uniform(name);
-
-		setUniform(uniformLocation, value);
 	}
 
 	void setUniform(V)(int uniformLocation, V value) if (!isInstanceOf!(Mat, V)) {
 		enum string type = is(V == uint) ? "ui" : (is(V == int) ? "i" : (is(V == float) ? "f" : (is(V == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ V.stringof ~ " not supported for setUniform.");
-		mixin("glProgramUniform1" ~ type ~ "(id, uniformLocation, value);");
+		mixin("glProgramUniform1" ~ type ~ "(shaderProgram, uniformLocation, value);");
 	}
 
 	void setUniform(V : Mat!(L, 1, S), uint L, S)(int uniformLocation, V value)
@@ -137,7 +135,8 @@ class ShaderProgram {
 		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
-		mixin("glProgramUniform" ~ L.to!string ~ type ~ "(id, uniformLocation, " ~ values ~ ");");
+		mixin(
+			"glProgramUniform" ~ L.to!string ~ type ~ "(shaderProgram, uniformLocation, " ~ values ~ ");");
 	}
 
 	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(int uniformLocation, V value)
@@ -146,45 +145,38 @@ class ShaderProgram {
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
 		mixin("glProgramUniform" ~ L.to!string ~ type
-				~ "v(id, uniformLocation, cast(uint) value.length, cast(" ~ S.stringof ~ "*) value.ptr);");
+				~ "v(shaderProgram, uniformLocation, cast(uint) value.length, cast(" ~ S.stringof ~ "*) value.vec.ptr);");
 	}
 
-	void setUniform(V : Mat!(R, K, float), uint R, uint K)(int uniformLocation, V* ptr)
-			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
-		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
-				: (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(float == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, ptr);");
-	}
-
-	// TODO: add doubles
 	void setUniform(V : Mat!(R, K, float), uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
 				: (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(float == float) ? "f" : "d") ~ "v(id, uniformLocation, 1, true, value[0].ptr);");
+				is(float == float) ? "f" : "d") ~ "v(shaderProgram, uniformLocation, 1, true, value.vec.ptr);");
 	}
 
 	void setUniform(V : Mat!(R, K, float)[], uint R, uint K)(int uniformLocation, V value)
 			if (R > 1 && R <= 4 && K > 1 && K <= 4) { // Set Mat[]
 		mixin("glProgramUniformMatrix" ~ (R == K ? K.to!string
 				: (K.to!string ~ "x" ~ R.to!string)) ~ (
-				is(float == float) ? "f" : "d") ~ "v(verwijzing, uniformplek, waarde.length, true, waarde.ptr);");
+				is(float == float) ? "f" : "d") ~ "v(shaderProgram, uniformLocation, value.length, true, value.vec.ptr);");
 	}
 
 	override string toString() const {
-		return "ShaderProgram#" ~ id.to!string ~ shaders.to!string;
+		return "ShaderProgram#" ~ shaderProgram.to!string ~ shaders.to!string;
 	}
 
 	string getInfoLog() {
 		int length;
-		glGetProgramiv(this.id, GL_INFO_LOG_LENGTH, &length);
+		glGetProgramiv(this.shaderProgram, GL_INFO_LOG_LENGTH, &length);
 		char[] notification = new char[length];
-		glGetProgramInfoLog(this.id, length, null, notification.ptr);
+		glGetProgramInfoLog(this.shaderProgram, length, null, notification.ptr);
 		return cast(string) notification.idup;
 	}
 
 	private void error_message_missing_uniform(string name) {
-		writeln("Shader " ~ id.to!string ~ " could not find uniform " ~ name ~ ":\n___" ~ getInfoLog());
+		writeln(
+			"Shader " ~ shaderProgram.to!string ~ " could not find uniform " ~ name ~ ":\n___" ~ getInfoLog());
 	}
 
 	static immutable string gltfVertShader = import("shaders/standard.vert");
@@ -199,17 +191,17 @@ class ShaderProgram {
 		return gltfShaderProgram_;
 	}
 
-	static immutable string flatColorVertShader = import("shaders/flat_color.vert");
-	static immutable string flatColorFragShader = import("shaders/flat_color.frag");
-	static ShaderProgram flatColorShaderProgram_;
-	static ShaderProgram flatColorShaderProgram() {
-		if (flatColorShaderProgram_ is null)
-			flatColorShaderProgram_ = new ShaderProgram([
-			flatColorVertShader, flatColorFragShader
-		],
-			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
-		return flatColorShaderProgram_;
-	}
+	// static immutable string flatColorVertShader = import("shaders/flat_color.vert");
+	// static immutable string flatColorFragShader = import("shaders/flat_color.frag");
+	// static ShaderProgram flatColorShaderProgram_;
+	// static ShaderProgram flatColorShaderProgram() {
+	// 	if (flatColorShaderProgram_ is null)
+	// 		flatColorShaderProgram_ = new ShaderProgram([
+	// 		flatColorVertShader, flatColorFragShader
+	// 	],
+	// 		[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+	// 	return flatColorShaderProgram_;
+	// }
 
 	static immutable string flatUVVertShader = import("shaders/flat_uv.vert");
 	static immutable string flatUVFragShader = import("shaders/flat_uv.frag");

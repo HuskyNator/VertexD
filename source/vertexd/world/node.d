@@ -2,8 +2,8 @@ module vertexd.world.node;
 
 import vdmath;
 import vertexd.core;
+import vertexd.util.misc : removeElement;
 import vertexd.world.components.component;
-import vertexd.misc : removeElement;
 
 struct Transform { // TODO: AOS
 	Vec!3 position;
@@ -91,7 +91,7 @@ class Node {
 	}
 
 	void updateLocalMatrix() {
-		this.localMatrix = Mat!4();
+		this.localMatrix = Mat!4(0);
 		localMatrix[0][0] = transform.size.x;
 		localMatrix[1][1] = transform.size.y;
 		localMatrix[2][2] = transform.size.z;

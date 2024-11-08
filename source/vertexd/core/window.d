@@ -27,7 +27,7 @@ enum MouseType {
 }
 
 class Window {
-	// mixin ID!true;
+	mixin ID;
 	string name;
 	union {
 		Vec!(2, int) bounds;
@@ -72,10 +72,15 @@ class Window {
 		bool scale_to_monitor = false;
 	}
 
-	this(string name = "VertexD", int glfw_width = 960, int glfw_height = 540, Hints hints = Hints()) {
+	this() {
+		setID();
+	}
+
+	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true, Hints hints = Hints()) {
+		this();
 		this.name = name;
-		this.width = glfw_width;
-		this.height = glfw_height;
+		this.width = width;
+		this.height = height;
 
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -84,12 +89,12 @@ class Window {
 		static foreach (i; 0 .. hints.tupleof.length)
 			glfwWindowHint(hints.glfwMapping[i], hints.tupleof[i]);
 
-		this.glfw_window = glfwCreateWindow(glfw_width, glfw_height, name.ptr, null, null);
+		this.glfw_window = glfwCreateWindow(width, height, name.ptr, null, null);
 		enforce(glfw_window !is null, "GLFW could not create a window.");
 
 		Window.windows[glfw_window] = this;
 		glfwMakeContextCurrent(glfw_window); // TODO: multithreading
-		// glfwSwapInterval(0); Can use vsynch with 1
+		glfwSwapInterval(vsynch);
 
 		InputManager.register(this);
 		glfwSetInputMode(glfw_window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
@@ -127,12 +132,13 @@ class Window {
 		return glfwWindowShouldClose(glfw_window) >= 1;
 	}
 
-	// TODO
-	// void draw() {
-	// 	assert(world !is null, "No world set.");
-	// 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clean the screen
-	// 	glfwSwapBuffers(glfw_window);
-	// }
+	void swapBuffers() {
+		glfwSwapBuffers(glfw_window);
+	}
+
+	static void setBackgroundColor(float[4] rgba...) {
+		glClearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
+	}
 
 	void focus() {
 		glfwFocusWindow(glfw_window);
@@ -157,10 +163,6 @@ class Window {
 
 	void setDecorated(bool decorated) {
 		glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, decorated);
-	}
-
-	void setBackgroundColor(float[4] rgba...) {
-		glClearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
 	}
 
 	void setMouseType(MouseType type) {
@@ -226,7 +228,10 @@ debug {
 		import bindbc.opengl.bind.types;
 
 		try {
-			writeln("Opengl Exception #" ~ errorID.to!string);
+			if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+				writeln("Opengl Notification #", errorID.to!string);
+			else
+				writeln("Opengl Exception #", errorID.to!string);
 			write("\tSource: ");
 			switch (source) {
 				case GL_DEBUG_SOURCE_API:
@@ -302,7 +307,7 @@ debug {
 					assert(false);
 			}
 
-			writeln("\tMessage: " ~ message.to!string);
+			writeln("\tMessage: ", message.to!string);
 		} catch (Exception e) {
 		}
 	}

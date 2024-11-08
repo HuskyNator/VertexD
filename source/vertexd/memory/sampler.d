@@ -1,4 +1,4 @@
-module vertexd.shaders.sampler;
+module vertexd.memory.sampler;
 import bindbc.opengl;
 import std.conv;
 import std.stdio;

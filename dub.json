@@ -29,5 +29,10 @@
 		"GL_46",
 		"GL_ARB",
 		"GL_ARB_gpu_shader_int64"
-	]
+	],
+	"copyFiles": [
+		"source/vertexd/shaders/*.vert",
+		"source/vertexd/shaders/*.frag"
+	],
+	"targetPath": "build"
 }

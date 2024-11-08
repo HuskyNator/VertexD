@@ -1,3 +1,4 @@
+///
 module vertexd.core.core;
 
 import bindbc.glfw;

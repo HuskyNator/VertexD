@@ -1,10 +1,10 @@
 module vertexd.core.input_manager;
 
-import vertexd.core.input;
-import vertexd.core.window;
 import bindbc.glfw;
 import vdmath;
-import vertexd.misc : removeElement;
+import vertexd.core.input;
+import vertexd.core.window;
+import vertexd.util.misc : removeElement;
 
 extern (C) void key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
     InputManager.log(InputEvent(Window.windows[glfw_window], KeyInput(key, key_code, event, modifier)));

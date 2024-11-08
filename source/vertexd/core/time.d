@@ -31,4 +31,8 @@ static:
     float deltaTime() {
         return (cast(float) frameDuration.total!"hnsecs"()) / 10_000_000.0f;
     }
+
+    float fps() {
+        return 1 / deltaTime();
+    }
 }
