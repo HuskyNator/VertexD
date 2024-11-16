@@ -6,9 +6,9 @@ import vertexd.util.misc : removeElement;
 import vertexd.world.components.component;
 
 struct Transform { // TODO: AOS
-	Vec!3 position;
-	Vec!3 size;
-	Quat rotation;
+	Vec!3 position = Vec!3(0);
+	Vec!3 size = Vec!3(1);
+	Quat rotation = Quat();
 }
 
 class Node {
@@ -27,7 +27,7 @@ class Node {
 		setID();
 	}
 
-	this(Vec!3 position = Vec!3(0), Vec!3 size = Vec!3(1), Quat rotation = Quat()) {
+	this(Vec!3 position, Vec!3 size = Vec!3(1), Quat rotation = Quat()) {
 		this();
 		this.transform = Transform(position, size, rotation);
 	}
@@ -137,7 +137,7 @@ class Node {
 		if (dg(this))
 			return 1;
 		foreach (Node child; children) // recursion
-			if (opApply(dg))
+			if (child.opApply(dg))
 				return 1;
 		return 0;
 	}

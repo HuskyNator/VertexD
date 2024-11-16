@@ -18,12 +18,7 @@ layout(location = 0) uniform mat4 modelMatrix;
 in vec3 vert_pos;
 out vec4 gl_Position;
 
-layout(std140, binding = 0) buffer Global {
-	vec4 test[3];
-};
-
 void main() {
 	gl_Position =
 		projectionMatrix * cameraMatrix * modelMatrix * vec4(vert_pos, 1);
-	test[gl_VertexID] = projectionMatrix * cameraMatrix * modelMatrix * vec4(vert_pos, 1);
 }

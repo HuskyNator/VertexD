@@ -57,8 +57,11 @@ class Window {
 			GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED,
 			GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR,
 			GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW,
-			GLFW_SCALE_TO_MONITOR
+			GLFW_SCALE_TO_MONITOR, GLFW_SAMPLES, GLFW_REFRESH_RATE, GLFW_SRGB_CAPABLE, GLFW_DOUBLEBUFFER
 		];
+
+		static enum int dontCare = GLFW_DONT_CARE;
+
 		bool resizable = true;
 		bool visible = true;
 		bool decorated = true;
@@ -70,6 +73,10 @@ class Window {
 		bool transparent_framebuffer = false;
 		bool focus_on_show = true;
 		bool scale_to_monitor = false;
+		int samples = 0;
+		int refresh_rate = dontCare;
+		bool srgb_capable = false;
+		bool double_buffer = true;
 	}
 
 	this() {
@@ -199,9 +206,9 @@ class Window {
 		return pos;
 	}
 
-	void setName(string name) {
+	void setTitle(string title) {
 		debug writeln(i"Renaming window \"${this.name}\" to \"${name}\"");
-		this.name = name;
+		this.name = title;
 		glfwSetWindowTitle(glfw_window, name.ptr);
 	}
 

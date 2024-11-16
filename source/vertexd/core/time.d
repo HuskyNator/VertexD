@@ -4,11 +4,13 @@ import core.time;
 final abstract class Time {
 static:
     private ulong frame;
+    private MonoTime startTime;
     private MonoTime frameStart;
     private Duration frameDuration;
 
     void start() {
         frame = 0;
+        startTime = MonoTime.currTime;
         frameStart = MonoTime.currTime;
     }
 
@@ -21,6 +23,10 @@ static:
 
     ulong frameID() {
         return frame;
+    }
+
+    Duration frameTime(){
+        return frameStart - startTime;
     }
 
     Duration deltaDuration() {
