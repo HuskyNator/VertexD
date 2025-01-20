@@ -57,7 +57,8 @@ class Window {
 			GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED,
 			GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR,
 			GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW,
-			GLFW_SCALE_TO_MONITOR, GLFW_SAMPLES, GLFW_REFRESH_RATE, GLFW_SRGB_CAPABLE, GLFW_DOUBLEBUFFER
+			GLFW_SCALE_TO_MONITOR, GLFW_SAMPLES, GLFW_REFRESH_RATE,
+			GLFW_SRGB_CAPABLE, GLFW_DOUBLEBUFFER
 		];
 
 		static enum int dontCare = GLFW_DONT_CARE;
@@ -128,7 +129,7 @@ class Window {
 	~this() {
 		Window.windows.remove(glfw_window);
 		glfwDestroyWindow(glfw_window);
-		writeln(i"Window#${glfw_window} removed.");
+		writeln(i"Window#$(glfw_window) removed.");
 	}
 
 	void close(bool close = true) nothrow {
@@ -172,8 +173,16 @@ class Window {
 		glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, decorated);
 	}
 
-	void setMouseType(MouseType type) {
+	void setMouseMode(MouseType type) {
 		glfwSetInputMode(glfw_window, GLFW_CURSOR, type);
+	}
+
+	void setMouseModeRaw(bool on) {
+		// TODO: bugfix in bindbc
+		// if (!glfwRawMouseMotionSupported())
+		// 	writeln("Raw mouse movement not supported on this device.");
+		// else
+		glfwSetInputMode(glfw_window, GLFW_RAW_MOUSE_MOTION, on);
 	}
 
 	void setAspectRatio(int[2] aspect...) {
@@ -207,7 +216,7 @@ class Window {
 	}
 
 	void setTitle(string title) {
-		debug writeln(i"Renaming window \"${this.name}\" to \"${name}\"");
+		debug writeln(i"Renaming window \"$(this.name)\" to \"$(name)\"");
 		this.name = title;
 		glfwSetWindowTitle(glfw_window, name.ptr);
 	}

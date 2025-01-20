@@ -12,10 +12,10 @@ class Light : Component {
         setID();
     }
 
-    override void update(Node owner) {
+    override void update(Node caller) {
     }
 
-    override void postUpdate(Node owner) {
-        worldPosition = owner.worldPosition();
+    override void postUpdate(Node caller) {
+        worldPosition = caller.worldPosition();
     }
 }

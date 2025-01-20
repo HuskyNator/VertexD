@@ -2,7 +2,6 @@ module vertexd.memory.sampler;
 import bindbc.opengl;
 import std.conv;
 import std.stdio;
-import std.typecons : Nullable;
 import vertexd.core.core;
 
 class Sampler {

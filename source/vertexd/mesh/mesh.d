@@ -19,7 +19,10 @@ class Mesh : Component {
         return _flatShader;
     }
 
-    override void update(Node owner) {
+    override void update(Node caller) {
+    }
+
+    override void postUpdate(Node caller) {
     }
 
     override void postUpdate(Node owner) {

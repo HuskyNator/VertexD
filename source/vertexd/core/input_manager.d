@@ -16,6 +16,7 @@ extern (C) void mouse_button_callback(GLFWwindow* glfw_window, int button, int e
 
 extern (C) void mouse_position_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
     Window window = Window.windows[glfw_window];
+    // TODO: reset cursor position under disabled cursor mode to prevent rounding issues?
     Vec!(2, double) newPosition = Vec!(2, double)(x, y);
     Vec!(2, double) delta = newPosition - window.mousePosition;
     window.mousePosition = newPosition;
@@ -45,6 +46,7 @@ static:
         this.inputEvents.length = 0;
     }
 
+    /// Register Window with InputManager
     void register(Window window) {
         glfwSetKeyCallback(window.glfw_window, &key_callback);
         glfwSetMouseButtonCallback(window.glfw_window, &mouse_button_callback);
@@ -57,6 +59,8 @@ static:
     private enum string callbackName(size_t i) = "callbacks_" ~ i.stringof;
     static foreach (i, alias T; InputEvent.Input.tupleof) {
         mixin(Callback!(typeof(T)).stringof, "[] ", callbackName!i, ";");
+
+        /// Register Callback with InputManager
         void register(Callback!(typeof(T)) func) {
             mixin(callbackName!i) ~= func;
         }
@@ -76,6 +80,8 @@ static:
                         break;
                         }
             }
+
+            clear();
         }
 
         void pollInput() {

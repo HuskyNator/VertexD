@@ -2,7 +2,14 @@ module vertexd.world.components.component;
 
 public import vertexd.world.node;
 
-interface Component {
-    void update(Node owner);
-    void postUpdate(Node owner);
+abstract class Component {
+    void physicsUpdate() {
+    }
+
+    //TODO: Create way of ensuring component has certain number of callers/owners.
+    void update(Node caller) {
+    }
+
+    void postUpdate(Node caller) {
+    }
 }

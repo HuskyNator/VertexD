@@ -6,16 +6,22 @@ import vertexd.core.input;
 import vertexd.core.input_manager;
 import vertexd.world.components.component;
 import vertexd.core.window : Window;
+import vertexd.core.time;
+import std.math.constants : PI, PI_2;
+import std.algorithm.comparison : min, max;
 
 /// Player controller, primarily as example.
 class PlayerController : Component {
     float speed;
-    float sensitivity;
-    Vec!(2, int) moveDirection;
-    Vec!(2, float) rotateDelta;
+    double sensitivity;
+    Vec!(2, int) moveDirection = Vec!(2, int)(0);
+    Vec!(2, double) rotation;
 
-    this(float speed = 1, float sensitivity = 1) {
+    this(float speed = 1, double sensitivity = 0.001) {
+        this.speed = speed;
+        this.sensitivity = sensitivity;
         InputManager.register(&keyCallback);
+        InputManager.register(&mousePositionCallback);
     }
 
     void keyCallback(Window window, KeyInput input) {
@@ -34,21 +40,26 @@ class PlayerController : Component {
             case GLFW_KEY_S:
                 moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
                 break;
+            case GLFW_KEY_ESCAPE:
+                window.close();
+                break;
             default:
         }
     }
 
     void mousePositionCallback(Window window, MousePositionInput input) {
-        rotateDelta = cast(Vec!(2, float)) input.delta * sensitivity;
+        Vec!(2, double) delta = input.delta * sensitivity;
+        delta.x = 0;
+        rotation = Vec!(2, double)((rotation.x + delta.x) % (2 * PI), max(-PI_2, min(PI_2, rotation.y + delta
+                .y)));
     }
 
-    override void update(Node owner) {
-        owner.position = owner.position + Vec!3(moveDirection * speed, 0);
-        Vec!3 right = owner.rotation ^ Vec!3(1, 0, 0);
-        owner.rotation *= Quat.rotation(right, rotateDelta.x);
-        owner.rotation *= Quat.rotation(Vec!3(0, 0, 1), rotateDelta.y);
+    override void update(Node caller) {
+        caller.position = caller.position() + Vec!3(moveDirection * speed * Time.deltaTime(), 0);
+        caller.rotation = Quat.rotation(Vec!3(0, 1, 0), -rotation
+                .x) * Quat.rotation(Vec!3(1, 0, 0), -rotation.y);
     }
 
-    override void postUpdate(Node owner) {
+    override void postUpdate(Node caller) {
     }
 }

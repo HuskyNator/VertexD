@@ -28,15 +28,15 @@ class Camera : Component {
         this();
     }
 
-    override void update(Node owner) {
+    override void update(Node caller) {
     }
 
-    override void postUpdate(Node owner) {
-        this.cameraMatrix = owner.modelMatrix.inverse();
+    override void postUpdate(Node caller) {
+        this.cameraMatrix = caller.modelMatrix.inverse();
     }
 
     static Mat!4 perspectiveProjection(float aspectRatio = (1920.0 / 1080.0),
-        float horizontalFov = degreesToRadians(121.0), // vertical fov 90°
+        float horizontalFov = degreesToRadians(90.0), // vertical fov 90°
         float nearplane = 0.1, float farplane = 100) {
         float hSlope = 1.0 / tan(horizontalFov / 2.0);
         float vSlope = hSlope / aspectRatio;
