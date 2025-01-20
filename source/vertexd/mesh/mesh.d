@@ -7,10 +7,12 @@ import vertexd.shaders.shaderprogram;
 import vertexd.world.components;
 
 /// Simple Mesh Implementation
-class Mesh : Component {
+class Mesh : Component { // TODO: struct not class?
     VAO vertexArray;
     ShaderProgram shader;
     Material material;
+
+    alias this = vertexArray;
 
     static ShaderProgram _flatShader;
     static ShaderProgram flatShader() {
@@ -25,13 +27,14 @@ class Mesh : Component {
     override void postUpdate(Node caller) {
     }
 
-    override void postUpdate(Node owner) {
+    this() {
+        this.vertexArray = new VAO();
     }
 
     this(Vec!3[] vertex, uint[] indices, Material material, ShaderProgram shader = null) {
         assert(indices.length % 3 == 0);
         vertexArray = new VAO();
-        vertexArray.setAttribute(vertex, 0u, 0u, false);
+        vertexArray.setAttribute(cast(float[3][]) vertex, 0u, 0u, false);
         vertexArray.setIndices(indices);
 
         if (shader is null)
