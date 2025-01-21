@@ -1,4 +1,4 @@
-// module vertexd.memory.bindless_texture;
+deprecated module vertexd.memory.bindless_texture;
 
 // import bindbc.opengl;
 // import gamut;

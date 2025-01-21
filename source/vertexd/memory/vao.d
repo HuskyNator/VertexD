@@ -77,6 +77,31 @@ class VAO {
         bindBuffer(buffer, bufferIndex, attribIndex, 0, Vec!(L, T).sizeof);
     }
 
+    /// Utility function, creates a constant buffer for `data`, sets the attribute format & binds the buffer.
+    /// Specialized to create an interleaved buffer.
+    /// Params:
+    ///   data = data to bind to attribute
+    ///   bufferIndex = vao buffer binding point
+    ///   attribIndeces = attributes to set and bind to
+    void setAttributes(T)(const T[] data, uint bufferIndex, uint[T.tupleof.length] attributeIndices)
+            if (is(T == struct)) {
+        // Create & Bind Buffer
+        Buffer buffer = new Buffer(cast(ubyte[]) data);
+        vbos[bufferIndex] = buffer;
+        glVertexArrayVertexBuffer(vao, bufferIndex, buffer.buffer, 0, T.sizeof);
+
+        // Set all field attributes.
+        static foreach (i, Field; T.tupleof) {
+            {
+                static if (is(typeof(Field) : FT[L], FT, size_t L))
+                    setAttribute(attributeIndices[i], L, GL.getType!FT, Field.offsetof, false);
+                else
+                    setAttribute(attributeIndices[i], 1, GL.getType!(typeof(Field)), 0, false);
+            }
+            glVertexArrayAttribBinding(vao, attributeIndices[i], bufferIndex);
+        }
+    }
+
     void setIndices(IndexBuffer indexBuffer) {
         ibo = indexBuffer;
         glVertexArrayElementBuffer(vao, indexBuffer.buffer.buffer);

@@ -1,7 +1,7 @@
 module vertexd.renderer.simple.simple_renderer;
 
 import bindbc.opengl;
-import std.stdio;
+import std.stdio: stderr, writeln;
 import vdmath;
 import vertexd.core.window;
 import vertexd.memory;
@@ -33,6 +33,10 @@ class SimpleRenderer : Renderer {
 
     // Queue mesh for rendering
     void render(Window window, Node owner, Mesh mesh) {
+        if (mesh.shader is null) {
+            stderr.writeln("Shader missing");
+            return;
+        }
         renderQueue.enqueue(owner, mesh);
     }
 

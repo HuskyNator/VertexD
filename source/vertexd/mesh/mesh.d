@@ -27,8 +27,10 @@ class Mesh : Component { // TODO: struct not class?
     override void postUpdate(Node caller) {
     }
 
-    this() {
+    this(Material material, ShaderProgram shader) {
         this.vertexArray = new VAO();
+        this.material = material;
+        this.shader = shader;
     }
 
     this(Vec!3[] vertex, uint[] indices, Material material, ShaderProgram shader = null) {

@@ -1,4 +1,4 @@
-// deprecated module vertexd.world.light;
+deprecated module vertexd.world.light;
 
 // import std.conv : to;
 // import std.exception : enforce;

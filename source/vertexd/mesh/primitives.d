@@ -1,4 +1,4 @@
-// module vertexd.mesh.primitives;
+deprecated module vertexd.mesh.primitives;
 // import bindbc.opengl;
 // import std.conv : to;
 // import vertexd;

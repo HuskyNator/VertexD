@@ -1,4 +1,4 @@
-// module vertexd.mesh.pbr_material;
+deprecated module vertexd.mesh.pbr_material;
 
 // import std.conv;
 // import std.typecons : Nullable;

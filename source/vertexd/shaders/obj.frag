@@ -15,10 +15,12 @@ layout(std140, binding = 1) uniform Material {
 
 layout(location = 0) uniform mat4 modelMatrix;
 
+in vec3 frag_pos;
+in vec2 frag_uv;
 in vec3 frag_normal;
-in vec3 frag_uv;
 out vec4 out_color;
 
 void main(){
-	out_color = color;
+	vec3 lightPos = vec3(1, 10, -10);
+	out_color = color * dot(normalize(lightPos-frag_pos), normalize(frag_normal));
 }

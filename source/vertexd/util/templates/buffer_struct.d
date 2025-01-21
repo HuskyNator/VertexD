@@ -5,7 +5,6 @@ mixin template BufferStruct(alias instance, bool tracked) {
     Buffer buffer;
 
     void initBuffer() {
-        ubyte[typeof(instance).sizeof] temp = bytes();
         buffer = new Buffer(bytes(), Buffer.DynamicStorage);
     }
 

@@ -7,11 +7,12 @@ mixin template TrackedProperties(S, string name) {
         static foreach (member; S.tupleof) {
             mixin(typeof(member).stringof, " ", member.stringof, "(){return _", name, ".", member.stringof, ";}");
             mixin("void ", member.stringof, "(", typeof(member)
-                    .stringof, " val){this.changed=true;this._", name, ".", member
-                    .stringof, " = val;}");
+                    .stringof, " val){if(this._", name, ".", member.stringof, "==val)return;
+                    this.changed=true;
+                    this._", name, ".", member.stringof, " = val;}");
         }
         mixin(S.stringof, " ", name, "(){return _", name, ";}");
-        mixin("void ", name, "(", S.stringof, " val){this._", name, "=val;}");
+        mixin("void ", name, "(", S.stringof, " val){this.changed=true;this._", name, "=val;}");
     }
 }
 

@@ -80,12 +80,8 @@ class Window {
 		bool double_buffer = true;
 	}
 
-	this() {
-		setID();
-	}
-
 	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true, Hints hints = Hints()) {
-		this();
+		setID();
 		this.name = name;
 		this.width = width;
 		this.height = height;

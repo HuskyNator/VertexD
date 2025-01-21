@@ -9,22 +9,22 @@ layout(std140, binding = 0) uniform Camera {
 	vec3 cameraPosition;
 };
 
-layout(std140, binding = 1) uniform Material {
-    vec4 color;
-};
+layout(std140, binding = 1) uniform Material { vec4 color; };
 
 layout(location = 0) uniform mat4 modelMatrix;
 
-in vec3 vert_pos;
-in vec3 vert_normal;
-in vec2 vert_uv;
+layout(location = 0) in vec3 vert_pos;
+layout(location = 1) in vec2 vert_uv;
+layout(location = 2) in vec3 vert_normal;
 out vec4 gl_Position;
+out vec3 frag_pos;
+out vec2 frag_uv;
 out vec3 frag_normal;
-out vec3 frag_uv;
 
 void main() {
-	gl_Position =
-		projectionMatrix * cameraMatrix * modelMatrix * vec4(vert_pos, 1);
-    frag_normal = vert_normal;
-    frag_uv = vert_uv;
+	vec4 position_world = modelMatrix * vec4(vert_pos, 1);
+	gl_Position = projectionMatrix * cameraMatrix * position_world;
+	frag_pos = vec3(position_world.xyz) / position_world.w;
+	frag_normal = normalize((modelMatrix * vec4(normalize(vert_normal), 0)).xyz);
+	frag_uv = vert_uv;
 }
