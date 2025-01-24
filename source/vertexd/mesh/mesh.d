@@ -8,9 +8,16 @@ import vertexd.world.components;
 
 /// Simple Mesh Implementation
 class Mesh : Component { // TODO: struct not class?
-    VAO vertexArray;
     ShaderProgram shader;
     Material material;
+    VAO vertexArray;
+    IndexBinding indexBinding;
+
+    void setIndices(T)(T[] data){
+        
+    }
+
+    uint 
 
     alias this = vertexArray;
 

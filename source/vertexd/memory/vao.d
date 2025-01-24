@@ -11,7 +11,7 @@ class VAO {
     static VAO current;
     uint vao;
     Buffer[16] vbos; // or Buffer[uint]?
-    IndexBuffer ibo;
+    Buffer indexBuffer;
 
     this() {
         glCreateVertexArrays(1, &vao);
@@ -36,7 +36,7 @@ class VAO {
     ///   bufferOffset = starting offset of attribute in buffer storage
     ///   normalize = whether data should be normalized
     /// TODO: No support for packed values yet.
-    void setAttribute(uint index, ubyte size, GL.Type type, uint bufferOffset, bool normalize = false) {
+    void setAttributeFormat(uint index, ubyte size, GL.Type type, uint bufferOffset, bool normalize = false) {
         assert(size >= 1 && size <= 4);
         if (type == GL.Type.Bool)
             type = GL.Type.UByte;
@@ -55,13 +55,16 @@ class VAO {
     /// Params:
     ///   buffer = buffer to bind
     ///   bufferIndex = vao buffer binding point
-    ///   attribIndex = attribute to bind to
     ///   startOffset = start offset into the buffer
     ///   stride = stride between elements in buffer
-    void bindBuffer(Buffer buffer, uint bufferIndex, uint attribIndex, size_t startOffset, int stride) {
+    void bindBuffer(Buffer buffer, uint bufferIndex, size_t startOffset, int stride) {
         assert(bufferIndex < 16);
         vbos[bufferIndex] = buffer;
         glVertexArrayVertexBuffer(vao, bufferIndex, buffer.buffer, startOffset, stride);
+
+    }
+
+    void bindAttributeToBuffer(uint attribIndex, uint bufferIndex) {
         glVertexArrayAttribBinding(vao, attribIndex, bufferIndex);
     }
 
@@ -72,9 +75,11 @@ class VAO {
     ///   attribIndex = attribute to set and bind to
     ///   normalize = whether data should be normalized
     void setAttribute(ubyte L, T)(const T[L][] data, uint bufferIndex, uint attribIndex, bool normalize = false) {
-        setAttribute(attribIndex, L, GL.getType!T, 0, normalize);
         Buffer buffer = new Buffer(cast(ubyte[]) data);
         bindBuffer(buffer, bufferIndex, attribIndex, 0, Vec!(L, T).sizeof);
+
+        setAttributeFormat(attribIndex, L, GL.getType!T, 0, normalize);
+        bindAttributeToBuffer(attribIndex, bufferIndex);
     }
 
     /// Utility function, creates a constant buffer for `data`, sets the attribute format & binds the buffer.
@@ -87,28 +92,27 @@ class VAO {
             if (is(T == struct)) {
         // Create & Bind Buffer
         Buffer buffer = new Buffer(cast(ubyte[]) data);
-        vbos[bufferIndex] = buffer;
-        glVertexArrayVertexBuffer(vao, bufferIndex, buffer.buffer, 0, T.sizeof);
+        bindBuffer(buffer, bufferIndex, 0, T.sizeof);
 
         // Set all field attributes.
+        setAttributes!T(bufferIndex, attributeIndices);
+    }
+
+    void setAttributes(T)(uint bufferIndex, uint[T.tupleof.length] attributeIndices)
+            if (is(T == struct)) {
         static foreach (i, Field; T.tupleof) {
             {
                 static if (is(typeof(Field) : FT[L], FT, size_t L))
-                    setAttribute(attributeIndices[i], L, GL.getType!FT, Field.offsetof, false);
+                    setAttributeFormat(attributeIndices[i], L, GL.getType!FT, Field.offsetof, false);
                 else
-                    setAttribute(attributeIndices[i], 1, GL.getType!(typeof(Field)), 0, false);
+                    setAttributeFormat(attributeIndices[i], 1, GL.getType!(typeof(Field)), 0, false);
             }
-            glVertexArrayAttribBinding(vao, attributeIndices[i], bufferIndex);
+            bindAttributeToBuffer(vao, attributeIndices[i], bufferIndex);
         }
     }
 
-    void setIndices(IndexBuffer indexBuffer) {
-        ibo = indexBuffer;
-        glVertexArrayElementBuffer(vao, indexBuffer.buffer.buffer);
-    }
-
-    void setIndices(T)(const T[] indices) {
-        ibo = IndexBuffer(indices, 0u);
-        glVertexArrayElementBuffer(vao, ibo.buffer.buffer);
+    void setIndices(Buffer indexBuffer) {
+        this.indexBuffer = indexBuffer;
+        glVertexArrayElementBuffer(vao, indexBuffer.buffer);
     }
 }

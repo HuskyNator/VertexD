@@ -1,16 +1,15 @@
 module vertexd.files.obj_reader;
 
-import std.ascii : isAlphaNum, isWhite;
-import std.conv : ConvException, parse, to;
+import std.ascii : isWhite;
+import std.conv : ConvException, to;
 import std.encoding;
 import std.stdio;
-import std.typecons : Flag, No, Yes;
+
+import vdmath;
+import vertexd.files.parser;
 import vertexd.mesh.material;
 import vertexd.mesh.mesh;
 import vertexd.shaders.shaderprogram;
-import vdmath;
-
-static import std.file;
 
 final abstract class ObjReader {
 static:
@@ -28,17 +27,15 @@ static:
         return _material;
     }
 
-    struct Reader {
-        string path;
-        size_t index = 0;
-        size_t line = 0; // functional line
-        size_t fileLine = 0; // line in file
-        char[] data;
+    struct ObjParser {
+        Parser parser;
+        alias this = parser;
 
         this(string path) {
-            this.path = path;
-            data = cast(char[]) std.file.read(path);
+            this.parser = Parser(path);
         }
+
+        size_t objLine = 0; // logical line (no fake line breaks) <= line
 
         // As read from file
         float[3][] rawVertices;
@@ -87,43 +84,7 @@ static:
             bool[3] useAttribute;
         }
 
-        // Debugging tools
-        string currentLine() {
-            size_t start = index;
-            size_t end = index;
-            if (data.length == 0)
-                return "";
-            while (start > 0) {
-                if (data[start - 1] == '\n')
-                    break;
-                start -= 1;
-            }
-            while (end < data.length) {
-                if (data[end] == '\n')
-                    break;
-                end += 1;
-            }
-            return cast(string) data[start .. end];
-        }
-
-        class ParseException : Exception {
-            this(ref Reader reader, string msg) {
-                super(
-                    msg ~ "\nfile:" ~ reader.path ~ " line(" ~ reader.fileLine.to!string ~ "):" ~ reader.currentLine());
-            }
-
-            this(ref Reader reader, string msg, Throwable nexInChain) {
-                super(msg ~ "\nfile:" ~ reader.path ~ " line(" ~ reader.fileLine.to!string ~ "):" ~ reader.currentLine(), nexInChain);
-            }
-        }
-
         // Parser
-        bool peek(const char[] expect) {
-            if (index + expect.length >= data.length)
-                return false;
-            return data[index + 1 .. index + expect.length + 1] == expect;
-        }
-
         bool peekFakeNewline() {
             return index < data.length && data[index] == '\\' && (peek("\n") || peek("\r\n"));
         }
@@ -189,34 +150,12 @@ static:
             throw new ParseException(this, "Expected '/' but reached end of file.");
         }
 
-        const(char[]) consumeWord() {
-            assert(index < data.length && !data[index].isWhite());
-            size_t startIndex = index;
-            while (index < data.length) {
-                if (data[index].isWhite())
-                    break;
-                index += 1;
-            }
-            size_t end = index;
-            skipWhitespace();
-            return data[startIndex .. end];
-        }
-
         T consumeNumber(T, bool expectSlash = false)() {
             static if (expectSlash)
                 string word = cast(string) consumeWordSlash();
             else
                 string word = cast(string) consumeWord();
-            try {
-                size_t wordLength = word.length; // parse consumes word.
-                auto result = parse!(T, string, Yes.doCount)(word);
-                if (result.count != wordLength)
-                    throw new ParseException(this, "Number parse length incorrect " ~ result.count.to!string ~ " instead of " ~ word
-                            .length.to!string);
-                return result.data;
-            } catch (ConvException c) {
-                throw new ParseException(this, "Number parse failed.", c);
-            }
+            return parseNumber(word);
         }
 
         int[3][] consumeFace() {
@@ -298,13 +237,13 @@ static:
             return result;
         }
 
-        Mesh convertToMesh() {
-            Mesh mesh = new Mesh(ObjReader.material, ObjReader.shader());
+        Mesh[] convertToMeshes() {
+            Mesh mesh = new Mesh(ObjReader, ObjReader.shader());
             mesh.setAttribute(vertexData, 0u, 0u);
             if (useUV)
                 mesh.setAttribute(uvData, 1u, 1u);
             // if (useNormal) normals are calculated
-                mesh.setAttribute(normalData, 2u, 2u);
+            mesh.setAttribute(normalData, 2u, 2u);
             mesh.setIndices(cast(uint[]) indices);
             return mesh;
         }
@@ -413,13 +352,13 @@ static:
             }
         }
 
-        Mesh read() {
+        Mesh[] read() {
             parseFile();
-            return convertToMesh();
+            return convertToMeshes();
         }
     }
 
-    Mesh read(string path) {
-        return new Reader(path).read();
+    Mesh[] read(string path) {
+        return ObjParser(path).read();
     }
 }
