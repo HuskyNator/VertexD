@@ -87,7 +87,7 @@ class SimpleRenderer : Renderer {
                 VAO vao = instance.mesh.vertexArray;
                 vao.bind();
                 shader.setUniform(modelMatrixUniformIndex, instance.owner.modelMatrix);
-                glDrawElements(GL_TRIANGLES, vao.ibo.elementCount, vao.ibo.elementType, cast(void*) 0);
+                glDrawElements(GL_TRIANGLES, instance.mesh.indexBinding.elementCount, instance.mesh.indexBinding.elementType, cast(void*) 0);
             }
         }
 

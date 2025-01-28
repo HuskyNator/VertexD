@@ -1,18 +1,18 @@
 module vertexd.util.templates.tracked_properties;
 
 mixin template TrackedProperties(S, string name) {
-    bool changed = false;
+    bool _changed = false;
     mixin(S.stringof, " _", name, ";");
     @property {
         static foreach (member; S.tupleof) {
             mixin(typeof(member).stringof, " ", member.stringof, "(){return _", name, ".", member.stringof, ";}");
             mixin("void ", member.stringof, "(", typeof(member)
                     .stringof, " val){if(this._", name, ".", member.stringof, "==val)return;
-                    this.changed=true;
+                    this._changed=true;
                     this._", name, ".", member.stringof, " = val;}");
         }
         mixin(S.stringof, " ", name, "(){return _", name, ";}");
-        mixin("void ", name, "(", S.stringof, " val){this.changed=true;this._", name, "=val;}");
+        mixin("void ", name, "(", S.stringof, " val){this._changed=true;this._", name, "=val;}");
     }
 }
 
@@ -32,8 +32,8 @@ unittest {
     }
 
     A today = new A(Date("november", 22.0f));
-    assert(!today.changed);
+    assert(!today._changed);
 
     today.hour = today.hour + 1;
-    assert(today.changed);
+    assert(today._changed);
 }

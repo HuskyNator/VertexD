@@ -1,19 +1,23 @@
 #version 460
 
-layout(row_major) uniform;
-layout(row_major) buffer;
+layout(row_major)uniform;
+layout(row_major)buffer;
 
-layout(std140, binding = 0) uniform Camera {
+layout(std140,binding=0)uniform Camera{
 	mat4 projectionMatrix;
 	mat4 cameraMatrix;
 	vec3 cameraPosition;
 };
 
-layout(std140, binding = 1) uniform Material {
-    vec4 color;
+layout(std140,binding=1)uniform Material{
+	vec3 ka;
+	vec3 kd;
+	vec3 ks;
+	float ns;
+	uint illum;
 };
 
-layout(location = 0) uniform mat4 modelMatrix;
+layout(location=0)uniform mat4 modelMatrix;
 
 in vec3 frag_pos;
 in vec2 frag_uv;
@@ -21,6 +25,27 @@ in vec3 frag_normal;
 out vec4 out_color;
 
 void main(){
-	vec3 lightPos = vec3(1, 10, -10);
-	out_color = color * dot(normalize(lightPos-frag_pos), normalize(frag_normal));
+	if(illum==0){
+		out_color=vec4(kd,1);
+		return;
+	}
+	
+	vec3 normal=normalize(frag_normal);
+	vec3 lightPos=vec3(1,10,-10);
+	vec3 lightDir=normalize(lightPos-frag_pos);
+	float diffuse=max(dot(normal,lightDir),0);
+	if(illum==1){
+		out_color=vec4(ka+kd*diffuse,1);
+		return;
+	}
+	
+	vec3 camDir=normalize(cameraPosition-frag_pos);
+	vec3 halfDir=normalize(lightDir+camDir);
+	float specular=pow(max(dot(halfDir,frag_normal),0),ns);
+	if(illum==2){
+		out_color=vec4(ka+kd*diffuse+ks*specular,1);
+		return;
+	}
+	
+	return;// Not implemented
 }

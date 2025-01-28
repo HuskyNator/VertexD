@@ -4,6 +4,13 @@ import bindbc.opengl;
 
 final abstract class GL {
 static:
+    void setFaceCulling(bool on){
+        if(on)
+            glEnable(GL_CULL_FACE);
+        else
+            glDisable(GL_CULL_FACE);
+    }
+
     enum Type : uint {
         Bool = GL_BOOL,
         Byte = GL_BYTE,

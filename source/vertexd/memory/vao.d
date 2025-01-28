@@ -4,7 +4,6 @@ module vertexd.memory.vao;
 import vertexd.gl;
 import vertexd.memory.buffer;
 import bindbc.opengl;
-import vertexd.memory.indexbuffer;
 import vdmath;
 
 class VAO {
@@ -76,7 +75,7 @@ class VAO {
     ///   normalize = whether data should be normalized
     void setAttribute(ubyte L, T)(const T[L][] data, uint bufferIndex, uint attribIndex, bool normalize = false) {
         Buffer buffer = new Buffer(cast(ubyte[]) data);
-        bindBuffer(buffer, bufferIndex, attribIndex, 0, Vec!(L, T).sizeof);
+        bindBuffer(buffer, bufferIndex, 0, Vec!(L, T).sizeof);
 
         setAttributeFormat(attribIndex, L, GL.getType!T, 0, normalize);
         bindAttributeToBuffer(attribIndex, bufferIndex);
@@ -111,7 +110,7 @@ class VAO {
         }
     }
 
-    void setIndices(Buffer indexBuffer) {
+    void setIndexBuffer(Buffer indexBuffer) {
         this.indexBuffer = indexBuffer;
         glVertexArrayElementBuffer(vao, indexBuffer.buffer);
     }

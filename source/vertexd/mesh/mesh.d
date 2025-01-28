@@ -5,6 +5,31 @@ import vertexd.memory.vao;
 import vertexd.mesh.material;
 import vertexd.shaders.shaderprogram;
 import vertexd.world.components;
+import vertexd.gl;
+import vertexd.memory.buffer;
+
+struct IndexBinding {
+    int elementCount;
+    size_t bufferOffset;
+    GL.Type elementType;
+
+    alias getType = GL.getType;
+    alias getTypeSize = GL.getTypeSize;
+
+    this(int elementCount, size_t bufferOffset, GL.Type elementType) {
+        assert(elementType == GL.Type.UByte || elementType == GL.Type.UShort || elementType == GL
+                .Type.UInt);
+        this.elementCount = elementCount;
+        this.bufferOffset = bufferOffset;
+        this.elementType = elementType;
+    }
+
+    this(T)(const T[] indices) if (is(T == ubyte) || is(T == ushort) || is(T == uint)) {
+        this.elementCount = cast(int) indices.length;
+        this.bufferOffset = 0;
+        this.elementType = GL.getType!T;
+    }
+}
 
 /// Simple Mesh Implementation
 class Mesh : Component { // TODO: struct not class?
@@ -13,11 +38,18 @@ class Mesh : Component { // TODO: struct not class?
     VAO vertexArray;
     IndexBinding indexBinding;
 
-    void setIndices(T)(T[] data){
-        
+    void setIndices(T)(T[] data, bool dynamic = false) {
+        assert(vertexArray !is null);
+        this.indexBinding = IndexBinding(cast(int) data.length, 0, IndexBinding.getType!T);
+        Buffer indexBuffer = new Buffer(cast(ubyte[]) data, dynamic ? Buffer.DynamicStorage
+                : Buffer.StaticStorage);
+        vertexArray.setIndexBuffer(indexBuffer);
     }
 
-    uint 
+    void setIndices(Buffer indexBuffer, int elementCount, size_t bufferOffset, GL.Type elementType) {
+        vertexArray.setIndexBuffer(indexBuffer);
+        this.indexBinding = IndexBinding(elementCount, bufferOffset, elementType);
+    }
 
     alias this = vertexArray;
 
@@ -44,7 +76,7 @@ class Mesh : Component { // TODO: struct not class?
         assert(indices.length % 3 == 0);
         vertexArray = new VAO();
         vertexArray.setAttribute(cast(float[3][]) vertex, 0u, 0u, false);
-        vertexArray.setIndices(indices);
+        setIndices(indices);
 
         if (shader is null)
             shader = flatShader;

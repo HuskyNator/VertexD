@@ -43,8 +43,19 @@ struct Parser {
         }
     }
 
-    const(char[]) consumeWord() {
+    const(char[]) consumeWord(bool expectNewline = false)() {
+        return consumeWord!expectNewline(&skipWhitespace);
+    }
+
+    const(char[]) consumeWord(bool expectNewline = false)(void delegate() whitespaceSkipper) {
         assert(index < data.length && !data[index].isWhite());
+        static if (expectNewline) {
+            size_t oldLine = line;
+            scope (success)
+                if (line == oldLine)
+                    throw new Parser.ParseException(this, "Expected end of line at index " ~ index
+                            .to!string);
+        }
         size_t startIndex = index;
         while (index < data.length) {
             if (data[index].isWhite())
@@ -52,8 +63,17 @@ struct Parser {
             index += 1;
         }
         size_t end = index;
-        skipWhitespace();
+        whitespaceSkipper();
         return data[startIndex .. end];
+    }
+
+    T consumeNumber(T, bool expectNewline = false)() {
+        return consumeNumber!(T, expectNewline)(&skipWhitespace);
+    }
+
+    T consumeNumber(T, bool expectNewline = false)(void delegate() whitespaceSkipper) {
+        string word = cast(string) consumeWord!(expectNewline)(whitespaceSkipper);
+        return parseNumber!T(word);
     }
 
     T parseNumber(T)(string word) {
@@ -67,6 +87,31 @@ struct Parser {
         } catch (ConvException c) {
             throw new ParseException(this, "Number parse failed.", c);
         }
+    }
+
+    auto consumeList(size_t number, Type, bool expectNewline, bool seperator = false)() {
+        Type[number] result;
+        size_t listLine = line;
+        foreach (i; 0 .. number) {
+            if (line != listLine || index == data.length)
+                throw new Parser.ParseException(this,
+                    "List of length " ~ number.to!string ~ " expected but reached end of line/file after element #" ~ i
+                        .to!string);
+            result[i] = consumeNumber!Type();
+            static if (seperator) {
+                if (i == number = 1)
+                    continue;
+                if (index == data.length || data[index] != ',')
+                    throw new Parser.ParseException(this, "List expected with ',' seperator after element #" ~ (i + 1)
+                            .to!string);
+            }
+        }
+        static if (expectNewline) {
+            if (line == listLine)
+                throw new Parser.ParseException(this, "Expected end of line at index " ~ index
+                        .to!string);
+        }
+        return result;
     }
 
     string currentLine() {

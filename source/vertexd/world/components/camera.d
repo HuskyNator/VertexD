@@ -15,8 +15,7 @@ class Camera : Component {
     }
 
     mixin ID;
-    mixin TrackedProperties!(Data, "data");
-    mixin BufferStruct!(_data, true);
+    mixin TrackedBufferStruct!(Data, "data");
 
     this() {
         setID();
@@ -45,8 +44,8 @@ class Camera : Component {
         float zConstant = (farplane + nearplane) / (farplane - nearplane);
         float zNuminator = (2.0 * farplane * nearplane) / (farplane - nearplane);
         return Mat!4([
-            [1/hSlope, 0.0, 0.0, 0.0],
-            [0.0, 1/vSlope, 0.0, 0.0],
+            [1 / hSlope, 0.0, 0.0, 0.0],
+            [0.0, 1 / vSlope, 0.0, 0.0],
             [0.0, 0.0, -zConstant, -zNuminator],
             [0.0, 0.0, -1.0, 0.0]
         ]);

@@ -7,6 +7,9 @@ final class Buffer {
     const size_t size;
     const uint flags;
 
+    // Note modification can always be done 'server side'
+    // Even clear and invalidate work.
+    enum StaticStorage = 0u;
     alias DynamicStorage = GL_DYNAMIC_STORAGE_BIT;
     alias ClientStorage = GL_CLIENT_STORAGE_BIT;
     alias MapRead = GL_MAP_READ_BIT;
