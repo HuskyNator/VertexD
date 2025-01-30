@@ -71,6 +71,7 @@ static:
         }
 
         uint[Vertex] vertexHashmap;
+        debug size_t verticesReused = 0;
 
         void addNewVertex(Vertex vertex) {
             vertexData ~= rawVertices[vertex.vertexIndex];
@@ -281,16 +282,17 @@ static:
             Mesh[] meshes;
             meshes.reserve(meshStartIndices.length);
             foreach (i, start; meshStartIndices) {
-                Mesh mesh = new Mesh(meshMaterials[i], ObjReader.shader());
+                ObjMaterial material = meshMaterials[i];
+                Mesh mesh = new Mesh(material, ObjReader.shader());
 
                 mesh.setAttribute(vertexData, 0u, 0u);
                 if (useUV)
                     mesh.setAttribute(uvData, 1u, 1u); // if (useNormal) normals are calculated
                 mesh.setAttribute(normalData, 2u, 2u);
 
-                size_t end = (i + 1 == meshStartIndices.length) ? (3 * indices.length)
+                size_t end = (i + 1 == meshStartIndices.length) ? indices.length
                     : meshStartIndices[i + 1];
-                mesh.setIndices(indexBuffer, cast(int)(end - start), start * uint.sizeof, GL
+                mesh.setIndices(indexBuffer, cast(int)(end - start) * 3, start * 3 * uint.sizeof, GL
                         .getType!uint);
                 meshes ~= mesh;
             }
@@ -300,10 +302,12 @@ static:
         void parseFile() {
             skipWhitespace();
             while (index < data.length) {
+                size_t startLine = objLine;
                 const char[] keyword = consumeWord!false();
                 switch (keyword) {
                 case "#":
-                    skipLine();
+                    if (objLine == startLine) // prevent skipping next line.
+                        skipLine();
                     break;
                 case "v":
                     float[3] vertex = consumeList!(3, float, true)();
@@ -384,8 +388,10 @@ static:
                     foreach (Vertex[3] face; faces) {
                         uint[3] vertexIndices;
                         foreach (i, Vertex vertex; face) {
+                            debug verticesReused += 1;
                             vertexIndices[i] = vertexHashmap.require(vertex, {
                                 assert(vertexHashmap.length != 0);
+                                debug verticesReused -= 1;
                                 uint newIndex = cast(uint) vertexHashmap.length - 1; // hashmap length already incremented inside lambda.
                                 addNewVertex(vertex);
                                 return cast(uint) newIndex;
@@ -417,7 +423,7 @@ static:
                         meshMaterials ~= defaultMaterial();
                     }
 
-                    meshStartIndices ~= 3 * indices.length;
+                    meshStartIndices ~= indices.length;
                     meshMaterials ~= *material;
                     break;
                 default:

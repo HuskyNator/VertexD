@@ -119,6 +119,7 @@ class ShaderProgram {
 		const int uniformLocation = glGetUniformLocation(shaderProgram, name.ptr);
 		if (uniformLocation == -1)
 			return error_message_missing_uniform(name);
+		setUniform(uniformLocation, value);
 	}
 
 	void setUniform(V)(int uniformLocation, V value) if (!isInstanceOf!(Mat, V)) {

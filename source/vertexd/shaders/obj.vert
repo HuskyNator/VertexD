@@ -19,6 +19,8 @@ layout(std140,binding=1)uniform Material{
 
 layout(location=0)uniform mat4 modelMatrix;
 
+uniform float ambientLight;
+
 layout(location=0)in vec3 vert_pos;
 layout(location=1)in vec2 vert_uv;
 layout(location=2)in vec3 vert_normal;

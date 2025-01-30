@@ -38,7 +38,7 @@ class Camera : Component {
 
     static Mat!4 perspectiveProjection(float aspectRatio = (1920.0 / 1080.0),
         float horizontalFov = degreesToRadians(90.0), // vertical fov 90°
-        float nearplane = 0.1, float farplane = 100) {
+        float nearplane = 0.1, float farplane = 1000) {
         float hSlope = tan(horizontalFov / 2.0);
         float vSlope = hSlope / aspectRatio;
         float zConstant = (farplane + nearplane) / (farplane - nearplane);

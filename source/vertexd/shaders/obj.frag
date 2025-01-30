@@ -19,6 +19,8 @@ layout(std140,binding=1)uniform Material{
 
 layout(location=0)uniform mat4 modelMatrix;
 
+uniform float ambientLight;
+
 in vec3 frag_pos;
 in vec2 frag_uv;
 in vec3 frag_normal;
@@ -35,17 +37,18 @@ void main(){
 	vec3 lightDir=normalize(lightPos-frag_pos);
 	float diffuse=max(dot(normal,lightDir),0);
 	if(illum==1){
-		out_color=vec4(ka+kd*diffuse,1);
+		out_color=vec4(ka*ambientLight+kd*diffuse,1);
 		return;
 	}
 	
 	vec3 camDir=normalize(cameraPosition-frag_pos);
 	vec3 halfDir=normalize(lightDir+camDir);
-	float specular=pow(max(dot(halfDir,frag_normal),0),ns);
+	float specular=pow(max(dot(halfDir,normal),0),ns);
 	if(illum==2){
-		out_color=vec4(ka+kd*diffuse+ks*specular,1);
+		out_color=vec4(ka*ambientLight+kd*diffuse+ks*specular,1);
 		return;
 	}
 	
+	out_color=vec4(1,0,1,1);
 	return;// Not implemented
 }
