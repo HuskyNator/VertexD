@@ -1,7 +1,14 @@
 deprecated module vertexd.memory.texture;
 
 // import bindbc.opengl;
-// import gamut;
+import gamut;
+import bindbc.opengl;
+
+import vertexd.core.ids;
+import std.math.rounding;
+import std.algorithm.comparison;
+import std.math.exponential;
+
 // import std.conv : to;
 // import std.exception : enforce;
 // import std.math;
@@ -10,7 +17,50 @@ deprecated module vertexd.memory.texture;
 // import vertexd.util.misc : bitWidth;
 // import vertexd.shaders;
 
-// class Texture {
+class Texture {
+	mixin ID!();
+	uint texture;
+
+	private static immutable int _gamutFlags = LOAD_RGB | LOAD_ALPHA | LOAD_NO_PREMUL | LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS;
+
+	this(string path, bool mipmaps) {
+		Image image;
+		image.loadFromFile(path, Texture._gamutFlags);
+		if (image.isError())
+			throw new Exception(cast(string) image.errorMessage());
+		image.flipVertical();
+		if (image.isError())
+			throw new Exception(cast(string) image.errorMessage());
+
+		setID();
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+
+		int width = image.width();
+		int height = image.height();
+		GLenum pixelType;
+		PixelType sourceType = image.type();
+		if (sourceType == PixelType.rgba8)
+			pixelType = GL_UNSIGNED_BYTE;
+		else if (sourceType == PixelType.rgba16)
+			pixelType = GL_UNSIGNED_SHORT;
+		else if (sourceType == PixelType.rgbaf32)
+			pixelType = GL_FLOAT;
+		else
+			assert(0, "Pixel Type invalid: " ~ sourceType.stringof);
+
+		int mipmapLevels = 1;
+		if (mipmaps)
+			mipmapLevels = cast(int) floor(log2(max(width, height))) + 1;
+
+		glTexStorage2D(GL_TEXTURE_2D, mipmapLevels, GL_RGBA, width, height);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, pixelType, image.allPixelsAtOnce()
+				.ptr);
+
+		if (mipmaps)
+			glGenerateMipmap(GL_TEXTURE_2D);
+	}
+}
 // 	static ushort constraints = LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT;
 // 	static int loadConstraint = LOAD_8BIT | LOAD_RGB | LOAD_ALPHA;
 
