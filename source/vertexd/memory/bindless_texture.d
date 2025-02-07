@@ -1,77 +1,36 @@
-deprecated module vertexd.memory.bindless_texture;
+module vertexd.memory.bindless_texture;
 
-// import bindbc.opengl;
-// import gamut;
-// import std.conv : to;
-// import std.exception : enforce;
-// import std.math;
-// import std.stdio;
-// import vdmath.mat;
-// import vertexd.util.misc : bitWidth;
-// import vertexd.shaders;
+import bindbc.opengl;
+import vertexd.memory.texture;
+import vertexd.memory.sampler;
 
-// class BindlessTexture { // TextureHandle
-//     Texture base;
-//     Sampler sampler;
-//     GLuint64 handleID = 0; // no handle
-//     private bool loaded = false;
+version (OpenGLBindless) class BindlessTexture {
+    ulong handle;
+    bool resident = false;
 
-//     string name;
+    this(Texture texture) {
+        this.handle = glGetTextureHandleARB(texture.texture);
+    }
 
-//     int texCoord;
-//     float factor = 1;
+    this(Texture texture, Sampler sampler) {
+        this.handle = glGetTextureHandleARB(texture.texture, sampler.sampler);
+    }
 
-//     static ubyte[] bufferBytes(BindlessTexture texture) {
-//         ubyte[] bytes = new ubyte[16]; // 16 '0 bytes'
-//         if (texture is null)
-//             return bytes;
+    ~this() {
+        makeNonResident();
+    }
 
-//         bytes[0 .. 8] = (cast(ubyte*)&texture.handleID)[0 .. GLuint64.sizeof];
-//         bytes[8 .. 12] = (cast(ubyte*)&texture.texCoord)[0 .. int.sizeof];
-//         bytes[12 .. 16] = (cast(ubyte*)&texture.factor)[0 .. float.sizeof];
-//         return bytes;
-//     }
+    void makeResident() {
+        if (!resident) {
+            glMakeTextureHandleResidentARB(handle);
+            resident = true;
+        }
+    }
 
-//     @disable this();
-
-//     this(Texture base, Sampler sampler, string name = "BindlessTexture") {
-//         this.base = base;
-//         this.sampler = sampler;
-//         this.name = name;
-//     }
-
-//     ~this() {
-//         unload();
-//         write("TextureHandle removed (remains till base & sampler are removed): ");
-//         writeln(handleID);
-//     }
-
-//     void initialize(bool srgb, bool mipmap) {
-//         if (this.handleID != 0) {
-//             writeln("TextureHandle cannot be re-initialized!");
-//             return;
-//         }
-
-//         if (!base.initialized) {
-//             base.initialize(srgb, mipmap);
-//             base.upload();
-//         }
-
-//         this.handleID = glGetTextureSamplerHandleARB(base.id, sampler.id);
-//         enforce(handleID != 0, "An error occurred while creating a texture handle");
-
-//         writeln("TextureHandle created: " ~ handleID.to!string);
-//     }
-
-//     void load() {
-//         if (!loaded)
-//             glMakeTextureHandleResidentARB(handleID);
-//         this.loaded = true;
-//     }
-
-//     void unload() {
-//         if (loaded)
-//             glMakeTextureHandleNonResidentARB(handleID);
-//         this.loaded = false;
-//     }
-// }
+    void makeNonResident() {
+        if (resident) {
+            glMakeTextureHandleNonResidentARB(handle);
+            resident = false;
+        }
+    }
+}

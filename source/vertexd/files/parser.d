@@ -11,11 +11,11 @@ struct Parser {
     string path;
     size_t index = 0;
     size_t line = 0;
-    const char[] data;
+    immutable char[] data;
 
     this(string path) {
         this.path = path;
-        data = cast(char[]) read(path);
+        data = cast(immutable char[]) read(path);
     }
 
     bool peek(const char[] expect) {
@@ -43,11 +43,11 @@ struct Parser {
         }
     }
 
-    const(char[]) consumeWord(bool expectNewline = false)() {
+    string consumeWord(bool expectNewline = false)() {
         return consumeWord!expectNewline(&skipWhitespace);
     }
 
-    const(char[]) consumeWord(bool expectNewline = false)(void delegate() whitespaceSkipper) {
+    string consumeWord(bool expectNewline = false)(void delegate() whitespaceSkipper) {
         assert(index < data.length && !data[index].isWhite());
         static if (expectNewline) {
             size_t oldLine = line;
@@ -129,7 +129,7 @@ struct Parser {
                 break;
             end += 1;
         }
-        return cast(string) data[start .. end];
+        return data[start .. end];
     }
 
     class ParseException : Exception {

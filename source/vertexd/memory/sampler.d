@@ -1,24 +1,32 @@
 module vertexd.memory.sampler;
+
 import bindbc.opengl;
-import std.conv;
-import std.stdio;
 import vertexd.core.core;
+import vertexd.core.ids;
 
 class Sampler {
-	uint id;
-	string name;
+	mixin ID!();
+	uint sampler;
+	/// Beware parameters become immutable once used with bindless textures.
+	Parameters parameters;
+	alias this = parameters;
 
-	Wrap wrapS;
-	Wrap wrapT;
-	MinFilter minFilter;
-	MagFilter magFilter;
+	/// Beware only certain colors can be used in combination with bindless textures.
+	struct Parameters {
+		Wrap wrapS = Wrap.REPEAT;
+		Wrap wrapT = Wrap.REPEAT;
+		MinFilter minFilter = MinFilter.NEAREST_MIPMAP_LINEAR;
+		MagFilter magFilter = MagFilter.LINEAR;
+		float[4] borderColor = [0, 0, 0, 0];
+		version (OpenGL46) float anisotropic = 1.0f;
+	}
 
 	enum Wrap : uint {
-		CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,
-		MIRROR_CLAMP_TO_EDGE = GL_MIRROR_CLAMP_TO_EDGE,
-		CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER,
 		REPEAT = GL_REPEAT,
-		MIRRORED_REPEAT = GL_MIRRORED_REPEAT
+		MIRRORED_REPEAT = GL_MIRRORED_REPEAT,
+		CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,
+		CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER,
+		MIRROR_CLAMP_TO_EDGE = GL_MIRROR_CLAMP_TO_EDGE,
 	}
 
 	enum MinFilter : uint {
@@ -37,42 +45,30 @@ class Sampler {
 
 	@disable this();
 
-	this(string name, Wrap wrapS = Wrap.REPEAT, Wrap wrapT = Wrap.REPEAT,
-		MinFilter minFilter = MinFilter.NEAREST, MagFilter magFilter = MagFilter.NEAREST, bool anisotropic = false) {
-		this.name = name;
-		this.wrapS = wrapS;
-		this.wrapT = wrapT;
-		this.minFilter = minFilter;
-		this.magFilter = magFilter;
+	this(Parameters parameters = Parameters()) {
+		this.parameters = parameters;
 
-		glCreateSamplers(1, &id);
-		glSamplerParameteri(id, GL_TEXTURE_WRAP_S, wrapS);
-		glSamplerParameteri(id, GL_TEXTURE_WRAP_T, wrapT);
-		glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, minFilter);
-		glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, magFilter);
+		glCreateSamplers(1, &sampler);
+		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, parameters.wrapS);
+		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, parameters.wrapT);
+		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, parameters.minFilter);
+		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, parameters.magFilter);
+		glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, parameters.borderColor.ptr);
 
-		if (anisotropic) {
-			static float maxAnisotripic;
-			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotripic);
-			glSamplerParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, maxAnisotripic);
+		version (OpenGL46) {
+			float maxAnisotropic;
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAnisotropic);
+			if (parameters.anisotropic > maxAnisotropic)
+				this.parameters.anisotropic = maxAnisotropic;
+			glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, this.parameters.anisotropic);
 		}
-
-		writeln("Sampler created: " ~ id.to!string);
 	}
 
 	~this() {
-		glDeleteSamplers(1, &id);
-		write("Sampler removed: ");
-		writeln(id);
+		glDeleteSamplers(1, &sampler);
 	}
 
-	void use(uint location) {
-		glBindSampler(location, id);
+	void bind(uint textureUnit) {
+		glBindSampler(textureUnit, sampler);
 	}
-
-	bool usesMipmap() {
-		return (minFilter == GL_NEAREST_MIPMAP_NEAREST || minFilter == GL_LINEAR_MIPMAP_NEAREST
-				|| minFilter == GL_NEAREST_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_LINEAR);
-	}
-
 }

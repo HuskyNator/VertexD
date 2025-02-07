@@ -1,11 +1,12 @@
 module vertexd.world.components.camera;
 
+import std.math.trigonometry : tan;
 import vdmath;
 import vdmath.misc : degreesToRadians;
 import vertexd.core.ids;
+import vertexd.util.tracked_buffer;
 import vertexd.world.components.component;
-import std.math.trigonometry : tan;
-import vertexd.util.templates;
+import vertexd.shaders.shaderprogram;
 
 class Camera : Component {
     struct Data {
@@ -15,25 +16,30 @@ class Camera : Component {
     }
 
     mixin ID;
-    mixin TrackedBufferStruct!(Data, "data");
+    TrackedBuffer!Data trackedBuffer;
 
     this() {
         setID();
-        initBuffer();
+        trackedBuffer.initBuffer();
     }
 
     this(Mat!4 projectionMatrix) {
-        this._data.projectionMatrix = projectionMatrix;
-        this._data.cameraMatrix = Mat!4(1); // Bug: compiler
+        this.trackedBuffer.value.projectionMatrix = projectionMatrix;
+        this.trackedBuffer.value.cameraMatrix = Mat!4(1); // Bug: compiler
         this();
+    }
+
+    void upload(ShaderProgram shader, uint cameraBindIndex) {
+        trackedBuffer.upload();
+        shader.setUniformBuffer(cameraBindIndex, trackedBuffer.buffer);
     }
 
     override void update(Node caller) {
     }
 
     override void postUpdate(Node caller) {
-        this.cameraPosition = caller.worldPosition();
-        this.cameraMatrix = caller.modelMatrix.inverse();
+        this.trackedBuffer.cameraPosition = caller.worldPosition();
+        this.trackedBuffer.cameraMatrix = caller.modelMatrix.inverse();
     }
 
     static Mat!4 perspectiveProjection(float aspectRatio = (1920.0 / 1080.0),

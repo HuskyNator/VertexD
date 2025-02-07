@@ -36,8 +36,8 @@ static:
         string root;
 
         this(string path) {
-            this.parser = Parser(path);
             this.root = dirName(path);
+            this.parser = Parser(path);
         }
 
         size_t objLine = 0; // logical line (no fake line breaks) <= line
@@ -140,9 +140,9 @@ static:
                     index += 1;
                     break;
                 }
-                if (peekSkipFakeNewline())
-                    continue;
-                index += 1;
+                peekSkipFakeNewline();
+                if (data[index] == '#')
+                    index += 1;
             }
         }
 
@@ -152,14 +152,13 @@ static:
                 if (objLine == _oldObjLine)
                     throw new Parser.ParseException(this, "Expected end of line at index " ~ index.to!string);`;
 
-        const(char[]) consumeWord(bool expectNewline)() {
+        string consumeWord(bool expectNewline)() {
             static if (expectNewline)
                 mixin(_assertNewlineMixin);
-            const(char[]) word = parser.consumeWord!false(&skipWhitespace);
-            return word;
+            return parser.consumeWord!false(&skipWhitespace);
         }
 
-        const(char[]) consumeWordSlash() {
+        string consumeWordSlash() {
             assert(index < data.length && data[index] != '/');
             size_t startIndex = index;
             while (index < data.length) {
@@ -305,131 +304,131 @@ static:
                 size_t startLine = objLine;
                 const char[] keyword = consumeWord!false();
                 switch (keyword) {
-                case "#":
-                    if (objLine == startLine) // prevent skipping next line.
+                    case "#":
+                        if (objLine == startLine) // prevent skipping next line.
+                            skipLine();
+                        break;
+                    case "v":
+                        float[3] vertex = consumeList!(3, float, true)();
+                        rawVertices ~= vertex;
+                        break;
+                    case "vt":
+                        size_t currentObjLine = objLine;
+                        float[2] uv = consumeList!(2, float, false)();
+                        rawUvs ~= uv;
+                        if (objLine == currentObjLine)
+                            consumeList!(1, float, true)(); // uvw coordinates not supported
+                        break;
+                    case "vn":
+                        float[3] normal = consumeList!(3, float, true)();
+                        rawNormals ~= normal;
+                        break;
+                        // case "p": // Point
+                        // case "l": // line
+                    case "f": // Face
+                        int[3][] rawFaceIndices = consumeFace();
+                        if (rawFaceIndices.length < 3)
+                            throw new Parser.ParseException(parser,
+                                "Face requires at least 3 vertices, found " ~ rawFaceIndices
+                                    .length.to!string ~ '.');
+                        Vertex[] rawFaces;
+                        // Set indices of vertices to positive starting from 0
+                        foreach (rawVertexIndex, int[3] rawVertex; rawFaceIndices) {
+                            Vertex vertex;
+                            foreach (typeIndex, i; rawVertex) {
+                                if (i == 0) {
+                                    if (!useAttribute[typeIndex])
+                                        continue;
+                                    throw new Parser.ParseException(parser,
+                                        "Face vertex indices cannot be 0 (count starting from 1).");
+                                } else if (i < 0) {
+                                    if (typeIndex == 0)
+                                        vertex.vertexIndex = cast(uint)(
+                                            rawVertices.length - i);
+                                    else if (
+                                        typeIndex == 1)
+                                        vertex.uvIndex = cast(uint)(rawUvs.length - i);
+                                    else // typeIndex == 2
+                                        vertex.normalIndex = cast(uint)(
+                                            rawNormals.length - i);
+                                } else
+                                    vertex.attributes[typeIndex] = cast(uint) i - 1;
+                            }
+                            rawFaces ~= vertex;
+                        }
+
+                        //Transform triangle fan to triangles
+                        Vertex[3][] faces;
+                        for (size_t second = 1; second + 1 < rawFaces.length; second += 1) {
+                            faces ~= [
+                                rawFaces[0], rawFaces[second],
+                                rawFaces[second + 1]
+                            ];
+                        }
+
+                        // TODO: ensure generating normals does not cause every vertex to be seperate.
+                        // might be difficult.
+                        if (!useNormal) { // calculate normals
+                            foreach (ref Vertex[3] face; faces) {
+                                Vec!3 v1 = Vec!3(
+                                    rawVertices[face[1].vertexIndex]) - Vec!3(
+                                    rawVertices[face[0].vertexIndex]);
+                                Vec!3 v2 = Vec!3(
+                                    rawVertices[face[2].vertexIndex]) - Vec!3(
+                                    rawVertices[face[0].vertexIndex]);
+                                Vec!3 normal = v1.cross(v2).normalize();
+                                rawNormals ~= normal;
+                                foreach (i; 0 .. 3)
+                                    face[i].normalIndex = cast(
+                                        uint) rawNormals.length - 1;
+                            }
+                        }
+
+                        foreach (Vertex[3] face; faces) {
+                            uint[3] vertexIndices;
+                            foreach (i, Vertex vertex; face) {
+                                debug verticesReused += 1;
+                                vertexIndices[i] = vertexHashmap.require(vertex, {
+                                    assert(vertexHashmap.length != 0);
+                                    debug verticesReused -= 1;
+                                    uint newIndex = cast(uint) vertexHashmap.length - 1; // hashmap length already incremented inside lambda.
+                                    addNewVertex(vertex);
+                                    return cast(uint) newIndex;
+                                }());
+                            }
+                            assert(vertexData.length == vertexHashmap
+                                    .length);
+                            indices ~= vertexIndices;
+                        }
+                        break;
+                    case "mtllib":
+                        string path = root ~ dirSeparator ~ consumeWord!true();
+                        ObjMaterial[string] newMaterials = MtlReader.read(path);
+                        foreach (element; newMaterials.byKeyValue()) {
+                            if (element.key in materials)
+                                throw new Parser.ParseException(parser, "Found duplicate material in mtl file \"" ~ path ~ "\", \"" ~ element
+                                        .key ~ "\" was already defined.");
+                            materials[element.key] = element.value;
+                        }
+                        break;
+                    case "usemtl":
+                        string name = consumeWord!true();
+                        ObjMaterial* material = name in materials;
+                        if (material is null)
+                            throw new Parser.ParseException(parser, "Unknown material used; \"" ~ name ~ "\".");
+
+                        if (meshStartIndices.length == 0 && indices.length > 0) { // Insert default
+                            meshStartIndices ~= 0;
+                            meshMaterials ~= defaultMaterial();
+                        }
+
+                        meshStartIndices ~= indices.length;
+                        meshMaterials ~= *material;
+                        break;
+                    default:
+                        stderr.writeln(
+                            "Keyword \"" ~ keyword ~ "\" unsupported, skipping line.");
                         skipLine();
-                    break;
-                case "v":
-                    float[3] vertex = consumeList!(3, float, true)();
-                    rawVertices ~= vertex;
-                    break;
-                case "vt":
-                    size_t currentObjLine = objLine;
-                    float[2] uv = consumeList!(2, float, false)();
-                    rawUvs ~= uv;
-                    if (objLine == currentObjLine)
-                        consumeList!(1, float, true)(); // uvw coordinates not supported
-                    break;
-                case "vn":
-                    float[3] normal = consumeList!(3, float, true)();
-                    rawNormals ~= normal;
-                    break;
-                    // case "p": // Point
-                    // case "l": // line
-                case "f": // Face
-                    int[3][] rawFaceIndices = consumeFace();
-                    if (rawFaceIndices.length < 3)
-                        throw new Parser.ParseException(parser,
-                            "Face requires at least 3 vertices, found " ~ rawFaceIndices
-                                .length.to!string ~ '.');
-                    Vertex[] rawFaces;
-                    // Set indices of vertices to positive starting from 0
-                    foreach (rawVertexIndex, int[3] rawVertex; rawFaceIndices) {
-                        Vertex vertex;
-                        foreach (typeIndex, i; rawVertex) {
-                            if (i == 0) {
-                                if (!useAttribute[typeIndex])
-                                    continue;
-                                throw new Parser.ParseException(parser,
-                                    "Face vertex indices cannot be 0 (count starting from 1).");
-                            } else if (i < 0) {
-                                if (typeIndex == 0)
-                                    vertex.vertexIndex = cast(uint)(
-                                        rawVertices.length - i);
-                                else if (
-                                    typeIndex == 1)
-                                    vertex.uvIndex = cast(uint)(rawUvs.length - i);
-                                else // typeIndex == 2
-                                    vertex.normalIndex = cast(uint)(
-                                        rawNormals.length - i);
-                            } else
-                                vertex.attributes[typeIndex] = cast(uint) i - 1;
-                        }
-                        rawFaces ~= vertex;
-                    }
-
-                    //Transform triangle fan to triangles
-                    Vertex[3][] faces;
-                    for (size_t second = 1; second + 1 < rawFaces.length; second += 1) {
-                        faces ~= [
-                            rawFaces[0], rawFaces[second],
-                            rawFaces[second + 1]
-                        ];
-                    }
-
-                    // TODO: ensure generating normals does not cause every vertex to be seperate.
-                    // might be difficult.
-                    if (!useNormal) { // calculate normals
-                        foreach (ref Vertex[3] face; faces) {
-                            Vec!3 v1 = Vec!3(
-                                rawVertices[face[1].vertexIndex]) - Vec!3(
-                                rawVertices[face[0].vertexIndex]);
-                            Vec!3 v2 = Vec!3(
-                                rawVertices[face[2].vertexIndex]) - Vec!3(
-                                rawVertices[face[0].vertexIndex]);
-                            Vec!3 normal = v1.cross(v2).normalize();
-                            rawNormals ~= normal;
-                            foreach (i; 0 .. 3)
-                                face[i].normalIndex = cast(
-                                    uint) rawNormals.length - 1;
-                        }
-                    }
-
-                    foreach (Vertex[3] face; faces) {
-                        uint[3] vertexIndices;
-                        foreach (i, Vertex vertex; face) {
-                            debug verticesReused += 1;
-                            vertexIndices[i] = vertexHashmap.require(vertex, {
-                                assert(vertexHashmap.length != 0);
-                                debug verticesReused -= 1;
-                                uint newIndex = cast(uint) vertexHashmap.length - 1; // hashmap length already incremented inside lambda.
-                                addNewVertex(vertex);
-                                return cast(uint) newIndex;
-                            }());
-                        }
-                        assert(vertexData.length == vertexHashmap
-                                .length);
-                        indices ~= vertexIndices;
-                    }
-                    break;
-                case "mtllib":
-                    string path = root ~ dirSeparator ~ cast(string) consumeWord!true();
-                    ObjMaterial[string] newMaterials = MtlReader.read(path);
-                    foreach (element; newMaterials.byKeyValue()) {
-                        if (element.key in materials)
-                            throw new Parser.ParseException(parser, "Found duplicate material in mtl file \"" ~ path ~ "\", \"" ~ element
-                                    .key ~ "\" was already defined.");
-                        materials[element.key] = element.value;
-                    }
-                    break;
-                case "usemtl":
-                    string name = cast(string) consumeWord!true();
-                    ObjMaterial* material = name in materials;
-                    if (material is null)
-                        throw new Parser.ParseException(parser, "Unknown material used; \"" ~ name ~ "\".");
-
-                    if (meshStartIndices.length == 0 && indices.length > 0) { // Insert default
-                        meshStartIndices ~= 0;
-                        meshMaterials ~= defaultMaterial();
-                    }
-
-                    meshStartIndices ~= indices.length;
-                    meshMaterials ~= *material;
-                    break;
-                default:
-                    stderr.writeln(
-                        "Keyword \"" ~ keyword ~ "\" unsupported, skipping line.");
-                    skipLine();
                 }
                 skipWhitespace();
             }

@@ -19,9 +19,9 @@ class SimpleRenderer : Renderer {
     mixin Renderer.RenderDispatcher!(Mesh, Camera) Dispatched;
     // alias render = Dispatched.renderDispatch;
 
-    enum uint cameraBindIndex = 0;
-    enum uint materialBindIndex = 1;
-    enum uint modelMatrixUniformIndex = 0;
+    static immutable uint cameraBindIndex = 0;
+    static immutable uint modelMatrixUniformIndex = 0;
+    static immutable uint materialBindIndex = 1;
 
     RenderQueue renderQueue;
     Camera[] cameraQueue; // Todo: support multiple
@@ -59,29 +59,27 @@ class SimpleRenderer : Renderer {
         // Define utility functions
         ShaderProgram shader;
         Material material;
-        void setShader(ShaderProgram newShader) {
+        void setShader(ShaderProgram newShader, Camera camera) {
             shader = newShader;
             newShader.use();
+            camera.upload(shader, cameraBindIndex);
         }
 
-        void setMaterial(Material newMaterial) {
+        void setMaterial(ShaderProgram shader, Material newMaterial) {
             material = newMaterial;
-            material.upload();
-            shader.setUniformBuffer(materialBindIndex, material.buffer);
+            material.upload(shader, materialBindIndex);
         }
 
         // Render queue
-        setShader(renderQueue[0].mesh.shader);
-        setMaterial(renderQueue[0].mesh.material);
         foreach (Camera camera; cameraQueue) {
-            camera.upload();
-            shader.setUniformBuffer(cameraBindIndex, camera.buffer);
+            setShader(renderQueue[0].mesh.shader, camera);
+            setMaterial(shader, renderQueue[0].mesh.material);
             foreach (RenderQueue.Element instance; renderQueue) {
                 // Update state
                 if (instance.mesh.shader !is shader)
-                    setShader(instance.mesh.shader);
+                    setShader(instance.mesh.shader, camera);
                 if (instance.mesh.material !is material)
-                    setMaterial(instance.mesh.material);
+                    setMaterial(shader, instance.mesh.material);
                 // Render mesh
                 VAO vao = instance.mesh.vertexArray;
                 vao.bind();

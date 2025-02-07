@@ -1,4 +1,5 @@
 #version 460
+#extension GL_ARB_gpu_shader_int64 : require
 
 layout(row_major) uniform;
 layout(row_major) buffer;
@@ -16,14 +17,13 @@ layout(std140, binding = 1) uniform Material {
 	float ns;
 	float d;
 	uint illum;
+	uint64_t mapKa;
+	uint64_t mapKd;
+	uint64_t mapKs;
+	uint64_t mapNs;
+	uint64_t mapD;
 }
 material;
-
-layout(location = 1) uniform sampler2D mapKa;
-layout(location = 2) uniform sampler2D mapKd;
-layout(location = 3) uniform sampler2D mapKs;
-layout(location = 4) uniform sampler2D mapNs;
-layout(location = 5) uniform sampler2D mapD;
 
 layout(location = 0) uniform mat4 modelMatrix;
 
@@ -34,41 +34,45 @@ in vec2 frag_uv;
 in vec3 frag_normal;
 out vec4 out_color;
 
-vec3 readTexture(sampler2D map, vec3 factor) {
-	return factor * texture(map, frag_uv).xyz;
+vec3 readTexture(uint64_t map, vec3 factor) {
+	if (map == 0) return factor;
+	sampler2D mapSampler = sampler2D(map);
+	return factor * texture(mapSampler, frag_uv);
 }
 
-float readTexture(sampler2D map, float factor) {
-	return factor * texture(map, frag_uv).x;
+float readTexture(uint64_t map, float factor) {
+	if (map == 0) return factor;
+	sampler2D mapSampler = sampler2D(map);
+	return factor * texture(mapSampler, frag_uv);
 }
 
 void main() {
-	float dissolve = readTexture(mapD, material.d);
-	vec3 kd = readTexture(mapKd, material.kd);
+	float dissolve = readTexture(material.mapD, material.d);
+	vec3 kd = readTexture(material.mapKd, material.kd);
 
-	if (material.illum == 0) {
+	if (illum == 0) {
 		out_color = vec4(kd, dissolve);
 		return;
 	}
 
-	vec3 ka = readTexture(mapKa, material.ka);
+	vec3 ka = readTexture(material.mapKa, material.ka);
 	vec3 normal = normalize(frag_normal);
 	vec3 lightPos = vec3(1, 10, -10);
 	vec3 lightDir = normalize(lightPos - frag_pos);
 	float diffuse = max(dot(normal, lightDir), 0);
 
-	if (material.illum == 1) {
+	if (illum == 1) {
 		out_color = vec4(ka * ambientLight + kd * diffuse, dissolve);
 		return;
 	}
 
-	vec3 ks = readTexture(mapKs, material.ks);
-	float ns = readTexture(mapNs, material.ns);
+	vec3 ks = texture(material.mapKs, material.ks);
+	float ns = texture(material.mapNs, material.ns);
 	vec3 camDir = normalize(cameraPosition - frag_pos);
 	vec3 halfDir = normalize(lightDir + camDir);
 	float specular = pow(max(dot(halfDir, normal), 0), ns);
 
-	if (material.illum == 2) {
+	if (illum == 2) {
 		out_color =
 			vec4(ka * ambientLight + kd * diffuse + ks * specular, dissolve);
 		return;
