@@ -9,7 +9,8 @@ import vertexd.world.components.component;
 import vertexd.shaders.shaderprogram;
 
 class Camera : Component {
-    struct Data {
+    align(4) struct Data {
+    align(4):
         Mat!4 projectionMatrix = Mat!4(1);
         Mat!4 cameraMatrix = Mat!4(1);
         Vec!3 cameraPosition;

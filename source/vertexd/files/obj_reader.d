@@ -140,9 +140,9 @@ static:
                     index += 1;
                     break;
                 }
-                peekSkipFakeNewline();
-                if (data[index] == '#')
-                    index += 1;
+                if(peekSkipFakeNewline())
+                    continue;
+                index += 1;
             }
         }
 
@@ -257,7 +257,6 @@ static:
                         face[2] = consumeNumber!int();
                     } else if (!useNormal) { // useUV && !useNormal
                         face[1] = consumeNumber!int();
-                        continue;
                     } else { // useUV && useNormal
                         face[1] = consumeNumberSlash!int();
                         face[2] = consumeNumber!int();

@@ -16,6 +16,7 @@ class PlayerController : Component {
     double sensitivity;
     Vec!(3, int) moveDirection = Vec!(3, int)(0);
     Vec!(2, double) rotation;
+    bool run = false;
 
     this(float speed = 1, double sensitivity = 0.005) {
         this.speed = speed;
@@ -28,28 +29,31 @@ class PlayerController : Component {
         if (input.action == KeyAction.repeat)
             return;
         switch (input.key) {
-            case GLFW_KEY_A:
-                moveDirection.x -= (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_D:
-                moveDirection.x += (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_W:
-                moveDirection.z -= (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_S:
-                moveDirection.z += (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_LEFT_SHIFT:
-                moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_SPACE:
-                moveDirection.y += (input.action == KeyAction.press) ? 1 : -1;
-                break;
-            case GLFW_KEY_ESCAPE:
-                window.close();
-                break;
-            default:
+        case GLFW_KEY_A:
+            moveDirection.x -= (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_D:
+            moveDirection.x += (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_W:
+            moveDirection.z -= (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_S:
+            moveDirection.z += (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_LEFT_SHIFT:
+            moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_SPACE:
+            moveDirection.y += (input.action == KeyAction.press) ? 1 : -1;
+            break;
+        case GLFW_KEY_LEFT_CONTROL:
+            run = input.action == KeyAction.press;
+            break;
+        case GLFW_KEY_ESCAPE:
+            window.close();
+            break;
+        default:
         }
     }
 
@@ -70,9 +74,10 @@ class PlayerController : Component {
             xzDir = xzDir.normalize(); // pythagoras
         xzDir = yRotation ^ xzDir;
         Vec!3 movement = Vec!3(xzDir.x, moveDirection.y, xzDir.z);
+        float effectiveSpeed = speed * (run ? 2 : 1);
 
         // Update position and rotaiton
-        caller.position = caller.position() + movement * speed * Time.deltaTime();
+        caller.position = caller.position() + movement * effectiveSpeed * Time.deltaTime();
         caller.rotation = yRotation * xRotation;
     }
 

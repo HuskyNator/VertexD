@@ -106,9 +106,9 @@ class ObjMaterial : Material {
                     texture[i].makeResident();
             } else {
                 if (textures[i] is null)
-                    textures[i] = Texture.empty(i >= 3 ? Texture.Type.Grey : Texture.Type.RGB);
+                    textures[i] = Texture.empty(i >= 3 ? Texture.Type.Grey : Texture.Type.RGBA);
                 textures[i].bind(i);
-                shader.setUniform(__traits(identifier, texturesStruct.tupleof[i]), i);
+                // shader.setUniform(__traits(identifier, texturesStruct.tupleof[i]), i);
             }
         }
         trackedBuffer.upload();

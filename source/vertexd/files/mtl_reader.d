@@ -67,6 +67,11 @@ static:
 						float ns = parser.consumeNumber!(float, true)();
 						currentMaterial.trackedBuffer.ns = ns;
 						break;
+					case "Tr":
+						requireMaterial();
+						float d = 1 - parser.consumeNumber!(float, true)();
+						currentMaterial.trackedBuffer.d = d;
+						break;
 					case "d":
 						requireMaterial();
 						float d = parser.consumeNumber!(float, true)();
@@ -80,7 +85,7 @@ static:
 					case "map_Ka":
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGBA);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKa = bTexture;
@@ -91,7 +96,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGBA);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKd = bTexture;
@@ -102,7 +107,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGBA);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKs = bTexture;
