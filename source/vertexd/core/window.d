@@ -141,6 +141,10 @@ class Window {
 		glfwSwapBuffers(glfw_window);
 	}
 
+	void clearBuffers() { // TODO: multiple windows
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
+
 	static void setBackgroundColor(float[4] rgba...) {
 		glClearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
 	}
@@ -247,77 +251,77 @@ debug {
 				writeln("Opengl Exception #", errorID.to!string);
 			write("\tSource: ");
 			switch (source) {
-			case GL_DEBUG_SOURCE_API:
-				writeln("OpenGL API");
-				break;
-			case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-				writeln("Window System API");
-				break;
-			case GL_DEBUG_SOURCE_SHADER_COMPILER:
-				writeln("Shader Compiler");
-				break;
-			case GL_DEBUG_SOURCE_THIRD_PARTY:
-				writeln("Third Party");
-				break;
-			case GL_DEBUG_SOURCE_APPLICATION:
-				writeln("Source Application");
-				break;
-			case GL_DEBUG_SOURCE_OTHER:
-				writeln("Miscellaneous");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_SOURCE_API:
+					writeln("OpenGL API");
+					break;
+				case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+					writeln("Window System API");
+					break;
+				case GL_DEBUG_SOURCE_SHADER_COMPILER:
+					writeln("Shader Compiler");
+					break;
+				case GL_DEBUG_SOURCE_THIRD_PARTY:
+					writeln("Third Party");
+					break;
+				case GL_DEBUG_SOURCE_APPLICATION:
+					writeln("Source Application");
+					break;
+				case GL_DEBUG_SOURCE_OTHER:
+					writeln("Miscellaneous");
+					break;
+				default:
+					assert(false);
 			}
 
 			write("\tType: ");
 			switch (type) {
-			case GL_DEBUG_TYPE_ERROR:
-				writeln("Error ╮(. ❛ ᴗ ❛.)╭");
-				break;
-			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-				writeln("Deprecated usage");
-				break;
-			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-				writeln("Undefined behaviour");
-				break;
-			case GL_DEBUG_TYPE_PORTABILITY:
-				writeln("System portability");
-				break;
-			case GL_DEBUG_TYPE_PERFORMANCE:
-				writeln("Performance Issues");
-				break;
-			case GL_DEBUG_TYPE_MARKER:
-				writeln("\"Command stream annotation\"");
-				break;
-			case GL_DEBUG_TYPE_PUSH_GROUP:
-				writeln("\"Group pushing\"");
-				break;
-			case GL_DEBUG_TYPE_POP_GROUP:
-				writeln("\"Group popping\"");
-				break;
-			case GL_DEBUG_TYPE_OTHER:
-				writeln("Miscellaneous");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_TYPE_ERROR:
+					writeln("Error ╮(. ❛ ᴗ ❛.)╭");
+					break;
+				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+					writeln("Deprecated usage");
+					break;
+				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+					writeln("Undefined behaviour");
+					break;
+				case GL_DEBUG_TYPE_PORTABILITY:
+					writeln("System portability");
+					break;
+				case GL_DEBUG_TYPE_PERFORMANCE:
+					writeln("Performance Issues");
+					break;
+				case GL_DEBUG_TYPE_MARKER:
+					writeln("\"Command stream annotation\"");
+					break;
+				case GL_DEBUG_TYPE_PUSH_GROUP:
+					writeln("\"Group pushing\"");
+					break;
+				case GL_DEBUG_TYPE_POP_GROUP:
+					writeln("\"Group popping\"");
+					break;
+				case GL_DEBUG_TYPE_OTHER:
+					writeln("Miscellaneous");
+					break;
+				default:
+					assert(false);
 			}
 
 			write("\tSeverity: ");
 			switch (severity) {
-			case GL_DEBUG_SEVERITY_HIGH:
-				writeln("High");
-				break;
-			case GL_DEBUG_SEVERITY_MEDIUM:
-				writeln("Medium");
-				break;
-			case GL_DEBUG_SEVERITY_LOW:
-				writeln("Low");
-				break;
-			case GL_DEBUG_SEVERITY_NOTIFICATION:
-				writeln("Notification (Miscellaneous)");
-				break;
-			default:
-				assert(false);
+				case GL_DEBUG_SEVERITY_HIGH:
+					writeln("High");
+					break;
+				case GL_DEBUG_SEVERITY_MEDIUM:
+					writeln("Medium");
+					break;
+				case GL_DEBUG_SEVERITY_LOW:
+					writeln("Low");
+					break;
+				case GL_DEBUG_SEVERITY_NOTIFICATION:
+					writeln("Notification (Miscellaneous)");
+					break;
+				default:
+					assert(false);
 			}
 
 			writeln("\tMessage: ", message.to!string);

@@ -52,7 +52,7 @@ struct Parser {
         static if (expectNewline) {
             size_t oldLine = line;
             scope (success)
-                if (line == oldLine)
+                if (line == oldLine && index != data.length)
                     throw new Parser.ParseException(this, "Expected end of line at index " ~ index
                             .to!string);
         }
@@ -107,7 +107,7 @@ struct Parser {
             }
         }
         static if (expectNewline) {
-            if (line == listLine)
+            if (line == listLine && index == data.length)
                 throw new Parser.ParseException(this, "Expected end of line at index " ~ index
                         .to!string);
         }

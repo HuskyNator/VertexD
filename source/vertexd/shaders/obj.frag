@@ -19,11 +19,11 @@ layout(std140, binding = 1) uniform Material {
 }
 material;
 
-layout(location = 1) uniform sampler2D mapKa;
-layout(location = 2) uniform sampler2D mapKd;
-layout(location = 3) uniform sampler2D mapKs;
-layout(location = 4) uniform sampler2D mapNs;
-layout(location = 5) uniform sampler2D mapD;
+layout(binding = 0) uniform sampler2D mapKa;
+layout(binding = 1) uniform sampler2D mapKd;
+layout(binding = 2) uniform sampler2D mapKs;
+layout(binding = 3) uniform sampler2D mapNs;
+layout(binding = 4) uniform sampler2D mapD;
 
 layout(location = 0) uniform mat4 modelMatrix;
 
@@ -35,11 +35,11 @@ in vec3 frag_normal;
 out vec4 out_color;
 
 vec3 readTexture(sampler2D map, vec3 factor) {
-	return factor * texture(map, frag_uv).xyz;
+	return factor * texture(map, frag_uv).rgb;
 }
 
 float readTexture(sampler2D map, float factor) {
-	return factor * texture(map, frag_uv).x;
+	return factor * texture(map, frag_uv).r;
 }
 
 void main() {
@@ -68,12 +68,9 @@ void main() {
 	vec3 halfDir = normalize(lightDir + camDir);
 	float specular = pow(max(dot(halfDir, normal), 0), ns);
 
-	if (material.illum == 2) {
+	if (material.illum >= 2) { // > 2 not implemented
 		out_color =
 			vec4(ka * ambientLight + kd * diffuse + ks * specular, dissolve);
 		return;
 	}
-
-	out_color = vec4(1, 0, 1, 1);
-	return;	 // Not implemented
 }

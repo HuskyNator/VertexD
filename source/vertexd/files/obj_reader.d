@@ -11,8 +11,8 @@ import vertexd.shaders.shaderprogram;
 
 import std.ascii : isWhite;
 import std.conv : ConvException, to;
-import std.stdio;
-import std.path;
+import std.path : dirName, dirSeparator;
+import std.stdio : File, stderr;
 
 final abstract class ObjReader {
 static:
@@ -140,7 +140,7 @@ static:
                     index += 1;
                     break;
                 }
-                if(peekSkipFakeNewline())
+                if (peekSkipFakeNewline())
                     continue;
                 index += 1;
             }
@@ -149,7 +149,7 @@ static:
         private enum string _assertNewlineMixin =
             `size_t _oldObjLine = objLine;
             scope (success)
-                if (objLine == _oldObjLine)
+                if (objLine == _oldObjLine && index == data.length)
                     throw new Parser.ParseException(this, "Expected end of line at index " ~ index.to!string);`;
 
         string consumeWord(bool expectNewline)() {
@@ -267,6 +267,19 @@ static:
             return results;
         }
 
+        static bool hasTextures(const ObjMaterial material) {
+            foreach (texture; material.textures) {
+                version (OpenGLBindless) {
+                    if (texture.handle != 0)
+                        return true;
+                } else {
+                    if (texture !is null)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         Mesh[] convertToMeshes() {
             assert(meshMaterials.length == meshStartIndices.length);
             if (indices.length == 0)
@@ -283,9 +296,12 @@ static:
                 ObjMaterial material = meshMaterials[i];
                 Mesh mesh = new Mesh(material, ObjReader.shader());
 
+                if (!useUV && hasTextures(material))
+                    throw new Exception("Mesh uses material but defines no uv's");
+
                 mesh.setAttribute(vertexData, 0u, 0u);
                 if (useUV)
-                    mesh.setAttribute(uvData, 1u, 1u); // if (useNormal) normals are calculated
+                    mesh.setAttribute(uvData, 1u, 1u); // if (!useNormal) normals were calculated
                 mesh.setAttribute(normalData, 2u, 2u);
 
                 size_t end = (i + 1 == meshStartIndices.length) ? indices.length

@@ -1,13 +1,14 @@
 module vertexd.files.mtl_reader;
 
 import gamut;
-import std.stdio : stderr;
 import vdmath;
 import vertexd.files.parser;
 import vertexd.memory.bindless_texture;
 import vertexd.memory.texture;
 import vertexd.mesh.material;
-import std.path;
+
+import std.path : dirName, dirSeparator;
+import std.stdio : stderr;
 
 final abstract class MtlReader {
 static:

@@ -75,7 +75,7 @@ class VAO {
     ///   normalize = whether data should be normalized
     void setAttribute(ubyte L, T)(const T[L][] data, uint bufferIndex, uint attribIndex, bool normalize = false) {
         Buffer buffer = new Buffer(cast(ubyte[]) data);
-        bindBuffer(buffer, bufferIndex, 0, Vec!(L, T).sizeof);
+        bindBuffer(buffer, bufferIndex, 0, L * T.sizeof);
 
         setAttributeFormat(attribIndex, L, GL.getType!T, 0, normalize);
         bindAttributeToBuffer(attribIndex, bufferIndex);

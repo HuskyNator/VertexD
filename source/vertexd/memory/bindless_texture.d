@@ -5,7 +5,7 @@ import vertexd.memory.texture;
 import vertexd.memory.sampler;
 
 version (OpenGLBindless) class BindlessTexture {
-    ulong handle;
+    ulong handle = 0;
     bool resident = false;
 
     this(Texture texture) {

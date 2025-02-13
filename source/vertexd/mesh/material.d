@@ -1,15 +1,17 @@
 module vertexd.mesh.material;
 
+import bindbc.opengl : GLuint64;
 import vdmath;
 import vertexd.core.ids;
-import vertexd.memory.buffer;
-import bindbc.opengl : GLuint64;
 import vertexd.memory.bindless_texture;
+import vertexd.memory.buffer;
 import vertexd.memory.texture;
-import std.meta : Filter, AliasSeq;
+import vertexd.shaders.shaderprogram;
 import vertexd.util.tracked_buffer;
 import vertexd.util.tracked_struct;
-import vertexd.shaders.shaderprogram;
+
+import std.meta : AliasSeq, Filter;
+import std.stdio : stderr;
 
 abstract class Material {
     mixin ID;
@@ -50,7 +52,7 @@ class ObjMaterial : Material {
     else
         alias TextureType = Texture;
 
-    private union {
+    union {
         struct Textures {
             TextureType mapKa;
             TextureType mapKd;
@@ -100,6 +102,8 @@ class ObjMaterial : Material {
     }
 
     override void uploadData(ShaderProgram shader) {
+        debug if (trackedBuffer.illum > 2)
+            stderr.writeln("Illumination models >2 not implemented. Defaulting to 2.");
         static foreach (uint i; 0 .. textures.length) {
             version (OpenGLBindless) {
                 if (textures[i]!is null)
@@ -108,7 +112,6 @@ class ObjMaterial : Material {
                 if (textures[i] is null)
                     textures[i] = Texture.empty(i >= 3 ? Texture.Type.Grey : Texture.Type.RGBA);
                 textures[i].bind(i);
-                // shader.setUniform(__traits(identifier, texturesStruct.tupleof[i]), i);
             }
         }
         trackedBuffer.upload();
