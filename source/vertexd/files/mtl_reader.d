@@ -86,7 +86,7 @@ static:
 					case "map_Ka":
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGBA);
+						Texture texture = new Texture(path, Texture.Type.RGB);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKa = bTexture;
@@ -97,7 +97,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGBA);
+						Texture texture = new Texture(path, Texture.Type.RGB);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKd = bTexture;
@@ -108,7 +108,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGBA);
+						Texture texture = new Texture(path, Texture.Type.RGB);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKs = bTexture;
@@ -126,7 +126,7 @@ static:
 						} else
 							currentMaterial.mapNs = texture;
 						break;
-					case "map_D":
+					case "map_d":
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;

@@ -43,8 +43,10 @@ float readTexture(sampler2D map, float factor) {
 }
 
 void main() {
-	float dissolve = readTexture(mapD, material.d);
 	vec3 kd = readTexture(mapKd, material.kd);
+	float dissolve = readTexture(mapD, material.d);
+	if(dissolve == 0) discard;
+
 
 	if (material.illum == 0) {
 		out_color = vec4(kd, dissolve);

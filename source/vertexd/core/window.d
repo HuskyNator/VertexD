@@ -108,7 +108,7 @@ class Window {
 		GLSupport opengl_version = loadOpenGL();
 		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version
 				.to!string);
-		version (OpenglBindless)
+		version (OpenGLBindless)
 			enforce(hasARBBindlessTexture, "No support for bindless textures");
 
 		debug {

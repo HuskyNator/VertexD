@@ -13,7 +13,7 @@ version (OpenGLBindless) class BindlessTexture {
     }
 
     this(Texture texture, Sampler sampler) {
-        this.handle = glGetTextureHandleARB(texture.texture, sampler.sampler);
+        this.handle = glGetTextureSamplerHandleARB(texture.texture, sampler.sampler);
     }
 
     ~this() {

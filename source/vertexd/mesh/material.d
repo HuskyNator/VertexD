@@ -107,7 +107,7 @@ class ObjMaterial : Material {
         static foreach (uint i; 0 .. textures.length) {
             version (OpenGLBindless) {
                 if (textures[i]!is null)
-                    texture[i].makeResident();
+                    textures[i].makeResident();
             } else {
                 if (textures[i] is null)
                     textures[i] = Texture.empty(i >= 3 ? Texture.Type.Grey : Texture.Type.RGBA);
