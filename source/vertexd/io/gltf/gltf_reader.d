@@ -1,4 +1,4 @@
-deprecated module vertexd.files.gltf_reader;
+deprecated module vertexd.io.gltf.gltf_reader;
 
 // import bindbc.opengl;
 // import vertexd;

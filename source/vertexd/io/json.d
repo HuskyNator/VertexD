@@ -1,10 +1,9 @@
-module vertexd.files.json;
+module vertexd.io.json;
 
 import vdmath.mat;
 import std.algorithm : canFind;
 import std.conv : to;
 import std.exception : enforce;
-import std.stdio;
 import std.uni;
 import std.traits : isPointer;
 

@@ -1,4 +1,4 @@
-deprecated module vertexd.mesh.gltf_mesh;
+deprecated module vertexd.io.gltf.gltf_mesh;
 // import bindbc.opengl;
 // import std.conv : to;
 // import std.exception : enforce;

@@ -1,11 +1,11 @@
-module vertexd.files.mtl_reader;
+module vertexd.io.obj.mtl_reader;
 
 import gamut;
 import vdmath;
-import vertexd.files.parser;
+import vertexd.io.obj.material;
+import vertexd.io.parser;
 import vertexd.memory.bindless_texture;
 import vertexd.memory.texture;
-import vertexd.mesh.material;
 
 import std.path : dirName, dirSeparator;
 import std.stdio : stderr;

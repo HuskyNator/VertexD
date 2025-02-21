@@ -1,4 +1,4 @@
-module vertexd.files.parser;
+module vertexd.io.parser;
 
 import std.ascii : isWhite;
 import std.conv : ConvException, parse, to;

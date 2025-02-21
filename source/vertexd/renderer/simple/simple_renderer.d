@@ -17,11 +17,6 @@ import vertexd.world.node;
 class SimpleRenderer : Renderer {
     // Setup dispatcher
     mixin Renderer.RenderDispatcher!(Mesh, Camera) Dispatched;
-    // alias render = Dispatched.renderDispatch;
-
-    static immutable uint cameraBindIndex = 0;
-    static immutable uint modelMatrixUniformIndex = 0;
-    static immutable uint materialBindIndex = 1;
 
     RenderQueue renderQueue;
     Camera[] cameraQueue; // Todo: support multiple
@@ -62,12 +57,12 @@ class SimpleRenderer : Renderer {
         void setShader(ShaderProgram newShader, Camera camera) {
             shader = newShader;
             newShader.use();
-            camera.upload(shader, cameraBindIndex);
+            camera.upload(shader);
         }
 
         void setMaterial(ShaderProgram shader, Material newMaterial) {
             material = newMaterial;
-            material.upload(shader, materialBindIndex);
+            material.upload(shader);
         }
 
         // Render queue
@@ -83,7 +78,7 @@ class SimpleRenderer : Renderer {
                 // Render mesh
                 VAO vao = instance.mesh.vertexArray;
                 vao.bind();
-                shader.setUniform(modelMatrixUniformIndex, instance.owner.modelMatrix);
+                shader.setUniform(ShaderProgram.modelMatrixUniformIndex, instance.owner.modelMatrix);
                 glDrawElements(GL_TRIANGLES, instance.mesh.indexBinding.elementCount, instance
                         .mesh.indexBinding.elementType, cast(void*) instance
                         .mesh.indexBinding.bufferOffset);

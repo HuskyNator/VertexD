@@ -20,6 +20,10 @@ class ShaderException : Exception {
 class ShaderProgram {
 	static ShaderProgram current = null;
 
+	static immutable uint cameraBindIndex = 0;
+	static immutable uint materialBindIndex = 1;
+	static immutable uint modelMatrixUniformIndex = 0;
+
 	Shader[] shaders;
 	uint shaderProgram;
 
@@ -180,17 +184,17 @@ class ShaderProgram {
 			"Shader " ~ shaderProgram.to!string ~ " could not find uniform " ~ name ~ ":\n___" ~ getInfoLog());
 	}
 
-	static immutable string gltfVertShader = import("shaders/standard.vert");
-	static immutable string gltfFragShader = import("shaders/standard.frag");
-	static ShaderProgram gltfShaderProgram_ = null;
-	static ShaderProgram gltfShaderProgram() {
-		if (gltfShaderProgram_ is null)
-			gltfShaderProgram_ = new ShaderProgram([
-			gltfVertShader, gltfFragShader
-		],
-			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
-		return gltfShaderProgram_;
-	}
+	// static immutable string gltfVertShader = import("shaders/standard.vert");
+	// static immutable string gltfFragShader = import("shaders/standard.frag");
+	// static ShaderProgram gltfShaderProgram_ = null;
+	// static ShaderProgram gltfShaderProgram() {
+	// 	if (gltfShaderProgram_ is null)
+	// 		gltfShaderProgram_ = new ShaderProgram([
+	// 		gltfVertShader, gltfFragShader
+	// 	],
+	// 		[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+	// 	return gltfShaderProgram_;
+	// }
 
 	// static immutable string flatColorVertShader = import("shaders/flat_color.vert");
 	// static immutable string flatColorFragShader = import("shaders/flat_color.frag");
@@ -204,15 +208,15 @@ class ShaderProgram {
 	// 	return flatColorShaderProgram_;
 	// }
 
-	static immutable string flatUVVertShader = import("shaders/flat_uv.vert");
-	static immutable string flatUVFragShader = import("shaders/flat_uv.frag");
-	static ShaderProgram flatUVShaderProgram_;
-	static ShaderProgram flatUVShaderProgram() {
-		if (flatUVShaderProgram_ is null)
-			flatUVShaderProgram_ = new ShaderProgram([
-			flatUVVertShader, flatUVFragShader
-		],
-			[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
-		return flatUVShaderProgram_;
-	}
+	// static immutable string flatUVVertShader = import("shaders/flat_uv.vert");
+	// static immutable string flatUVFragShader = import("shaders/flat_uv.frag");
+	// static ShaderProgram flatUVShaderProgram_;
+	// static ShaderProgram flatUVShaderProgram() {
+	// 	if (flatUVShaderProgram_ is null)
+	// 		flatUVShaderProgram_ = new ShaderProgram([
+	// 		flatUVVertShader, flatUVFragShader
+	// 	],
+	// 		[Shader.Type.VERTEX, Shader.Type.FRAGMENT]);
+	// 	return flatUVShaderProgram_;
+	// }
 }

@@ -2,7 +2,7 @@ module vertexd;
 
 public {
 	import vertexd.core;
-	import vertexd.files;
+	import vertexd.io;
 	import vertexd.memory;
 	import vertexd.mesh;
 	import vertexd.renderer;

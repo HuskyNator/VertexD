@@ -1,7 +1,7 @@
 module vertexd.world.components.light;
 
 import vertexd.world.components.component;
-import vertexd.core.ids;
+import vertexd.util.ids;
 import vdmath;
 
 class Light : Component {

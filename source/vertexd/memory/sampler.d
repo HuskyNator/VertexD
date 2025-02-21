@@ -2,7 +2,7 @@ module vertexd.memory.sampler;
 
 import bindbc.opengl;
 import vertexd.core.core;
-import vertexd.core.ids;
+import vertexd.util.ids;
 
 class Sampler {
 	mixin ID!();

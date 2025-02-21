@@ -1,4 +1,4 @@
-module vertexd.core.ids;
+module vertexd.util.ids;
 
 shared uint globalID = 0;
 

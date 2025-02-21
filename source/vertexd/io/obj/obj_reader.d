@@ -1,11 +1,11 @@
-module vertexd.files.obj_reader;
+module vertexd.io.obj.obj_reader;
 
 import vdmath;
-import vertexd.files.mtl_reader;
-import vertexd.files.parser;
 import vertexd.gl;
+import vertexd.io.obj.mtl_reader;
+import vertexd.io.obj.material;
+import vertexd.io.parser;
 import vertexd.memory.buffer;
-import vertexd.mesh.material;
 import vertexd.mesh.mesh;
 import vertexd.shaders.shaderprogram;
 
@@ -16,20 +16,6 @@ import std.stdio : File, stderr;
 
 final abstract class ObjReader {
 static:
-    private ShaderProgram _shader;
-    private ObjMaterial _defaultMaterial;
-    ShaderProgram shader() {
-        if (_shader is null)
-            _shader = new ShaderProgram("./obj.vert", "./obj.frag");
-        return _shader;
-    }
-
-    ObjMaterial defaultMaterial() {
-        if (_defaultMaterial is null)
-            _defaultMaterial = new ObjMaterial("_default");
-        return _defaultMaterial;
-    }
-
     struct ObjParser {
         Parser parser;
         alias this = parser;
@@ -286,7 +272,7 @@ static:
                 return [];
             if (meshStartIndices.length == 0) { // No materials used -> use default
                 meshStartIndices = [0];
-                meshMaterials = [defaultMaterial()];
+                meshMaterials = [ObjMaterial.defaultMaterial()];
             }
 
             Buffer indexBuffer = new Buffer(cast(ubyte[]) indices, Buffer.StaticStorage);
@@ -294,7 +280,7 @@ static:
             meshes.reserve(meshStartIndices.length);
             foreach (i, start; meshStartIndices) {
                 ObjMaterial material = meshMaterials[i];
-                Mesh mesh = new Mesh(material, ObjReader.shader());
+                Mesh mesh = new Mesh(material, ObjMaterial.shader());
 
                 if (!useUV && hasTextures(material))
                     throw new Exception("Mesh uses material but defines no uv's");
@@ -434,7 +420,7 @@ static:
 
                         if (meshStartIndices.length == 0 && indices.length > 0) { // Insert default
                             meshStartIndices ~= 0;
-                            meshMaterials ~= defaultMaterial();
+                            meshMaterials ~= ObjMaterial.defaultMaterial();
                         }
 
                         meshStartIndices ~= indices.length;

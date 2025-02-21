@@ -3,7 +3,7 @@ module vertexd.world.components.camera;
 import std.math.trigonometry : tan;
 import vdmath;
 import vdmath.misc : degreesToRadians;
-import vertexd.core.ids;
+import vertexd.util.ids;
 import vertexd.util.tracked_buffer;
 import vertexd.world.components.component;
 import vertexd.shaders.shaderprogram;
@@ -30,9 +30,9 @@ class Camera : Component {
         this();
     }
 
-    void upload(ShaderProgram shader, uint cameraBindIndex) {
+    void upload(ShaderProgram shader) {
         trackedBuffer.upload();
-        shader.setUniformBuffer(cameraBindIndex, trackedBuffer.buffer);
+        shader.setUniformBuffer(ShaderProgram.cameraBindIndex, trackedBuffer.buffer);
     }
 
     override void update(Node caller) {

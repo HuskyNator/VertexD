@@ -6,60 +6,25 @@ import std.algorithm.comparison;
 import std.file : exists;
 import std.math.exponential;
 import std.math.rounding;
-import vertexd.core.ids;
+import vertexd.util.ids;
 import vertexd.shaders.shaderprogram;
 import std.file : FileException;
+import std.conv : to;
+import std.meta;
 
 class Texture {
 	mixin ID!();
 	uint texture;
 
-	static Texture _emptyGray;
-	static Texture _emptyRGB;
-	static Texture _emptyRGBA;
-	static Texture empty(Type type) {
-		Image image;
-		ubyte[4] pixels = [255, 255, 255, 255];
-		final switch (type) {
-			case Type.Grey:
-				if (_emptyGray is null) {
-					image.createViewFromData(pixels.ptr, 1, 1, PixelType.l8, ubyte.sizeof);
-					image.setLayout(LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS);
-					_emptyGray = new Texture(image, type, false);
-				}
-				return _emptyGray;
-				break;
-			case Type.RGB:
-				if (_emptyRGB is null) {
-					image.createViewFromData(pixels.ptr, 1, 1, PixelType.rgb8, 3 * ubyte.sizeof);
-					image.setLayout(LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS);
-					_emptyRGB = new Texture(image, type, false);
-				}
-				return _emptyRGB;
-				break;
-			case Type.RGBA:
-				if (_emptyRGBA is null) {
-					image.createViewFromData(pixels.ptr, 1, 1, PixelType.rgba8, 4 * ubyte.sizeof);
-					image.setLayout(LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS);
-					_emptyRGBA = new Texture(image, type, false);
-				}
-				return _emptyRGBA;
-				break;
-		}
+	static Texture[4] _emptyTextures;
+	static Texture empty(ubyte type) {
+		immutable ubyte[4] pixels = [255, 255, 255, 255];
+		if (_emptyTextures[type] is null)
+			_emptyTextures[type] = Texture(1, 1, cast(ubyte[type][]) pixels[0 .. type], false);
+		return _emptyTextures[type];
 	}
 
-	enum Type {
-		Grey,
-		RGB,
-		RGBA
-	}
-
-	static immutable int loadFlags = LOAD_NO_PREMUL | LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS;
-	static immutable int loadFlagsGrey = loadFlags | LOAD_GREYSCALE | LOAD_NO_ALPHA;
-	static immutable int loadFlagsRGB = loadFlags | LOAD_RGB | LOAD_NO_ALPHA;
-	static immutable int loadFlagsRGBA = loadFlags | LOAD_RGB | LOAD_ALPHA;
 	static int _glUnpackAlignment = 4;
-
 	static void setUnpackAlignment(int newAlignment) {
 		assert(newAlignment == 1 || newAlignment == 2 || newAlignment == 4 || newAlignment == 8);
 		if (newAlignment == _glUnpackAlignment)
@@ -67,6 +32,72 @@ class Texture {
 		Texture._glUnpackAlignment = newAlignment;
 		glPixelStorei(GL_UNPACK_ALIGNMENT, newAlignment);
 	}
+
+	private enum GLenum getInternalFormat(T) = mixin("GL_", "RGBA"[0 .. L], (T.sizeof * 8)
+				.to!string, is(typeof(T) == float) ? "f" : "");
+
+	this(int width, int height, GLenum internalFormat, bool mipmapLevels = 1) {
+		setID();
+		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
+
+		if (mipmapLevels == 1)
+			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+
+	this(T, uint L)(int width, int height, T[L][] pixels, bool mipmaps = true) {
+		static assert(L >= 1 && L <= 4);
+		static assert(staticIndexOf!(T, AliasSeq!(ubyte, ushort, float)) != -1);
+		assert(width > 0 && height > 0);
+		assert(pixels.length == width * height);
+
+		GLenum format = [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];
+
+		GLenum pixelType = GL.getType!T;
+		setUnpackAlignment(T.sizeof);
+
+		GLenum internalFormat = mixin("GL", "RGBA"[0 .. L], (T.sizeof * 8)
+				.to!string, is(typeof(T) == float) ? "f" : "");
+
+		int mipmapLevels = 1;
+		if (mipmaps)
+			mipmapLevels = cast(int) floor(log2(cast(double) max(width, height))) + 1;
+
+		// Create Texture
+		setID();
+		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
+		glTextureSubImage2D(texture, 0, 0, 0, width, height, format, pixelType, pixels.ptr);
+
+		if (mipmaps)
+			glGenerateTextureMipmap(texture);
+		else
+			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+
+	void generateMipmaps() {
+		glGenerateTextureMipmap(texture);
+	}
+
+	void uploadData(T, uint L)(int level, int xOffset, int yOffset, uint width, uint height, T[L][] data) {
+		GLenum internalFormat = getInternalFormat!T;
+		GLenum pixelType = GL.getType!T;
+		setUnpackAlignment(T.sizeof);
+		glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, internalFormat, pixelType, data
+				.ptr);
+	}
+
+	enum Type : ubyte {
+		Grey = 1,
+		RG = 2,
+		RGB = 3,
+		RGBA = 4
+	}
+
+	static immutable int loadFlags = LOAD_NO_PREMUL | LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS;
+	static immutable int loadFlagsGrey = loadFlags | LOAD_GREYSCALE | LOAD_NO_ALPHA;
+	static immutable int loadFlagsRGB = loadFlags | LOAD_RGB | LOAD_NO_ALPHA;
+	static immutable int loadFlagsRGBA = loadFlags | LOAD_RGB | LOAD_ALPHA;
 
 	static int getFlags(Type type) {
 		final switch (type) {
@@ -88,7 +119,7 @@ class Texture {
 		this(image, type, mipmaps);
 	}
 
-	this(ref Image image, Type type, bool mipmaps = true) {
+	this(ref const Image image, Type type, bool mipmaps = true) {
 		if (image.isError()) // Check image is valid
 			throw new Exception(cast(string) image.errorMessage());
 		image.flipVertical();
