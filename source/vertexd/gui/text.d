@@ -23,7 +23,8 @@ class Font {
     }
 
     ~this() {
-        FT_Face_Done(face);
+        if (_FreeTypeLib !is null) // library still valid
+            FT_Done_Face(face);
     }
 
     void setSize(uint height) {
@@ -32,20 +33,41 @@ class Font {
             throw new FontException("Could not set font to pixel size");
     }
 
-
     Texture drawText(dstring text, uint width, uint height) {
-        assert(map.length == width * height);
-        uint xPos = 0;
-        uint yPos = 0;
+        uint xPos = 0; // in 1/64th of pixel
+        uint yPos = 0; // in 1/64th of pixel
+
+        ubyte[] pixels = new ubyte[width * height];
 
         foreach (dchar codepoint; text) {
             FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
             if (error != 0)
-                stderr.writeln(i"Failed to loadi & render codepoint \"$(codepoint)\"");
+                stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
 
-            
+            // Draw to pixel buffer
+            foreach (x; 0 .. face.glyph.bitmap.width) {
+                foreach (y; 0 .. face.glyph.bitmap.rows) {
+                    int xInd = xPos / 64 + x + face.glyph.bitmapLeft;
+                    int yInd = yPos / 64 + (face.glyph.bitmap.rows-y) + face.glyph.bitmapTop;
+
+                    if (xInd < 0 || xInd >= width)
+                        continue;
+                    if (yInd < 0 || yInd >= height)
+                        continue;
+
+                    ubyte oldVal = pixels[xInd + yInd * width];
+                    ubyte newVal = face.glyph.bitmap.buffer[x + y * face
+                            .glyph.bitmap.width];
+                    if (newVal > oldVal) // write only max value
+                        pixels[xInd + yInd * width] = newVal;
+                }
+            }
+
+            // Advance position
+            xPos += face.glyph.advance.x;
+            yPos += face.glyph.advance.y;
         }
-    }
 
-    Texture drawText( )
+        return new Texture(width, height, cast(ubyte[1][]) pixels, false);
+    }
 }

@@ -12,6 +12,7 @@ import core.sys.windows.windows;
 import std.conv : to;
 import std.datetime.stopwatch;
 import std.stdio : writefln;
+import vertexd.renderer.renderer;
 
 private extern (C) void glfw_error_callback(int type, const char* description) nothrow {
 	try {
@@ -49,4 +50,21 @@ void vdInit() {
 void vdTerminate() {
 	glfwTerminate();
 	_terminateFreeType();
+}
+
+void vdSimpleLoop(ref Window window, ref Renderer renderer, ref Node root) {
+	while (!window.shouldClose()) {
+		// Get Input
+		InputManager.pollInput();
+		InputManager.runCallbacks();
+
+		// Update state
+		Time.nextFrame();
+		root.runUpdates();
+
+		// Render
+		window.clearBuffers();
+		renderer.render(window, root);
+		window.swapBuffers();
+	}
 }

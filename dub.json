@@ -3,7 +3,7 @@
 		"HuskyNator"
 	],
 	"copyFiles": [
-		"source/**/shaders/"
+		"./view/shaders/"
 	],
 	"copyright": "Copyright © 2021, HuskyNator",
 	"dependencies": {

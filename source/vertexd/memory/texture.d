@@ -2,14 +2,15 @@ module vertexd.memory.texture;
 
 import bindbc.opengl;
 import gamut;
+import vertexd.gl;
+import vertexd.shaders.shaderprogram;
+import vertexd.util.ids;
+
 import std.algorithm.comparison;
-import std.file : exists;
+import std.conv : to;
+import std.file : exists, FileException;
 import std.math.exponential;
 import std.math.rounding;
-import vertexd.util.ids;
-import vertexd.shaders.shaderprogram;
-import std.file : FileException;
-import std.conv : to;
 import std.meta;
 
 class Texture {
@@ -17,11 +18,13 @@ class Texture {
 	uint texture;
 
 	static Texture[4] _emptyTextures;
-	static Texture empty(ubyte type) {
+	static Texture empty(Type type) {
 		immutable ubyte[4] pixels = [255, 255, 255, 255];
-		if (_emptyTextures[type] is null)
-			_emptyTextures[type] = Texture(1, 1, cast(ubyte[type][]) pixels[0 .. type], false);
-		return _emptyTextures[type];
+		if (_emptyTextures[type - 1] is null)
+			static foreach (i; 1 .. 5)
+				if (type == i)
+					_emptyTextures[type - 1] = new Texture(1, 1, cast(ubyte[i][]) pixels[0 .. i], false);
+		return _emptyTextures[type - 1];
 	}
 
 	static int _glUnpackAlignment = 4;
@@ -33,7 +36,7 @@ class Texture {
 		glPixelStorei(GL_UNPACK_ALIGNMENT, newAlignment);
 	}
 
-	private enum GLenum getInternalFormat(T) = mixin("GL_", "RGBA"[0 .. L], (T.sizeof * 8)
+	private enum GLenum getInternalFormat(T, uint L) = mixin("GL_", "RGBA"[0 .. L], (T.sizeof * 8)
 				.to!string, is(typeof(T) == float) ? "f" : "");
 
 	this(int width, int height, GLenum internalFormat, bool mipmapLevels = 1) {
@@ -56,8 +59,7 @@ class Texture {
 		GLenum pixelType = GL.getType!T;
 		setUnpackAlignment(T.sizeof);
 
-		GLenum internalFormat = mixin("GL", "RGBA"[0 .. L], (T.sizeof * 8)
-				.to!string, is(typeof(T) == float) ? "f" : "");
+		GLenum internalFormat = getInternalFormat!(T, L);
 
 		int mipmapLevels = 1;
 		if (mipmaps)
@@ -103,6 +105,8 @@ class Texture {
 		final switch (type) {
 			case Type.Grey:
 				return loadFlagsGrey;
+			case Type.RG:
+				assert(0, "Gamut has no RG loading flags.");
 			case Type.RGB:
 				return loadFlagsRGB;
 			case Type.RGBA:
@@ -119,7 +123,7 @@ class Texture {
 		this(image, type, mipmaps);
 	}
 
-	this(ref const Image image, Type type, bool mipmaps = true) {
+	this(ref Image image, Type type, bool mipmaps = true) {
 		if (image.isError()) // Check image is valid
 			throw new Exception(cast(string) image.errorMessage());
 		image.flipVertical();
@@ -158,6 +162,8 @@ class Texture {
 						assert(0, "Pixel Type invalid: " ~ sourceType.stringof);
 				}
 				break;
+			case Type.RG:
+				assert(0, "Gamut has no RG pixel types.");
 			case Type.RGB:
 				format = GL_RGB;
 				switch (sourceType) {

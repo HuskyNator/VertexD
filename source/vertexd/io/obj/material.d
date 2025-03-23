@@ -15,7 +15,7 @@ class ObjMaterial : Material {
     static private ObjMaterial _defaultMaterial;
     static ShaderProgram shader() {
         if (_shader is null)
-            _shader = new ShaderProgram("./obj.vert", "./obj.frag");
+            _shader = new ShaderProgram("./shaders/obj/obj.vert", "./shaders/obj/obj.frag");
         return _shader;
     }
 

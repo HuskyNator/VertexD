@@ -56,7 +56,7 @@ class Mesh : Component { // TODO: struct not class?
     static ShaderProgram _flatShader;
     static ShaderProgram flatShader() {
         if (_flatShader is null)
-            _flatShader = new ShaderProgram("./flat.vert", "./flat.frag");
+            _flatShader = new ShaderProgram("./shaders/flat.vert", "./shaders/flat.geom", "./shaders/flat.frag");
         return _flatShader;
     }
 
@@ -72,10 +72,10 @@ class Mesh : Component { // TODO: struct not class?
         this.shader = shader;
     }
 
-    this(Vec!3[] vertex, uint[] indices, Material material, ShaderProgram shader = null) {
+    this(float[3][] vertex, uint[] indices, Material material, ShaderProgram shader = null) {
         assert(indices.length % 3 == 0);
         vertexArray = new VAO();
-        vertexArray.setAttribute(cast(float[3][]) vertex, 0u, 0u, false);
+        vertexArray.setAttribute(vertex, 0u, 0u, false);
         setIndices(indices);
 
         if (shader is null)

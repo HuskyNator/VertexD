@@ -25,35 +25,40 @@ class PlayerController : Component {
         InputManager.register(&mousePositionCallback);
     }
 
+    ~this() { // TODO: test whether this gets triggered properly (or whether the callbacks prevent deconstruction, making this class a Zombie)
+        InputManager.deregister(&keyCallback);
+        InputManager.deregister(&mousePositionCallback);
+    }
+
     void keyCallback(Window window, KeyInput input) {
         if (input.action == KeyAction.repeat)
             return;
         switch (input.key) {
-        case GLFW_KEY_A:
-            moveDirection.x -= (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_D:
-            moveDirection.x += (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_W:
-            moveDirection.z -= (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_S:
-            moveDirection.z += (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_LEFT_SHIFT:
-            moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_SPACE:
-            moveDirection.y += (input.action == KeyAction.press) ? 1 : -1;
-            break;
-        case GLFW_KEY_LEFT_CONTROL:
-            run = input.action == KeyAction.press;
-            break;
-        case GLFW_KEY_ESCAPE:
-            window.close();
-            break;
-        default:
+            case GLFW_KEY_A:
+                moveDirection.x -= (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_D:
+                moveDirection.x += (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_W:
+                moveDirection.z -= (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_S:
+                moveDirection.z += (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_LEFT_SHIFT:
+                moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_SPACE:
+                moveDirection.y += (input.action == KeyAction.press) ? 1 : -1;
+                break;
+            case GLFW_KEY_LEFT_CONTROL:
+                run = input.action == KeyAction.press;
+                break;
+            case GLFW_KEY_ESCAPE:
+                window.close();
+                break;
+            default:
         }
     }
 

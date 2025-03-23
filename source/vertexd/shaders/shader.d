@@ -68,7 +68,7 @@ class Shader {
 	this(string file) {
 		string ext = extension(file);
 		Type type = extensionToType(ext);
-		assert(exists(file));
+		assert(exists(file), "Could not find file: " ~ file);
 		this(readText(file), type);
 	}
 
