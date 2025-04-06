@@ -31,10 +31,17 @@ final class Buffer {
         glNamedBufferStorage(buffer, data.length, data.ptr, flags);
     }
 
-    void upload(ubyte[] data, size_t offset = 0) {
+    void upload(const ubyte[] data, size_t offset = 0) {
         assert(offset + data.length <= size);
         assert(flags & DynamicStorage);
         glNamedBufferSubData(buffer, offset, data.length, data.ptr);
+    }
+
+    /// Helper function to simplify casting to ubyte[].
+    /// Could also use void[].
+    void upload(T)(const T data, size_t offset = 0) {
+        pragma(inline, true);
+        upload(cast(const ubyte[])(&data)[0 .. 1], offset);
     }
 
     // TODO: editing/getting (slice/index overloads)

@@ -15,7 +15,7 @@ struct RenderQueue {
         this(Node owner, Mesh mesh) {
             this.owner = owner;
             this.mesh = mesh;
-            this.hash = (cast(ulong) mesh.shader.shaderProgram) << 32 | mesh.material.id;
+            this.hash = (cast(ulong) mesh.material.shader.shaderProgram) << 32 | mesh.material.id;
         }
 
         static bool less(Element a, Element b) {

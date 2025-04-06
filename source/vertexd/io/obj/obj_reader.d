@@ -280,7 +280,7 @@ static:
             meshes.reserve(meshStartIndices.length);
             foreach (i, start; meshStartIndices) {
                 ObjMaterial material = meshMaterials[i];
-                Mesh mesh = new Mesh(material, ObjMaterial.shader());
+                Mesh mesh = new Mesh(material);
 
                 if (!useUV && hasTextures(material))
                     throw new Exception("Mesh uses material but defines no uv's");

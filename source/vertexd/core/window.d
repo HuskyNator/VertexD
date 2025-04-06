@@ -10,14 +10,27 @@ import std.stdio : write, writeln;
 import vertexd.core;
 import vertexd.world;
 
+// TODO: SEE IF CALLBACKS GET CALLED WHEN GLFW SETS SIZE (INSTEAD OF USER)
+
 extern (C) void window_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
 	Window window = Window.windows[glfw_window];
 	window.width = width;
 	window.height = height;
+	window.lastSizePosUpdateFrame = Time.frameID();
 }
 
-extern (C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow {
+extern (C) void framebuffer_size_callback(GLFWwindow* glfw_window, int width, int height) nothrow {
 	glViewport(0, 0, width, height);
+	Window window = Window.windows[glfw_window];
+	window.pixelWidth = width;
+	window.pixelHeight = height;
+	window.lastSizePosUpdateFrame = Time.frameID();
+}
+
+extern (C) void window_position_callback(GLFWwindow* glfw_window, int xPos, int yPos) nothrow {
+	Window window = Window.windows[glfw_window];
+	window.windowPosition = Vec!(2, int)(xPos, yPos);
+	window.lastSizePosUpdateFrame = Time.frameID();
 }
 
 enum MouseType {
@@ -27,20 +40,36 @@ enum MouseType {
 }
 
 class Window {
+	static package Window[GLFWwindow* ] windows;
 	mixin ID;
 	string name;
+	GLFWwindow* glfw_window;
+
 	union {
-		Vec!(2, int) bounds;
 		struct {
 			int width;
 			int height;
 		}
+
+		Vec!(2, int) size;
 	}
 
-	Vec!(2, double) mousePosition;
+	union {
+		struct {
+			int pixelWidth;
+			int pixelHeight;
+		}
 
-	GLFWwindow* glfw_window;
-	static package Window[GLFWwindow* ] windows;
+		Vec!(2, int) pixelSize;
+	}
+
+	float aspectRatio() {
+		return (cast(float) pixelWidth) / pixelHeight;
+	}
+
+	Vec!(2, int) windowPosition;
+	Vec!(2, double) mousePosition;
+	ulong lastSizePosUpdateFrame = 0;
 
 	static bool testShouldClose() {
 		Window[] closeArr;
@@ -104,11 +133,12 @@ class Window {
 		glfwSetInputMode(glfw_window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
 		glfwSetWindowSizeCallback(glfw_window, &window_size_callback);
 		glfwSetFramebufferSizeCallback(glfw_window, &framebuffer_size_callback);
+		glfwSetWindowPosCallback(glfw_window, &window_position_callback);
 
 		GLSupport opengl_version = loadOpenGL();
 		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version
 				.to!string);
-		version (OpenglBindless)
+		version (OpenGLBindless)
 			enforce(hasARBBindlessTexture, "No support for bindless textures");
 
 		debug {
@@ -121,6 +151,8 @@ class Window {
 		glEnable(GL_MULTISAMPLE);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
+
+		glfwGetFramebufferSize(glfw_window, &pixelWidth, &pixelHeight);
 	}
 
 	~this() {
@@ -139,6 +171,14 @@ class Window {
 
 	void swapBuffers() {
 		glfwSwapBuffers(glfw_window);
+	}
+
+	void clearColorBuffer() {
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void clearDepthBuffer() {
+		glClear(GL_DEPTH_BUFFER_BIT);
 	}
 
 	void clearBuffers() { // TODO: multiple windows
@@ -251,77 +291,77 @@ debug {
 				writeln("Opengl Exception #", errorID.to!string);
 			write("\tSource: ");
 			switch (source) {
-				case GL_DEBUG_SOURCE_API:
-					writeln("OpenGL API");
-					break;
-				case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-					writeln("Window System API");
-					break;
-				case GL_DEBUG_SOURCE_SHADER_COMPILER:
-					writeln("Shader Compiler");
-					break;
-				case GL_DEBUG_SOURCE_THIRD_PARTY:
-					writeln("Third Party");
-					break;
-				case GL_DEBUG_SOURCE_APPLICATION:
-					writeln("Source Application");
-					break;
-				case GL_DEBUG_SOURCE_OTHER:
-					writeln("Miscellaneous");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_SOURCE_API:
+				writeln("OpenGL API");
+				break;
+			case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+				writeln("Window System API");
+				break;
+			case GL_DEBUG_SOURCE_SHADER_COMPILER:
+				writeln("Shader Compiler");
+				break;
+			case GL_DEBUG_SOURCE_THIRD_PARTY:
+				writeln("Third Party");
+				break;
+			case GL_DEBUG_SOURCE_APPLICATION:
+				writeln("Source Application");
+				break;
+			case GL_DEBUG_SOURCE_OTHER:
+				writeln("Miscellaneous");
+				break;
+			default:
+				assert(false);
 			}
 
 			write("\tType: ");
 			switch (type) {
-				case GL_DEBUG_TYPE_ERROR:
-					writeln("Error ╮(. ❛ ᴗ ❛.)╭");
-					break;
-				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-					writeln("Deprecated usage");
-					break;
-				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-					writeln("Undefined behaviour");
-					break;
-				case GL_DEBUG_TYPE_PORTABILITY:
-					writeln("System portability");
-					break;
-				case GL_DEBUG_TYPE_PERFORMANCE:
-					writeln("Performance Issues");
-					break;
-				case GL_DEBUG_TYPE_MARKER:
-					writeln("\"Command stream annotation\"");
-					break;
-				case GL_DEBUG_TYPE_PUSH_GROUP:
-					writeln("\"Group pushing\"");
-					break;
-				case GL_DEBUG_TYPE_POP_GROUP:
-					writeln("\"Group popping\"");
-					break;
-				case GL_DEBUG_TYPE_OTHER:
-					writeln("Miscellaneous");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_TYPE_ERROR:
+				writeln("Error ╮(. ❛ ᴗ ❛.)╭");
+				break;
+			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+				writeln("Deprecated usage");
+				break;
+			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+				writeln("Undefined behaviour");
+				break;
+			case GL_DEBUG_TYPE_PORTABILITY:
+				writeln("System portability");
+				break;
+			case GL_DEBUG_TYPE_PERFORMANCE:
+				writeln("Performance Issues");
+				break;
+			case GL_DEBUG_TYPE_MARKER:
+				writeln("\"Command stream annotation\"");
+				break;
+			case GL_DEBUG_TYPE_PUSH_GROUP:
+				writeln("\"Group pushing\"");
+				break;
+			case GL_DEBUG_TYPE_POP_GROUP:
+				writeln("\"Group popping\"");
+				break;
+			case GL_DEBUG_TYPE_OTHER:
+				writeln("Miscellaneous");
+				break;
+			default:
+				assert(false);
 			}
 
 			write("\tSeverity: ");
 			switch (severity) {
-				case GL_DEBUG_SEVERITY_HIGH:
-					writeln("High");
-					break;
-				case GL_DEBUG_SEVERITY_MEDIUM:
-					writeln("Medium");
-					break;
-				case GL_DEBUG_SEVERITY_LOW:
-					writeln("Low");
-					break;
-				case GL_DEBUG_SEVERITY_NOTIFICATION:
-					writeln("Notification (Miscellaneous)");
-					break;
-				default:
-					assert(false);
+			case GL_DEBUG_SEVERITY_HIGH:
+				writeln("High");
+				break;
+			case GL_DEBUG_SEVERITY_MEDIUM:
+				writeln("Medium");
+				break;
+			case GL_DEBUG_SEVERITY_LOW:
+				writeln("Low");
+				break;
+			case GL_DEBUG_SEVERITY_NOTIFICATION:
+				writeln("Notification (Miscellaneous)");
+				break;
+			default:
+				assert(false);
 			}
 
 			writeln("\tMessage: ", message.to!string);

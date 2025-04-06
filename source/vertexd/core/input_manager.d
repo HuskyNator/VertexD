@@ -20,6 +20,7 @@ extern (C) void mouse_position_callback(GLFWwindow* glfw_window, double x, doubl
     Vec!(2, double) newPosition = Vec!(2, double)(x, y);
     Vec!(2, double) delta = newPosition - window.mousePosition;
     window.mousePosition = newPosition;
+    InputManager.updateMousePosition(window, newPosition);
     InputManager.log(InputEvent(window, MousePositionInput(newPosition, delta)));
 }
 
@@ -37,6 +38,11 @@ extern (C) void mouse_enter_callback(GLFWwindow* glfw_window, int enter) nothrow
 final abstract class InputManager {
 static:
     private InputEvent[] inputEvents;
+    private Vec!(2, double) mousePosition; // global on virtual screen
+
+    void updateMousePosition(Window window, Vec!(2, double) mousePosition) nothrow {
+        mousePosition = window.windowPosition + mousePosition;
+    }
 
     void log(InputEvent event) nothrow {
         this.inputEvents ~= event;
@@ -74,17 +80,17 @@ static:
         foreach (event; inputEvents) {
             final switch (event.tag) {
                 static foreach (i; 0 .. InputEvent.Input.tupleof.length)
-                    case i:
-                        foreach (callback; mixin("callbacks_", i.stringof))
-                            callback(event.window, event.input.tupleof[i]);
-                        break;
-                        }
+            case i:
+                    foreach (callback; mixin("callbacks_", i.stringof))
+                        callback(event.window, event.input.tupleof[i]);
+                break;
             }
-
-            clear();
         }
 
-        void pollInput() {
-            glfwPollEvents();
-        }
+        clear();
     }
+
+    void pollInput() {
+        glfwPollEvents();
+    }
+}

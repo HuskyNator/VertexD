@@ -23,7 +23,7 @@ static:
         frameDeltaTime = (cast(float) frameDuration.total!"hnsecs"()) / 10_000_000.0f;
     }
 
-    ulong frameID() {
+    ulong frameID() nothrow {
         return frame;
     }
 

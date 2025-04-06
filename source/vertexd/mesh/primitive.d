@@ -1,4 +1,46 @@
-deprecated module vertexd.mesh.primitives;
+module vertexd.mesh.primitive;
+
+public import vertexd.mesh;
+import vertexd.memory.texture;
+
+final abstract class Primitive {
+static:
+    immutable float[3][] quadVertices = [
+        [-0.5, -0.5, 0],
+        [0.5, -0.5, 0],
+        [0.5, 0.5, 0],
+        [-0.5, 0.5, 0]
+    ];
+
+    immutable float[3][] quadVerticesCorner = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0]
+    ];
+
+    immutable uint[] quadIndices = [0, 1, 2, 2, 3, 0];
+
+    immutable float[2][] quadUVs = [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1]
+    ];
+
+    Mesh createQuad(bool corner = false) {
+        immutable float[3][] vertices = corner ? quadVerticesCorner : quadVertices;
+        return new Mesh(vertices, quadIndices, new FlatMaterial());
+    }
+
+    Mesh createQuad(Texture texture, bool corner = false) {
+        immutable float[3][] vertices = corner ? quadVerticesCorner : quadVertices;
+        Mesh mesh = new Mesh(vertices, quadIndices, new TexturedMaterial(texture));
+        mesh.vertexArray.setAttribute(quadUVs, 2, 2);
+        return mesh;
+    }
+}
+
 // import bindbc.opengl;
 // import std.conv : to;
 // import vertexd;

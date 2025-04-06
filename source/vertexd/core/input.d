@@ -65,7 +65,6 @@ struct MouseButtonInput {
 struct MousePositionInput {
     Vec!(2, double) position;
     Vec!(2, double) delta;
-    alias this = position;
 }
 
 struct ScrollInput {

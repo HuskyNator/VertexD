@@ -16,6 +16,22 @@ class ShaderException : Exception {
 	}
 }
 
+/// Simplifies defining shaders without initialization.
+struct StaticShaderProgram {
+	ShaderProgram program = null;
+	string[] sources;
+
+	this(string[] sources...) {
+		this.sources = sources;
+	}
+
+	ShaderProgram get() {
+		if (program is null)
+			program = new ShaderProgram(sources);
+		return program;
+	}
+}
+
 // TODO: add caching
 class ShaderProgram {
 	static ShaderProgram current = null;
@@ -24,10 +40,18 @@ class ShaderProgram {
 	static immutable uint materialBindIndex = 1;
 	static immutable uint modelMatrixUniformIndex = 0;
 
+	static StaticShaderProgram flatShaderProgram = StaticShaderProgram(
+		"./shaders/flat.vert", "./shaders/flat.geom", "./shaders/flat.frag");
+
+	static StaticShaderProgram texturedShaderProgram = StaticShaderProgram(
+		"./shaders/textured.vert", "./shaders/textured.frag");
+
 	Shader[] shaders;
 	uint shaderProgram;
 
 	final void use() {
+		if (shaderProgram == 0)
+			initialize();
 		if (current is this)
 			return;
 		glUseProgram(shaderProgram);
@@ -127,7 +151,8 @@ class ShaderProgram {
 	}
 
 	void setUniform(V)(int uniformLocation, V value) if (!isInstanceOf!(Mat, V)) {
-		enum string type = is(V == uint) ? "ui" : (is(V == int) ? "i" : (is(V == float) ? "f" : (is(V == double)
+		enum string type = (is(V == uint) || is(V == bool)) ? "ui" : (is(V == int) ? "i" : (is(V == float) ? "f" : (
+					is(V == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ V.stringof ~ " not supported for setUniform.");
 		mixin("glProgramUniform1" ~ type ~ "(shaderProgram, uniformLocation, value);");
@@ -137,7 +162,8 @@ class ShaderProgram {
 			if (L >= 1 && L <= 4) { // set Vec
 		enum string values = "value.x" ~ (L == 1 ? "" : ",value.y" ~ (L == 2 ? "" : ",value.z" ~ (L == 3 ? ""
 					: ",value.w")));
-		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
+		enum string type = (is(S == uint) || is(S == bool)) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (
+					is(S == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
 		mixin(
@@ -146,7 +172,8 @@ class ShaderProgram {
 
 	void setUniform(V : Mat!(L, 1, S)[], uint L, S)(int uniformLocation, V value)
 			if (L >= 1 && L <= 4) { // set Vec[]
-		enum string type = is(S == uint) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (is(S == double)
+		enum string type = (is(S == uint) || is(S == bool)) ? "ui" : (is(S == int) ? "i" : (is(S == float) ? "f" : (
+					is(S == double)
 					? "d" : "")));
 		static assert(type != "", "Type " ~ S ~ " not supported for setUniform.");
 		mixin("glProgramUniform" ~ L.to!string ~ type

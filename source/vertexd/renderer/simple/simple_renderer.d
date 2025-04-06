@@ -28,10 +28,10 @@ class SimpleRenderer : Renderer {
 
     // Queue mesh for rendering
     void render(Window window, Node owner, Mesh mesh) {
-        if (mesh.shader is null) {
-            stderr.writeln("Shader missing");
-            return;
-        }
+        if (mesh.material is null)
+            return stderr.writeln("Material missing");
+        if (mesh.material.shader is null)
+            return stderr.writeln("Shader missing");
         renderQueue.enqueue(owner, mesh);
     }
 
@@ -57,31 +57,31 @@ class SimpleRenderer : Renderer {
         void setShader(ShaderProgram newShader, Camera camera) {
             shader = newShader;
             newShader.use();
-            camera.upload(shader);
+            camera.upload(newShader);
         }
 
-        void setMaterial(ShaderProgram shader, Material newMaterial) {
+        void setMaterial(Material newMaterial) {
             material = newMaterial;
-            material.upload(shader);
+            newMaterial.upload();
         }
 
         // Render queue
         foreach (Camera camera; cameraQueue) {
-            setShader(renderQueue[0].mesh.shader, camera);
-            setMaterial(shader, renderQueue[0].mesh.material);
+            setShader(renderQueue[0].mesh.material.shader, camera);
+            setMaterial(renderQueue[0].mesh.material);
             foreach (RenderQueue.Element instance; renderQueue) {
                 // Update state
-                if (instance.mesh.shader !is shader)
-                    setShader(instance.mesh.shader, camera);
+                if (instance.mesh.material.shader !is shader)
+                    setShader(instance.mesh.material.shader, camera);
                 if (instance.mesh.material !is material)
-                    setMaterial(shader, instance.mesh.material);
+                    setMaterial(instance.mesh.material);
                 // Render mesh
-                VAO vao = instance.mesh.vertexArray;
-                vao.bind();
+                Mesh mesh = instance.mesh;
+                mesh.bind();
                 shader.setUniform(ShaderProgram.modelMatrixUniformIndex, instance.owner.modelMatrix);
-                glDrawElements(GL_TRIANGLES, instance.mesh.indexBinding.elementCount, instance
-                        .mesh.indexBinding.elementType, cast(void*) instance
-                        .mesh.indexBinding.bufferOffset);
+                glDrawElements(GL_TRIANGLES, mesh.indexBinding.elementCount,
+                    mesh.indexBinding.elementType, cast(void*)
+                    mesh.indexBinding.bufferOffset);
             }
         }
     }

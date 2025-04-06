@@ -17,6 +17,7 @@ class Node {
 	Mat!4 modelMatrix = Mat!4(1);
 	Mat!4 localMatrix = Mat!4(1);
 	private bool transformModified = true;
+	ulong lastUpdateFrame = 0;
 	bool physicsControlled = false;
 
 	this() {
@@ -112,9 +113,11 @@ class Node {
 
 		if (transformModified)
 			updateLocalMatrix();
-		if (update)
-			modelMatrix = (parent is null || physicsControlled) ? localMatrix : parent.modelMatrix.mult(
-				localMatrix);
+		if (update) {
+			this.modelMatrix = (parent is null || physicsControlled) ? localMatrix
+				: parent.modelMatrix.mult(localMatrix);
+			this.lastUpdateFrame = Time.frameID();
+		}
 
 		foreach (Node child; children)
 			child.updateTransformation(update, physicsControlled);

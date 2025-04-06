@@ -11,17 +11,18 @@ import vertexd.util.tracked_buffer;
 import std.stdio : stderr;
 
 class ObjMaterial : Material {
-    static private ShaderProgram _shader;
     static private ObjMaterial _defaultMaterial;
-    static ShaderProgram shader() {
-        if (_shader is null)
-            _shader = new ShaderProgram("./shaders/obj/obj.vert", "./shaders/obj/obj.frag");
-        return _shader;
-    }
+
+    version (OpenGLBindless)
+        static StaticShaderProgram shaderProgram = StaticShaderProgram(
+            "./shaders/obj/obj.vert", "./shaders/obj/obj_bindless.frag");
+    else
+        static StaticShaderProgram shaderProgram = StaticShaderProgram(
+            "./shaders/obj/obj.vert", "./shaders/obj/obj.frag");
 
     static ObjMaterial defaultMaterial() {
         if (_defaultMaterial is null)
-            _defaultMaterial = new ObjMaterial("_default");
+            _defaultMaterial = new ObjMaterial("DefaultObjMaterial");
         return _defaultMaterial;
     }
 
@@ -74,8 +75,9 @@ class ObjMaterial : Material {
     }
 
     this(string name) {
-        this.name = name;
         setID();
+        this.name = name;
+        this.shader = ObjMaterial.shaderProgram.get();
         trackedBuffer.initBuffer();
     }
 
@@ -95,11 +97,11 @@ class ObjMaterial : Material {
         this(name);
     }
 
-    override Buffer buffer() {
+    override Buffer materialBuffer() {
         return trackedBuffer.buffer;
     }
 
-    override void uploadData(ShaderProgram shader) {
+    override void uploadData() {
         debug if (trackedBuffer.illum > 2)
             stderr.writeln("Illumination models >2 not implemented. Defaulting to 2.");
         static foreach (uint i; 0 .. textures.length) {
