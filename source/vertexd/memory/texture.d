@@ -19,7 +19,7 @@ class Texture {
 
 	static Texture[4] _emptyTextures;
 	static Texture empty(Type type) {
-		immutable ubyte[4] pixels = [255, 255, 255, 255];
+		immutable ubyte[4] pixels = [255, 255, 255, 0];
 		if (_emptyTextures[type - 1] is null)
 			static foreach (i; 1 .. 5)
 				if (type == i)
@@ -114,7 +114,7 @@ class Texture {
 		}
 	}
 
-	this(string path, Type type, bool mipmaps = true) {
+	this(string path, Type type = Type.RGBA, bool mipmaps = true) {
 		if (!exists(path))
 			throw new FileException(path, "File not found");
 		Image image;

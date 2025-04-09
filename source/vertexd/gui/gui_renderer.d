@@ -47,11 +47,12 @@ class GuiRenderer {
 
         float radius;
         if (block.radiusRelative)
-            radius = ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
+            radius = block.radius * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
         else
-            radius = radius / window.pixelHeight;
+            radius = block.radius / window.pixelHeight;
 
         shader.setUniform(3, radius);
+        block.texture.bind(0);
         shader.setUniform(4, block.color);
         shader.setUniform(5, aspectRatio);
         // shader.setUniform(6, window.pixelSize);

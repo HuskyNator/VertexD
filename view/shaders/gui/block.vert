@@ -10,16 +10,18 @@ layout(location=4)uniform vec4 u_color;
 layout(location=5)uniform float u_aspectRatio;
 // layout(location=7)uniform ivec2 u_resolution;
 
+layout(binding=0)uniform sampler2D background;
+
 layout(location=0)in vec3 position;
 out vec2 frag_pos;
 out vec4 gl_Position;
 
 void main(){
-    vec2 uiPos=u_anchor+position.xy*u_size;
+    vec2 uiPos=u_anchor+vec2(position.x,1-position.y)*u_size;
     vec2 clipPos=uiPos*2-1;
     vec2 clipPosUpright=vec2(clipPos.x,-clipPos.y);
     gl_Position=vec4(clipPosUpright,u_zDepth,1);
-
+    
     // get clipped position of shape
     frag_pos=position.xy;
 }

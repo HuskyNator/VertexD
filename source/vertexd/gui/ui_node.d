@@ -2,6 +2,7 @@ module vertexd.gui.ui_node;
 
 import vertexd.core.window;
 import vdmath;
+import vertexd.gui.constraints;
 
 struct UiBound {
     Vec!(2, double) topLeft;
@@ -12,33 +13,6 @@ struct UiBound {
     alias anchor = topLeft;
     Vec!(2, double) size() const {
         return bottemRight - topLeft;
-    }
-}
-
-struct UiConstraint {
-    Type type;
-    double value;
-    bool relative; // % vs px
-
-    // Type enum is ordered to simplify constraint set evaluation.
-    enum Type : ubyte {
-        StartAlign,
-        EndAlign,
-        Size,
-        Centered
-    }
-
-    static foreach (T; __traits(allMembers, UiConstraint.Type)) {
-        mixin("static UiConstraint ", T, "(double value=0,bool relative=true)
-        {return UiConstraint(UiConstraint.Type.", T, ",value,relative);}");
-    }
-
-    UiConstraint toAbsoluteVirtual(double parentSize, double pixelToVirtual) const {
-        UiConstraint absolute;
-        absolute.type = this.type;
-        absolute.value = (relative ? this.value * parentSize : this.value * pixelToVirtual);
-        absolute.relative = false;
-        return absolute;
     }
 }
 
