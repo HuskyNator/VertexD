@@ -64,7 +64,7 @@ class PlayerController : Component {
 
     void mousePositionCallback(Window window, MousePositionInput input) {
         Vec!(2, double) delta = input.delta * sensitivity;
-        rotation = Vec!(2, double)((rotation.x + delta.x) % (2 * PI), max(-PI_2, min(PI_2, rotation.y + delta
+        rotation = Vec!(2, double)((rotation.x + delta.x) % (2.0 * PI), max(-PI_2, min(PI_2, rotation.y + delta
                 .y)));
     }
 

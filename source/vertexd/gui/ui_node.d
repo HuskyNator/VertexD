@@ -3,109 +3,112 @@ module vertexd.gui.ui_node;
 import vertexd.core.window;
 import vdmath;
 import vertexd.gui.constraints;
+import vertexd.memory.texture;
+import vertexd.gui.bounds;
+import vertexd.gui.constraint_set;
 
-struct UiBound {
-    Vec!(2, double) topLeft;
-    Vec!(2, double) bottemRight;
-    alias tl = topLeft;
-    alias br = bottemRight;
+struct UiNodeStyle {
+    Vec!4 color = Vec!4(0, 0, 0, 0);
+    Texture texture;
 
-    alias anchor = topLeft;
-    Vec!(2, double) size() const {
-        return bottemRight - topLeft;
+    this(float[4] color, Texture texture = Texture.empty(Texture.Type.RGBA)) {
+        this.color = Vec!4(color);
+        this.texture = texture;
     }
 }
 
 class UiNode {
     UiNode[] children;
-    UiBound globalBound;
-    UiBound localBound;
+    UiBounds bounds;
     float zDepth = 0;
+    bool applyScissorTest = true;
 
-    // Valid constraint sets:
-    // alignL + alignR
-    // align + size
-    // align + center
-    // size + center
+    UiConstraintSet xConstraints;
+    UiConstraintSet yConstraints;
 
-    UiConstraint[2] xConstraints = [
-        UiConstraint.StartAlign(0),
-        UiConstraint.EndAlign(0)
-    ];
-    UiConstraint[2] yConstraints = [
-        UiConstraint.StartAlign(0),
-        UiConstraint.EndAlign(0)
-    ];
+    float radius = 0;
+    bool radiusRelative; // % vs px (% of half of smallest side; 100% = 1.0 = max radius)
 
-    void sortConstraints() {
-        if (xConstraints[0].type > xConstraints[1].type) {
-            UiConstraint temp = xConstraints[0];
-            xConstraints[0] = xConstraints[1];
-            xConstraints[1] = temp;
-        }
-        if (yConstraints[0].type > yConstraints[1].type) {
-            UiConstraint temp = yConstraints[0];
-            yConstraints[0] = yConstraints[1];
-            yConstraints[1] = temp;
-        }
+    UiNodeStyle style;
+    bool renderNodeStyle = false;
+
+    this(float radius, bool radiusRelative, float zDepth) {
+        this.radius = radius;
+        this.radiusRelative = radiusRelative;
+        this.zDepth = zDepth;
     }
 
-    void updateBounds(UiBound parentBound, const double pixelToVirtual) {
-        alias CType = UiConstraint.Type;
-        Vec!(2, double) parentSize = parentBound.size();
-        sortConstraints();
-
-        // Calculate new local bounds.
-        UiBound newLocalBound;
-        UiConstraint first, second;
-        static foreach (bool vertical; [false, true]) {
-            // Simplify by converting to absolute values.
-            first = vertical ? yConstraints[0] : xConstraints[0];
-            second = vertical ? yConstraints[1] : xConstraints[1];
-            first = first.toAbsoluteVirtual(parentSize[vertical], pixelToVirtual);
-            second = second.toAbsoluteVirtual(parentSize[vertical], pixelToVirtual);
-
-            // Handle all valid constraint sets.
-            if (first.type == CType.StartAlign && second.type == CType.EndAlign) {
-                newLocalBound.topLeft[vertical] = first.value;
-                newLocalBound.bottemRight[vertical] = parentSize[vertical] - second.value;
-                newLocalBound.bottemRight[vertical] = parentSize[vertical] - second.value;
-            } else if (first.type == CType.StartAlign && second.type == CType.Size) {
-                newLocalBound.topLeft[vertical] = first.value;
-                newLocalBound.bottemRight[vertical] = first.value + second.value;
-            } else if (first.type == CType.EndAlign && second.type == CType.Size) {
-                newLocalBound.bottemRight[vertical] = parentSize[vertical] - first.value;
-                newLocalBound.topLeft[vertical] = newLocalBound.bottemRight[vertical] - second
-                    .value;
-            } else if (first.type == CType.StartAlign && second.type == CType.Centered) {
-                newLocalBound.topLeft[vertical] = first.value;
-                newLocalBound.bottemRight[vertical] = parentSize[vertical] - first.value;
-            } else if (first.type == CType.EndAlign && second.type == CType.Centered) {
-                newLocalBound.bottemRight[vertical] = parentSize[vertical] - first.value;
-                newLocalBound.topLeft[vertical] = first.value;
-            } else if (first.type == CType.Size && second.type == CType.Centered) {
-                newLocalBound.topLeft[vertical] = (parentSize[vertical] - first.value) / 2;
-                newLocalBound.bottemRight[vertical] = newLocalBound.topLeft[vertical] + first.value;
-            } else
-                assert(0, "Invalid constraint set.");
-        }
-
-        // Update bounds
-        UiBound newGlobalBound = UiBound(
-            newLocalBound.topLeft + parentBound.topLeft,
-            newLocalBound.bottemRight + parentBound.topLeft);
-        this.localBound = newLocalBound;
-        this.globalBound = newGlobalBound;
+    void setStyle(UiNodeStyle style) {
+        assert(style.texture !is null);
+        this.style = style;
+        this.renderNodeStyle = true;
     }
 
-    void updateBoundsTree(UiBound parentBound, const double pixelToVirtual) {
-        updateBounds(parentBound, pixelToVirtual);
+    void setStyle(float[4] color, Texture texture = Texture.empty(Texture.Type.RGBA)) {
+        this.style.color = Vec!4(color);
+        this.style.texture = texture;
+        this.renderNodeStyle = true;
+    }
+
+    void clearStyle() {
+        this.style.color = Vec!4(0, 0, 0, 0);
+        this.style.texture = null;
+        this.renderNodeStyle = false;
+    }
+
+    // private alias CType = UiConstraint.Type;
+    // UiConstraint shrinkToAlign(UiBound parentBound, UiConstraint constraint, bool vertical) {
+    //     UiConstraint nonShrink = constraint;
+    //     if (constraint.type == CType.StartShrink) {
+    //         nonShrink.type = CType.StartAlign;
+    //         this._startShrink[vertical] = true;
+    //     } else if (constraint.type == CType.EndShrink) {
+    //         nonShrink.type = CType.EndAlign;
+    //         this._endShrink[vertical] = true;
+    //     }
+    //     return nonShrink;
+    // }
+    // void applyShrink(UiBound parentBound, UiBound childrenBound) {
+    //     static foreach (bool vertical; [false, true]) {
+    //         if (_startShrink[vertical]) {
+    //             if (clampParent && childrenBound.tl[vertical] < parentBound.tl[vertical])
+    //                 globalBound.tl[vertical] = parentBound.tl[vertical];
+    //             else
+    //                 globalBound.tl[vertical] = childrenBound.tl[vertical];
+    //         }
+    //         if (_endShrink[vertical]) {
+    //             if (clampParent && childrenBound.br[vertical] > parentBound.br[vertical])
+    //                 globalBound.br[vertical] = parentBound.br[vertical];
+    //             else
+    //                 globalBound.br[vertical] = childrenBound.br[vertical];
+    //         }
+    //     }
+    // }
+
+    void updateBounds(const UiBounds parentBounds, const double pixelToValue) {
+        UiBound xBound = UiBound(parentBounds.topLeft.x, parentBounds.bottemRight.x);
+        UiBound yBound = UiBound(parentBounds.topLeft.y, parentBounds.bottemRight.y);
+        UiBound xSolved = xConstraints.solve(xBound, pixelToValue);
+        UiBound ySolved = yConstraints.solve(yBound, pixelToValue);
+        bounds.topLeft = Vec!(2, double)(xSolved.min, ySolved.min);
+        bounds.bottemRight = Vec!(2, double)(xSolved.max, ySolved.max);
+    }
+
+    void updateBoundsTree(const UiBounds parentBounds, const double pixelToVirtual) {
+        updateBounds(parentBounds, pixelToVirtual);
         foreach (child; children)
-            child.updateBoundsTree(this.globalBound, pixelToVirtual);
+            child.updateBoundsTree(this.bounds, pixelToVirtual);
+
+        // if (children.length > 0) {
+        //     UiBounds fullBounds = this.globalBounds; // minimum bounds
+        //     foreach (child; children)
+        //         fullBounds = UiBounds.combine(fullBounds, child.globalBounds);
+        // applyShrink(parentBounds, fullBounds);
+        // }
     }
 
-    void updateBoundsTree(Window window) {
-        UiBound windowBounds = UiBound(
+    void updateBoundsTree(const Window window) {
+        UiBounds windowBounds = UiBounds(
             cast(Vec!(2, double))(window.windowPosition),
             cast(Vec!(2, double))(window.windowPosition + window.size));
 
@@ -113,9 +116,9 @@ class UiNode {
         updateBoundsTree(windowBounds, pixelToVirtual);
     }
 
-    bool isMouseOver(Window window) {
+    bool isMouseOver(const Window window) const {
         Vec!(2, double) mousePos = window.mousePosition;
-        return mousePos.x >= globalBound.tl.x && mousePos.x <= globalBound.br.x
-            && mousePos.y >= globalBound.tl.y && mousePos.y <= globalBound.br.y;
+        return mousePos.x >= bounds.tl.x && mousePos.x <= bounds.br.x
+            && mousePos.y >= bounds.tl.y && mousePos.y <= bounds.br.y;
     }
 }

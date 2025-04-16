@@ -41,7 +41,7 @@ static:
     private Vec!(2, double) mousePosition; // global on virtual screen
 
     void updateMousePosition(Window window, Vec!(2, double) mousePosition) nothrow {
-        mousePosition = window.windowPosition + mousePosition;
+        this.mousePosition = (cast(Vec!(2, double)) window.windowPosition) + mousePosition;
     }
 
     void log(InputEvent event) nothrow {

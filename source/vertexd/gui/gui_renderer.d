@@ -10,6 +10,7 @@ import vertexd.mesh.primitive;
 import vertexd.renderer.renderer;
 import vertexd.shaders.shaderprogram;
 
+// TODO: add scissor test
 class GuiRenderer {
     static StaticShaderProgram blockShader = StaticShaderProgram(
         "shaders/gui/block.vert", "shaders/gui/block.frag");
@@ -21,39 +22,40 @@ class GuiRenderer {
         // windowUBO = new Buffer(4 * double.sizeof, Buffer.DynamicStorage);
     }
 
-    void render(Window window, UiNode root) {
+    void render(const Window window, UiNode root) {
         // windowUBO.upload(window.bounds);
-        if (UiBlock block = cast(UiBlock) root)
-            renderNode(window, block);
+        // if (UiBlock node = cast(UiBlock) root)
+        if (root.renderNodeStyle)
+            renderNode(window, root);
 
         foreach (UiNode child; root.children) // Todo: can replace with queue
-            render(window, child);
+            render(window, child,);
     }
 
-    void renderNode(Window window, UiBlock block) {
+    void renderNode(const Window window, UiNode node) {
         ShaderProgram shader = blockShader.get();
         shader.use();
 
         Vec!(2, float) anchor = cast(Vec!(2, float))(
-            (block.globalBound.topLeft - window.windowPosition) / window.size);
-        Vec!(2, double) globalSize = block.globalBound.size();
+            (node.bounds.topLeft - window.windowPosition) / window.size);
+        Vec!(2, double) globalSize = node.bounds.size();
         Vec!(2, float) size = cast(Vec!(2, float))(globalSize / window.size);
         float aspectRatio = window.aspectRatio();
 
         // shader.setUniformBuffer(0, windowUBO);
         shader.setUniform(0, anchor);
         shader.setUniform(1, size);
-        shader.setUniform(2, block.zDepth);
+        shader.setUniform(2, node.zDepth);
 
         float radius;
-        if (block.radiusRelative)
-            radius = block.radius * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
+        if (node.radiusRelative)
+            radius = node.radius * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
         else
-            radius = block.radius / window.pixelHeight;
+            radius = node.radius / window.pixelHeight;
 
         shader.setUniform(3, radius);
-        block.texture.bind(0);
-        shader.setUniform(4, block.color);
+        node.style.texture.bind(0);
+        shader.setUniform(4, node.style.color);
         shader.setUniform(5, aspectRatio);
         // shader.setUniform(6, window.pixelSize);
 

@@ -38,6 +38,7 @@ void main(){
     // TLDR: manual blending
     vec4 texColor=texture(background,frag_pos);
     float alpha=u_color.a+texColor.a-u_color.a*texColor.a;
+    if(alpha==0)discard;
     vec3 uiColorPreMultiplied=texColor.rgb*texColor.a+u_color.rgb*u_color.a*(1-texColor.a);
     color=vec4(uiColorPreMultiplied/alpha,alpha);
 }
