@@ -4,12 +4,13 @@ import std.conv : to;
 import std.exception;
 import vertexd.gui.bounds;
 import vertexd.gui.constraints;
+import vertexd.gui.value;
 
 struct UiConstraintSet { //TODO: reconsider growable / child size dependance
     union {
         struct {
-            private UiConstraint first = StartAlign(0);
-            private UiConstraint second = EndAlign(0);
+            private UiConstraint first = StartAlign(pixels(0));
+            private UiConstraint second = EndAlign(pixels(0));
         }
 
         UiConstraint[2] constraints;
@@ -36,6 +37,7 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
         case CType.StartAlign:
             if (second.type == CType.EndAlign // || second.type == CType.EndGrow
                 || second.type == CType.Size // || second.type == CType.SizeGrow
+                || second.type == CType.SizeFit
                 || second.type == CType.Centered)
                 return true;
             return false;
@@ -49,12 +51,13 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
             //     return false;
         case CType.EndAlign:
             if (second.type == CType.Size
+                || second.type == CType.SizeFit
                 || second.type == CType.Centered)
                 return true;
             return false;
             // case CType.EndGrow:
             //     return false;
-        case CType.Size:
+        case CType.Size, CType.SizeFit:
             if (second.type == CType.Centered)
                 return true;
             return false;
@@ -67,6 +70,14 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
         }
     }
 
+    const(UiValue)* getFitReferenceValue() const {
+        foreach (ref constraint; constraints) {
+            if (constraint.type == CType.SizeFit)
+                return &constraint.uiValue;
+        }
+        return null;
+    }
+
     // bool canGrow() const {
     //     foreach (constraint; constraints) {
     //         if (constraint.type == CType.StartGrow
@@ -77,14 +88,18 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
     //     return false;
     // }
 
-    UiBound solve(const UiBound parentBound, const double pixelToVirtual) const {
+    UiBound solve(const UiBound parentBound, const double pixelToVirtual, const double fitSize) const {
         double parentSize = parentBound.size();
 
         // Calculate local bounds.
         UiBound localBound;
         // Simplify by converting to absolute values.
-        UiConstraint first = first.toAbsoluteVirtual(parentSize, pixelToVirtual);
-        UiConstraint second = second.toAbsoluteVirtual(parentSize, pixelToVirtual);
+        UiConstraint first = this.first.toAbsoluteVirtual(parentSize, pixelToVirtual);
+        UiConstraint second = this.second.toAbsoluteVirtual(parentSize, pixelToVirtual);
+        if (first.type == CType.SizeFit)
+            first = Size(pixels(fitSize));
+        if (second.type == CType.SizeFit)
+            second = Size(pixels(fitSize));
 
         // first = shrinkToAlign(parentBound, first, vertical);
         // second = shrinkToAlign(parentBound, second, vertical);

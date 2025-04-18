@@ -1,50 +1,51 @@
 module vertexd.gui.constraints;
 
 import vertexd.gui.bounds;
+import vertexd.gui.value;
 import std.conv : to;
 
-alias StartAlign = UiConstraint.StartAlign;
-// alias StartShrink = UiConstraint.StartShrink;
-alias EndAlign = UiConstraint.EndAlign;
-// alias EndShrink = UiConstraint.EndShrink;
-alias Size = UiConstraint.Size;
-alias Centered = UiConstraint.Centered;
-
 alias CType = UiConstraint.Type;
+alias StartAlign = UiConstraint.StartAlign;
+alias EndAlign = UiConstraint.EndAlign;
+alias Size = UiConstraint.Size;
+alias SizeFit = UiConstraint.SizeFit;
+alias Centered = UiConstraint.Centered;
+// alias StartShrink = UiConstraint.StartShrink;
+// alias EndShrink = UiConstraint.EndShrink;
 
+// TODO: Design better constraint system to support eg. aspectRatios (vertical:horizontal), alongside minimum/maximum sizes?
 struct UiConstraint {
     // Type enum is ordered to simplify constraint set evaluation.
     enum Type : ubyte {
         StartAlign,
-        // StartGrow, // shrink with minimum size as align
         EndAlign,
-        // EndGrow,
         Size,
-        // SizeGrow,
+        SizeFit, // with reference size
         Centered // with offset
+        // StartGrow, // shrink with minimum size as align
+        // EndGrow,
+        // SizeGrow,
     }
 
     Type type;
-    double value;
-    bool relative; // % vs px
+    UiValue uiValue;
+
+    private alias this = uiValue;
 
     // Simplified Constructors
     static foreach (T; __traits(allMembers, UiConstraint.Type)) {
-        mixin("static UiConstraint ", T, "(double value=0,bool relative=true)
-        {return UiConstraint(UiConstraint.Type.", T, ",value,relative);}");
+        mixin("static UiConstraint ", T, "(UiValue value=pixels(0))
+        {return UiConstraint(UiConstraint.Type.", T, ",value);}");
     }
 
     UiConstraint toAbsoluteVirtual(double parentSize, double pixelToVirtual) const {
-        UiConstraint absolute;
-        absolute.type = this.type;
-        absolute.value = (relative ? this.value * parentSize : this.value * pixelToVirtual);
-        absolute.relative = false;
+        UiConstraint absolute = this;
+        absolute.uiValue = absolute.uiValue.toAbsoluteVirtual(parentSize, pixelToVirtual);
         return absolute;
     }
 
     string toString() const {
-        return type.to!string ~ "(" ~ value.to!string ~ "," ~ (relative ? "true"
-                : "false") ~ ")";
+        return type.to!string ~ "(" ~ value.to!string ~ "," ~ (relative ? "true" : "false") ~ ")";
     }
 
 }

@@ -3,8 +3,7 @@ module vertexd.gui.gui_renderer;
 import bindbc.opengl;
 import vdmath;
 import vertexd.core.window;
-import vertexd.gui.ui_block;
-import vertexd.gui.ui_node;
+import vertexd.gui.node;
 import vertexd.memory.buffer;
 import vertexd.mesh.primitive;
 import vertexd.renderer.renderer;
@@ -28,11 +27,18 @@ class GuiRenderer {
         if (root.renderNodeStyle)
             renderNode(window, root);
 
+        foreach (UiNode contentNode; root.getContent())
+            if (contentNode !is null)
+                render(window, contentNode);
+
         foreach (UiNode child; root.children) // Todo: can replace with queue
-            render(window, child,);
+            render(window, child);
     }
 
     void renderNode(const Window window, UiNode node) {
+        if (node is null)
+            return;
+
         ShaderProgram shader = blockShader.get();
         shader.use();
 
@@ -48,10 +54,10 @@ class GuiRenderer {
         shader.setUniform(2, node.zDepth);
 
         float radius;
-        if (node.radiusRelative)
-            radius = node.radius * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
+        if (node.radius.relative)
+            radius = node.radius.value * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
         else
-            radius = node.radius / window.pixelHeight;
+            radius = node.radius.value / window.pixelHeight;
 
         shader.setUniform(3, radius);
         node.style.texture.bind(0);

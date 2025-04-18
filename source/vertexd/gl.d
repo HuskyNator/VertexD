@@ -4,11 +4,18 @@ import bindbc.opengl;
 
 final abstract class GL {
 static:
-    void setFaceCulling(bool on){
-        if(on)
+    void setFaceCulling(bool on) {
+        if (on)
             glEnable(GL_CULL_FACE);
         else
             glDisable(GL_CULL_FACE);
+    }
+
+    void setDepthTest(bool on) {
+        if (on)
+            glEnable(GL_DEPTH_TEST);
+        else
+            glDisable(GL_DEPTH_TEST);
     }
 
     enum Type : uint {
@@ -27,28 +34,28 @@ static:
 
     size_t getTypeSize(Type type) {
         final switch (type) {
-            case Type.Bool:
-                return 8; // Assumption
-            case Type.Byte:
-                return 8;
-            case Type.UByte:
-                return 8;
-            case Type.Short:
-                return 16;
-            case Type.UShort:
-                return 16;
-            case Type.Int:
-                return 32;
-            case Type.UInt:
-                return 32;
-            case Type.FixedPoint:
-                return 32;
-            case Type.HalfFloat:
-                return 16;
-            case Type.Float:
-                return 32;
-            case Type.Double:
-                return 64;
+        case Type.Bool:
+            return 8; // Assumption
+        case Type.Byte:
+            return 8;
+        case Type.UByte:
+            return 8;
+        case Type.Short:
+            return 16;
+        case Type.UShort:
+            return 16;
+        case Type.Int:
+            return 32;
+        case Type.UInt:
+            return 32;
+        case Type.FixedPoint:
+            return 32;
+        case Type.HalfFloat:
+            return 16;
+        case Type.Float:
+            return 32;
+        case Type.Double:
+            return 64;
         }
     }
 
