@@ -36,6 +36,8 @@ struct UiConstraint {
     static foreach (T; __traits(allMembers, UiConstraint.Type)) {
         mixin("static UiConstraint ", T, "(UiValue value=pixels(0))
         {return UiConstraint(UiConstraint.Type.", T, ",value);}");
+        mixin("static UiConstraint ", T, "(Args...)(Args args)
+        {return UiConstraint(UiConstraint.Type.", T, ",UiValue(args));}");
     }
 
     UiConstraint toAbsoluteVirtual(double parentSize, double pixelToVirtual) const {

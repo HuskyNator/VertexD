@@ -82,31 +82,65 @@ class Window {
 	}
 
 	struct Hints {
-		static immutable int[] glfwMapping = [
-			GLFW_RESIZABLE, GLFW_VISIBLE, GLFW_DECORATED, GLFW_FOCUSED,
-			GLFW_AUTO_ICONIFY, GLFW_FLOATING, GLFW_MAXIMIZED, GLFW_CENTER_CURSOR,
-			GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FOCUS_ON_SHOW,
-			GLFW_SCALE_TO_MONITOR, GLFW_SAMPLES, GLFW_REFRESH_RATE,
-			GLFW_SRGB_CAPABLE, GLFW_DOUBLEBUFFER
-		];
+		bool resizable = true; // resizable by user, ignored for fullscreen or undecorated
+		bool visible = true; // initialy visible, ignored for fullscreen
+		bool decorated = true; // window decorates (border, close widget etc.)
+		bool focused = true; // input focus on creation
+		bool auto_iconify = true; // automatically iconify (minimize) & restore video mode in fullscreen on focus loss
+		bool floating = false; // always floating on top
+		bool maximized = false; // maximized when created
+		bool center_cursor = true; // cursor should be centered on new window
+		bool transparent_framebuffer = false; // transparent window framebuffer if supported
+		bool focus_on_show = true; // window gets input focus on `glfwShowWindow` is called
+		bool scale_to_monitor = false; // resize window content area based on `content scale` changes (eg. monitors), affects platforms with 1:1 screen coordinate:pixel mappings like Windows
+		bool scale_framebuffer = true; // resize framebuffer based on `content scale` changes (eg. monitors), affects platforms with scalable screen coordinate:pixel mappings like maxOS
+		bool mouse_passthrough = false; // pass on mouse input to any window behind the window in question, decorated behavior differs by platform
+		int position_x = anyPosition; // initial window x position
+		int position_y = anyPosition; // initial window y position
+		/// desired bit depths of default framebuffer:
+		int red_bits = 8;
+		int green_bits = 8;
+		int blue_bits = 8;
+		int alpha_bits = 8;
+		int depth_bits = 2;
+		int stencil_bits = 8;
+		int samples = 0; // number of samples for multisampling
+		int refresh_rate = dontCare; // refresh rate for fullscreen (dontCare = highest)
+		bool stereo = false; // OpenGL stereoscopic rendering
+		bool srgb_capable = false; // srgb capable framebuffer
+		bool double_buffer = true; // double buffered framebuffer
 
+		static enum int anyPosition = GLFW_ANY_POSITION;
 		static enum int dontCare = GLFW_DONT_CARE;
 
-		bool resizable = true;
-		bool visible = true;
-		bool decorated = true;
-		bool focused = true;
-		bool auto_iconify = true;
-		bool floating = false;
-		bool maximized = false;
-		bool center_cursor = true;
-		bool transparent_framebuffer = false;
-		bool focus_on_show = true;
-		bool scale_to_monitor = false;
-		int samples = 0;
-		int refresh_rate = dontCare;
-		bool srgb_capable = false;
-		bool double_buffer = true;
+		static enum int[] glfwMapping = [
+				GLFW_RESIZABLE,
+				GLFW_VISIBLE,
+				GLFW_DECORATED,
+				GLFW_FOCUSED,
+				GLFW_AUTO_ICONIFY,
+				GLFW_FLOATING,
+				GLFW_MAXIMIZED,
+				GLFW_CENTER_CURSOR,
+				GLFW_TRANSPARENT_FRAMEBUFFER,
+				GLFW_FOCUS_ON_SHOW,
+				GLFW_SCALE_TO_MONITOR,
+				GLFW_SCALE_FRAMEBUFFER,
+				GLFW_MOUSE_PASSTHROUGH,
+				GLFW_POSITION_X,
+				GLFW_POSITION_Y,
+				GLFW_RED_BITS,
+				GLFW_GREEN_BITS,
+				GLFW_BLUE_BITS,
+				GLFW_ALPHA_BITS,
+				GLFW_DEPTH_BITS,
+				GLFW_STENCIL_BITS,
+				GLFW_SAMPLES,
+				GLFW_REFRESH_RATE,
+				GLFW_STEREO,
+				GLFW_SRGB_CAPABLE,
+				GLFW_DOUBLEBUFFER
+			];
 	}
 
 	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true, Hints hints = Hints()) {
