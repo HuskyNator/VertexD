@@ -41,6 +41,6 @@ static:
     }
 
     float fps() {
-        return 1 / deltaTime();
+        return 1 / frameDeltaTime;
     }
 }

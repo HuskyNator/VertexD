@@ -27,7 +27,7 @@ enum MouseButton : byte {
 
 enum MouseAction : ubyte {
     press = GLFW_PRESS,
-    repeat = GLFW_RELEASE
+    release = GLFW_RELEASE
 }
 
 enum Modifier : ubyte {
