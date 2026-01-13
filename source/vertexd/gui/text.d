@@ -8,6 +8,7 @@ import std.string : toStringz;
 import bindbc.freetype;
 import vertexd.gui.freetype;
 import vertexd.memory.texture;
+import bindbc.opengl: GL_R8;
 
 class FontException : Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null) {
@@ -59,12 +60,14 @@ class Font {
         return cast(int)((posFrac + 32u) >> 6);
     }
 
+    // TODO: take yMin/underline(?) into account
+
     /// Params:
     ///   text = text to render
     ///   width = width of canvas (in units of maxGlyphWidth)
     ///   height = height of canvas (in units of lineHeight)
-    /// Returns: Texture with rendered text
-    Texture drawText(dstring text, uint width, uint height) {
+    ///   pixels = buffer to store rendered text in
+    void drawText(dstring text, uint width, uint height, ubyte[] pixels) {
         const uint xPosStart = cast(uint)((face.bbox.xMin < 0) ? -face.bbox.xMin : 0);
         const uint yPosStart = cast(uint)(
             (face.size.metrics.ascender * face.size.metrics.yScale) >> 22);
@@ -72,7 +75,10 @@ class Font {
         uint xPos = xPosStart; // in 1/64th of pixel
         uint yPos = yPosStart; // in 1/64th of pixel
 
-        ubyte[] pixels = new ubyte[width * height];
+        enforce(pixels !is null);
+        assert(pixels.length == width*height);
+        foreach(i; 0.. width*height)
+            pixels[i] = 0; // initialize
 
         foreach (dchar codepoint; text) {
             FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
@@ -107,7 +113,23 @@ class Font {
             xPos += face.glyph.advance.x;
             yPos += face.glyph.advance.y;
         }
-
-        return new Texture(width, height, cast(ubyte[1][]) pixels, false);
     }
+}
+
+struct TextHandle {
+    dstring text;
+    ubyte[] pixels;
+    Texture texture;
+
+    this(uint width, uint height) {
+        this.pixels = new ubyte[width*height];
+        this.texture = new Texture(width, height, GL_R8);
+    }
+
+    void setText(dstring text, Font font) {
+        font.drawText(text, texture.width, texture.height, this.pixels);
+        this.text = text;
+        texture.uploadData(0,0,0,texture.width,texture.height,cast(ubyte[1][]) this.pixels);
+    }
+
 }

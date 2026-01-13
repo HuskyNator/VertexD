@@ -16,6 +16,8 @@ import std.meta;
 class Texture {
 	mixin ID!();
 	uint texture;
+	uint width;
+	uint height;
 
 	static Texture[4] _emptyTextures;
 	static Texture empty(Type type) {
@@ -39,10 +41,14 @@ class Texture {
 	private enum GLenum getInternalFormat(T, uint L) = mixin("GL_", "RGBA"[0 .. L], (T.sizeof * 8)
 				.to!string, is(typeof(T) == float) ? "f" : "");
 
+	private GLenum getDataFormat(uint L) {return [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];}
+
 	this(int width, int height, GLenum internalFormat, bool mipmapLevels = 1) {
 		setID();
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
+		this.width = width;
+		this.height = height;
 
 		if (mipmapLevels == 1)
 			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -54,7 +60,7 @@ class Texture {
 		assert(width > 0 && height > 0);
 		assert(pixels.length == width * height);
 
-		GLenum format = [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];
+		GLenum format = getDataFormat(L);
 
 		GLenum pixelType = GL.getType!T;
 		setUnpackAlignment(T.sizeof);
@@ -82,10 +88,10 @@ class Texture {
 	}
 
 	void uploadData(T, uint L)(int level, int xOffset, int yOffset, uint width, uint height, T[L][] data) {
-		GLenum internalFormat = getInternalFormat!T;
+		GLenum format = getDataFormat(L);
 		GLenum pixelType = GL.getType!T;
 		setUnpackAlignment(T.sizeof);
-		glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, internalFormat, pixelType, data
+		glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, format, pixelType, data
 				.ptr);
 	}
 

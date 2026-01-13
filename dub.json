@@ -1,45 +1,42 @@
 {
-	"name": "vertexd",
 	"authors": [
 		"HuskyNator"
 	],
-	"description": "Dutch OpenGL passion project",
-	"copyright": "Copyright © 2021, HuskyNator",
-	"license": "proprietary",
-	"targetPath": "build",
 	"copyFiles": [
 		"./view/shaders/"
 	],
+	"copyright": "Copyright © 2021, HuskyNator",
 	"dependencies": {
-		"bindbc-glfw": {
-			"path": "../bindbc-glfw/",
-			"version": "~version_3.4"
-		},
-		"bindbc-opengl": "~>1.1.1",
 		"bindbc-freetype": "~>1.3.2",
+		"bindbc-glfw": "~>1.1.2",
+		"bindbc-opengl": "~>1.1.1",
 		"gamut": "~>3.2.0",
 		"vdmath": "~main"
 	},
-	"subConfigurations": {
-		"bindbc-glfw": "static",
-		"bindbc-freetype": "static"
-	},
-	"versions": [
-		"GLFW_34",
-		"GL_46",
-		"GL_ARB",
-		"GL_ARB_gpu_shader_int64",
-		"FT_2_13"
+	"description": "Dutch OpenGL passion project",
+	"libs": [
+		"user32",
+		"glfw3dll",
+		"freetype"
 	],
+	"license": "proprietary",
+	"name": "vertexd",
 	"sourceFiles-windows": [
 		"logo/logo.res"
 	],
 	"stringImportPaths": [
 		"source/vertexd"
 	],
-	"libs": [
-		"user32",
-		"glfw3dll",
-		"freetype"
+	"subConfigurations": {
+		"bindbc-freetype": "static",
+		"bindbc-glfw": "static"
+	},
+	"targetPath": "build",
+	"versions": [
+		"GLFW_34",
+		"GL_46",
+		"GL_ARB",
+		"GL_ARB_gpu_shader_int64",
+		"FT_2_13"
 	]
 }

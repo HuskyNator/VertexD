@@ -36,8 +36,9 @@ void main(){
     // = t.rgb*t.a + ( b.rgb*b.a + B*(1-b.a) ) * (1-t.a)
     // Is correct such that the texture is blended over the ui background color
     // TLDR: manual blending
-    vec4 texColor=texture(background,frag_pos);
-    float alpha=u_color.a+texColor.a-u_color.a*texColor.a;
+    // vec4 texColor=texture(background,frag_pos);
+    vec4 texColor=vec4(texture(background,frag_pos).r); // TODO: fix temporary (GL_RED)
+    float alpha=u_color.a+texColor.a*(1-u_color.a);
     if(alpha==0)discard;
     vec3 uiColorPreMultiplied=texColor.rgb*texColor.a+u_color.rgb*u_color.a*(1-texColor.a);
     color=vec4(uiColorPreMultiplied/alpha,alpha);
