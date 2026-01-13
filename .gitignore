@@ -1,6 +1,6 @@
 .dub
 *.code-workspace
-# .vscode
+.vscode
 docs.json
 __dummy.html
 docs/

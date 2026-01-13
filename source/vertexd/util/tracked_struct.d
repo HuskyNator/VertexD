@@ -40,8 +40,8 @@ unittest {
     }
 
     A today = new A(Date("november", 22.0f));
-    assert(!today.changed);
+    assert(!today.date.changed);
 
-    today.hour = today.hour + 1;
-    assert(today.changed);
+    today.date.hour = today.date.hour + 1;
+    assert(today.date.changed);
 }

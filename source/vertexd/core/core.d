@@ -5,16 +5,14 @@ import bindbc.freetype;
 import bindbc.glfw;
 import vertexd.core;
 import vertexd.core.time;
-import vertexd.world;
 import vertexd.gui.freetype;
+import vertexd.renderer.renderer;
+import vertexd.world;
 
-import core.sys.windows.windows;
 import std.conv : to;
 import std.datetime.stopwatch;
-import std.stdio : stderr, File, writefln;
 import std.stdio;
-import vertexd.core.time;
-import vertexd.renderer.renderer;
+import std.stdio : File, stderr, writefln;
 
 private extern (C) void glfw_error_callback(int type, const char* description) nothrow {
 	try {
@@ -23,7 +21,9 @@ private extern (C) void glfw_error_callback(int type, const char* description) n
 	}
 }
 
-debug {
+version (Windows) {
+	import core.sys.windows.windows;
+
 	package HWND console = null;
 	package bool _console_visible = false;
 
@@ -33,19 +33,34 @@ debug {
 	}
 }
 
-void vdInit() {
-	debug {
-		console = GetConsoleWindow();
-		SetWindowPos(console, HWND_BOTTOM, 0, 0, 640, 360, 0);
-	} else {
-		FreeConsole();
+bool vdInit(bool showConsole = false) {
+	version (Windows) {
+		if (showConsole) {
+			console = GetConsoleWindow();
+			SetWindowPos(console, HWND_BOTTOM, 0, 0, 640, 360, 0);
+		} else {
+			FreeConsole();
+		}
 	}
+
+	// auto ret = loadGLFW();
+	// if (ret != GLFWSupport.glfw34) {
+	// 	stderr.writeln("Could not load glfw-3.4. Loading result: ", ret);
+	// 	return false;
+	// }
+
+	// auto retFT = loadFreeType();
+	// if (retFT != FTSupport.v2_13) {
+	// 	stderr.writeln("Could not load freetype-2.13. Loading result: ", retFT);
+	// 	return false;
+	// }
 
 	glfwSetErrorCallback(&glfw_error_callback);
 	glfwInit();
 	_initFreeType();
 
 	Time.start();
+	return true;
 }
 
 void vdTerminate() {
