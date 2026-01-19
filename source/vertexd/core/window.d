@@ -170,7 +170,7 @@ class Window {
 		glfwSetWindowPosCallback(glfw_window, &window_position_callback);
 
 		GLSupport opengl_version = loadOpenGL();
-		enforce(opengl_version == GLSupport.gl46, "OpenGL not loading: " ~ opengl_version
+		enforce(opengl_version == GLSupport.gl46, "OpenGL version 4.6 required, got: " ~ opengl_version
 				.to!string);
 		version (OpenGLBindless)
 			enforce(hasARBBindlessTexture, "No support for bindless textures");

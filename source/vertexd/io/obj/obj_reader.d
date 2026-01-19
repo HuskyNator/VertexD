@@ -277,7 +277,7 @@ static:
                 meshMaterials = [ObjMaterial.defaultMaterial()];
             }
 
-            Buffer indexBuffer = new Buffer(cast(ubyte[]) indices, Buffer.StorageFlag.None);
+            Buffer indexBuffer = new Buffer(indices, Buffer.StorageFlag.None);
             Mesh[] meshes;
             meshes.reserve(meshStartIndices.length);
             foreach (i, start; meshStartIndices) {

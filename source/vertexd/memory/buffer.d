@@ -8,8 +8,8 @@ final class Buffer {
     const uint flags;
 
     /// Buffer usage flags. Can be combined combined using bitwise or (`|`).
-    enum StorageFlag : uint {
-        None = 0, // TODO: Rename to StaticStorage??
+    enum StorageFlag: uint {
+        None = 0u,
         DynamicStorage = GL_DYNAMIC_STORAGE_BIT, /// Allow client-side updating ($(LREF Buffer.upload) & glNamedBufferSubData)
         ClientStorage = GL_CLIENT_STORAGE_BIT,
         MapRead = GL_MAP_READ_BIT,
@@ -18,14 +18,14 @@ final class Buffer {
         MapCoherent = GL_MAP_COHERENT_BIT
     }
 
-    this(size_t byteSize, StorageFlag flags = StorageFlag.None) {
+    this(const size_t byteSize, const StorageFlag flags = StorageFlag.None) {
         this.size = byteSize;
         this.flags = flags;
         glCreateBuffers(1, &this.buffer);
-        glNamedBufferStorage(this.buffer, this.size, null, flags);
+        glNamedBufferStorage(this.buffer, byteSize, null, flags);
     }
 
-    this(T)(const T[] data, StorageFlag flags = StorageFlag.None) {
+    this(T)(const T[] data, const StorageFlag flags = StorageFlag.None) {
         this.size = data.length * T.sizeof;
         this.flags = flags;
         glCreateBuffers(1, &this.buffer);

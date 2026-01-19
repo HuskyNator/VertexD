@@ -70,7 +70,7 @@ class VAO {
     ///   attribIndex = attribute to set and bind to
     ///   normalize = whether data should be normalized
     void setAttribute(ubyte L, T)(const T[L][] data, const uint bufferIndex, const uint attribIndex, const bool normalize = false) {
-        Buffer buffer = new Buffer(cast(ubyte[]) data);
+        Buffer buffer = new Buffer(data);
         bindBuffer(buffer, bufferIndex, 0, L * T.sizeof);
 
         setAttributeFormat(attribIndex, L, GL.getType!T, 0, normalize);
@@ -85,7 +85,7 @@ class VAO {
     void setAttributes(T)(const T[] data, const uint bufferIndex, const uint[T.tupleof.length] attributeIndices)
             if (is(T == struct)) {
         // Create & Bind Buffer
-        Buffer buffer = new Buffer(cast(ubyte[]) data);
+        Buffer buffer = new Buffer(data);
         bindBuffer(buffer, bufferIndex, 0, T.sizeof);
 
         // Set all field attributes.

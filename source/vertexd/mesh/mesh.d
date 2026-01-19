@@ -38,7 +38,7 @@ class Mesh : Component { // TODO: struct not class?
     void setIndices(T)(const T[] data, bool dynamic = false) {
         assert(vertexArray !is null);
         this.indexBinding = IndexBinding(cast(int) data.length, 0, GL.getType!T);
-        Buffer indexBuffer = new Buffer(cast(ubyte[]) data, dynamic ? Buffer.StorageFlag.DynamicStorage
+        Buffer indexBuffer = new Buffer(data, dynamic ? Buffer.StorageFlag.DynamicStorage
                 : Buffer.StorageFlag.None);
         vertexArray.setIndexBuffer(indexBuffer);
     }
