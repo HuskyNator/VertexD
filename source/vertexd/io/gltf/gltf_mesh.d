@@ -81,7 +81,7 @@ deprecated module vertexd.io.gltf.gltf_mesh;
 //         if (!attributeSet.texCoord[1].present())
 //             glVertexAttrib2f(4, float.nan, float.nan);
 //         if (!attributeSet.color[0].present())
-//             glVertexAttrib4f(5, 1, 1, 1, 1); // behaviour when abscent.
+//             glVertexAttrib4f(5, 1, 1, 1, 1); // behaviour when absent.
 //     }
 
 //     override void drawSetup(Node node) {

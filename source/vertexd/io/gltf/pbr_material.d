@@ -3,10 +3,10 @@ deprecated module vertexd.io.gltf.pbr_material;
 // import std.conv;
 // import std.typecons : Nullable;
 // import vertexd.core;
-// import vertexd.mesh.buffer;
+// import vertexd.memory.buffer;
 // import vertexd.util.misc;
 // import vertexd.shaders.shaderprogram;
-// import vertexd.shaders.texture;
+// import vertexd.memory.texture;
 
 // class PBRMaterial {
 // 	mixin ID;

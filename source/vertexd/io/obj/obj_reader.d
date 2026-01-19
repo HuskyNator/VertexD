@@ -287,10 +287,10 @@ static:
                 if (!useUV && hasTextures(material))
                     throw new Exception("Mesh uses material but defines no uv's");
 
-                mesh.setAttribute(vertexData, 0u, 0u);
+                mesh.vertexArray.setAttribute(vertexData, 0u, 0u);
                 if (useUV)
-                    mesh.setAttribute(uvData, 1u, 1u); // if (!useNormal) normals were calculated
-                mesh.setAttribute(normalData, 2u, 2u);
+                    mesh.vertexArray.setAttribute(uvData, 1u, 1u); // if (!useNormal) normals were calculated
+                mesh.vertexArray.setAttribute(normalData, 2u, 2u);
 
                 size_t end = (i + 1 == meshStartIndices.length) ? indices.length
                     : meshStartIndices[i + 1];

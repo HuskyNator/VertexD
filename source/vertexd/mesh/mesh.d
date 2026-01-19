@@ -13,9 +13,6 @@ struct IndexBinding {
     size_t bufferOffset;
     GL.Type elementType;
 
-    alias getType = GL.getType;
-    alias getTypeSize = GL.getTypeSize;
-
     this(int elementCount, size_t bufferOffset, GL.Type elementType) {
         assert(elementType == GL.Type.UByte || elementType == GL.Type.UShort || elementType == GL
                 .Type.UInt);
@@ -25,6 +22,7 @@ struct IndexBinding {
     }
 
     this(T)(const T[] indices) if (is(T == ubyte) || is(T == ushort) || is(T == uint)) {
+        assert(indices.length < int.max);
         this.elementCount = cast(int) indices.length;
         this.bufferOffset = 0;
         this.elementType = GL.getType!T;
@@ -50,8 +48,6 @@ class Mesh : Component { // TODO: struct not class?
         vertexArray.setIndexBuffer(indexBuffer);
         this.indexBinding = IndexBinding(elementCount, bufferOffset, elementType);
     }
-
-    alias this = vertexArray;
 
     override void update(Node caller) {
     }

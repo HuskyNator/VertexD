@@ -77,7 +77,7 @@ class SimpleRenderer : Renderer {
                     setMaterial(instance.mesh.material);
                 // Render mesh
                 Mesh mesh = instance.mesh;
-                mesh.bind();
+                mesh.vertexArray.bind();
                 shader.setUniform(ShaderProgram.modelMatrixUniformIndex, instance.owner.modelMatrix);
                 glDrawElements(GL_TRIANGLES, mesh.indexBinding.elementCount,
                     mesh.indexBinding.elementType, cast(void*)

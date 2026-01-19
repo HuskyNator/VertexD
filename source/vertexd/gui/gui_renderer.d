@@ -65,7 +65,7 @@ class GuiRenderer {
         shader.setUniform(5, aspectRatio);
         // shader.setUniform(6, window.pixelSize);
 
-        quad.bind();
+        quad.vertexArray.bind();
         glDrawElements(GL_TRIANGLES, quad.indexBinding.elementCount,
             quad.indexBinding.elementType, cast(void*)
             quad.indexBinding.bufferOffset);
