@@ -9,7 +9,7 @@ struct TrackedBuffer(T) {
 
     Buffer buffer;
     void initBuffer() {
-        buffer = new Buffer(bytes(), Buffer.DynamicStorage);
+        buffer = new Buffer(bytes(), Buffer.StorageFlag.DynamicStorage);
     }
 
     ubyte[T.sizeof] bytes() {

@@ -41,7 +41,9 @@ class Texture {
 	private enum GLenum getInternalFormat(T, uint L) = mixin("GL_", "RGBA"[0 .. L], (T.sizeof * 8)
 				.to!string, is(typeof(T) == float) ? "f" : "");
 
-	private GLenum getDataFormat(uint L) {return [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];}
+	private GLenum getDataFormat(uint L) {
+		return [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];
+	}
 
 	this(int width, int height, GLenum internalFormat, bool mipmapLevels = 1) {
 		setID();
