@@ -82,6 +82,14 @@ class UiNode {
         this.renderNodeStyle = false;
     }
 
+    void setXConstraints(UiConstraint[2] constraints...) {
+        this.xConstraints = UiConstraintSet(constraints[0], constraints[1]);
+    }
+
+    void setYConstraints(UiConstraint[2] constraints...) {
+        this.yConstraints = UiConstraintSet(constraints[0], constraints[1]);
+    }
+
     // private alias CType = UiConstraint.Type;
     // UiConstraint shrinkToAlign(UiBound parentBound, UiConstraint constraint, bool vertical) {
     //     UiConstraint nonShrink = constraint;
