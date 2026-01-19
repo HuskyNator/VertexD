@@ -104,6 +104,13 @@ class Texture {
 		RGBA = 4
 	}
 
+	enum Bits {
+		Automatic,
+		Bits8 = LOAD_8BIT,
+		Bits16 = LOAD_16BIT,
+		Bits32 = LOAD_FP32,
+	}
+
 	static immutable int loadFlags = LOAD_NO_PREMUL | LAYOUT_VERT_STRAIGHT | LAYOUT_GAPLESS;
 	static immutable int loadFlagsGrey = loadFlags | LOAD_GREYSCALE | LOAD_NO_ALPHA;
 	static immutable int loadFlagsRGB = loadFlags | LOAD_RGB | LOAD_NO_ALPHA;
@@ -122,15 +129,17 @@ class Texture {
 		}
 	}
 
-	this(string path, Type type = Type.RGBA, bool mipmaps = true) {
+	this(string path, Type type = Type.RGBA, Bits colorDepth = Bits.Automatic, bool mipmaps = true) {
 		if (!exists(path))
 			throw new FileException(path, "File not found");
 		Image image;
 		int flags = getFlags(type);
 		image.loadFromFile(path, flags);
+		// TODO: colordepth
 		this(image, type, mipmaps);
 	}
 
+	// TODO: reformat
 	this(ref Image image, Type type, bool mipmaps = true) {
 		if (image.isError()) // Check image is valid
 			throw new Exception(cast(string) image.errorMessage());

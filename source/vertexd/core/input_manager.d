@@ -80,17 +80,17 @@ static:
         foreach (event; inputEvents) {
             final switch (event.tag) {
                 static foreach (i; 0 .. InputEvent.Input.tupleof.length)
-            case i:
-                    foreach (callback; mixin("callbacks_", i.stringof))
-                        callback(event.window, event.input.tupleof[i]);
-                break;
+                    case i:
+                        foreach (callback; mixin("callbacks_", i.stringof))
+                            callback(event.window, event.input.tupleof[i]);
+                        break;
+                        }
             }
+
+            clear();
         }
 
-        clear();
+        void pollInput() {
+            glfwPollEvents();
+        }
     }
-
-    void pollInput() {
-        glfwPollEvents();
-    }
-}

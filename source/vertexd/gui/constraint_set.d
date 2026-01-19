@@ -34,39 +34,39 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
     /// - Size(Grow) + Centered
     bool isValid() const {
         final switch (first.type) {
-        case CType.StartAlign:
-            if (second.type == CType.EndAlign // || second.type == CType.EndGrow
-                || second.type == CType.Size // || second.type == CType.SizeGrow
-                || second.type == CType.SizeFit
-                || second.type == CType.Centered)
-                return true;
-            return false;
-            // case CType.StartGrow:
-            //     if (second.type == CType.EndAlign
-            //         || second.type == CType.EndGrow
-            //         || second.type == CType.SizeGrow
-            //         || second.type == CType.Centered
-            //         )
-            //         return true;
-            //     return false;
-        case CType.EndAlign:
-            if (second.type == CType.Size
-                || second.type == CType.SizeFit
-                || second.type == CType.Centered)
-                return true;
-            return false;
-            // case CType.EndGrow:
-            //     return false;
-        case CType.Size, CType.SizeFit:
-            if (second.type == CType.Centered)
-                return true;
-            return false;
-            // case CType.SizeGrow:
-            //     if (second.type == CType.Centered)
-            //         return true;
-            //     return false;
-        case CType.Centered:
-            return false;
+            case CType.StartAlign:
+                if (second.type == CType.EndAlign // || second.type == CType.EndGrow
+                    || second.type == CType.Size // || second.type == CType.SizeGrow
+                    || second.type == CType.SizeFit
+                    || second.type == CType.Centered)
+                    return true;
+                return false;
+                // case CType.StartGrow:
+                //     if (second.type == CType.EndAlign
+                //         || second.type == CType.EndGrow
+                //         || second.type == CType.SizeGrow
+                //         || second.type == CType.Centered
+                //         )
+                //         return true;
+                //     return false;
+            case CType.EndAlign:
+                if (second.type == CType.Size
+                    || second.type == CType.SizeFit
+                    || second.type == CType.Centered)
+                    return true;
+                return false;
+                // case CType.EndGrow:
+                //     return false;
+            case CType.Size, CType.SizeFit:
+                if (second.type == CType.Centered)
+                    return true;
+                return false;
+                // case CType.SizeGrow:
+                //     if (second.type == CType.Centered)
+                //         return true;
+                //     return false;
+            case CType.Centered:
+                return false;
         }
     }
 

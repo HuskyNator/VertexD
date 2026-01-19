@@ -55,7 +55,8 @@ class GuiRenderer {
 
         float radius;
         if (node.radius.relative)
-            radius = node.radius.value * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio : size.y) / 2;
+            radius = node.radius.value * ((globalSize.x <= globalSize.y) ? size.x * aspectRatio
+                    : size.y) / 2;
         else
             radius = node.radius.value / window.pixelHeight;
 
