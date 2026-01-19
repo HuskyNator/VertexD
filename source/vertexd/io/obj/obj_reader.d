@@ -11,8 +11,9 @@ import vertexd.shaders.shaderprogram;
 
 import std.ascii : isWhite;
 import std.conv : ConvException, to;
-import std.path : dirName, dirSeparator;
+import std.path : dirName, dirSeparator, extension;
 import std.stdio : File, stderr;
+import std.exception : enforce;
 
 final abstract class ObjReader {
 static:
@@ -22,6 +23,7 @@ static:
         string root;
 
         this(string path) {
+            enforce(extension(path) == ".obj", "Not a \".obj\" file: " ~ path);
             this.root = dirName(path);
             this.parser = Parser(path);
         }
@@ -390,15 +392,13 @@ static:
                             foreach (i, Vertex vertex; face) {
                                 debug verticesReused += 1;
                                 vertexIndices[i] = vertexHashmap.require(vertex, {
-                                    assert(vertexHashmap.length != 0);
                                     debug verticesReused -= 1;
-                                    uint newIndex = cast(uint) vertexHashmap.length - 1; // hashmap length already incremented inside lambda.
+                                    uint newIndex = cast(uint) vertexHashmap.length;
                                     addNewVertex(vertex);
                                     return cast(uint) newIndex;
                                 }());
                             }
-                            assert(vertexData.length == vertexHashmap
-                                    .length);
+                            assert(vertexData.length == vertexHashmap.length);
                             indices ~= vertexIndices;
                         }
                         break;
