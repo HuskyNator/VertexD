@@ -46,13 +46,13 @@ class PlayerController : Component {
             case GLFW_KEY_S:
                 moveDirection.z += (input.action == KeyAction.press) ? 1 : -1;
                 break;
-            case GLFW_KEY_LEFT_SHIFT:
+            case GLFW_KEY_LEFT_CONTROL:
                 moveDirection.y -= (input.action == KeyAction.press) ? 1 : -1;
                 break;
             case GLFW_KEY_SPACE:
                 moveDirection.y += (input.action == KeyAction.press) ? 1 : -1;
                 break;
-            case GLFW_KEY_LEFT_CONTROL:
+            case GLFW_KEY_LEFT_SHIFT:
                 run = input.action == KeyAction.press;
                 break;
             case GLFW_KEY_ESCAPE:
@@ -63,7 +63,7 @@ class PlayerController : Component {
     }
 
     void mousePositionCallback(Window window, MousePositionInput input) {
-        Vec!(2, double) delta = input.delta * sensitivity;
+        Vec!(2, double) delta = input.delta * sensitivity * Time.deltaTime();
         rotation = Vec!(2, double)((rotation.x + delta.x) % (2.0 * PI), max(-PI_2, min(PI_2, rotation.y + delta
                 .y)));
     }

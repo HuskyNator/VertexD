@@ -105,7 +105,7 @@ class Texture {
 	}
 
 	enum Bits {
-		Automatic,
+		Automatic = 0,
 		Bits8 = LOAD_8BIT,
 		Bits16 = LOAD_16BIT,
 		Bits32 = LOAD_FP32,
@@ -134,8 +134,7 @@ class Texture {
 			throw new FileException(path, "File not found");
 		Image image;
 		int flags = getFlags(type);
-		image.loadFromFile(path, flags);
-		// TODO: colordepth
+		image.loadFromFile(path, flags | colorDepth);
 		this(image, type, mipmaps);
 	}
 

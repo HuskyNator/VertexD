@@ -86,7 +86,7 @@ static:
 					case "map_Ka":
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGB, Texture.Bits.Bits8);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKa = bTexture;
@@ -97,7 +97,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGB, Texture.Bits.Bits8);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKd = bTexture;
@@ -108,7 +108,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.RGB);
+						Texture texture = new Texture(path, Texture.Type.RGB, Texture.Bits.Bits8);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapKs = bTexture;
@@ -119,7 +119,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.Grey);
+						Texture texture = new Texture(path, Texture.Type.Grey, Texture.Bits.Bits8);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapNs = bTexture;
@@ -130,7 +130,7 @@ static:
 						requireMaterial();
 						string file = parser.consumeWord!true();
 						string path = root ~ dirSeparator ~ file;
-						Texture texture = new Texture(path, Texture.Type.Grey);
+						Texture texture = new Texture(path, Texture.Type.Grey, Texture.Bits.Bits8);
 						version (OpenGLBindless) {
 							BindlessTexture bTexture = new BindlessTexture(texture);
 							currentMaterial.mapD = bTexture;
