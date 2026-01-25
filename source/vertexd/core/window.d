@@ -175,12 +175,12 @@ class Window {
 		version (OpenGLBindless)
 			enforce(hasARBBindlessTexture, "No support for bindless textures");
 
-		debug {
+		// debug {
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 			glDebugMessageCallback(&gl_error_callback, null);
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, null, false);
-		}
+		// }
 
 		glEnable(GL_MULTISAMPLE);
 		glEnable(GL_DEPTH_TEST);
@@ -314,7 +314,7 @@ class Window {
 	}
 }
 
-debug {
+// debug {
 	extern (System) void gl_error_callback(GLenum source, GLenum type, GLuint errorID, GLenum severity,
 		GLsizei length, const GLchar* message, const void* userParam) nothrow {
 		import std.stdio : write, writeln;
@@ -405,4 +405,4 @@ debug {
 		} catch (Exception e) {
 		}
 	}
-}
+// }
