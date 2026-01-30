@@ -5,7 +5,7 @@ import vdmath;
 import vertexd.core.input;
 import vertexd.core.window;
 import vertexd.util.misc : removeElement;
-import std.traits: EnumMembers;
+import std.traits : EnumMembers;
 
 extern (C) void key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
     InputManager.log(InputEvent(Window.windows[glfw_window], KeyInput(key, key_code, event, modifier)));
@@ -25,15 +25,24 @@ extern (C) void mouse_position_callback(GLFWwindow* glfw_window, double x, doubl
     InputManager.log(InputEvent(window, MousePositionInput(newPosition, delta)));
 }
 
-extern (C) void scroll_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
-    InputManager.log(InputEvent(Window.windows[glfw_window], ScrollInput(Vec!(2, double)(x, y))));
-}
-
 extern (C) void mouse_enter_callback(GLFWwindow* glfw_window, int enter) nothrow {
     Window window = Window.windows[glfw_window];
     if (enter)
         glfwGetCursorPos(glfw_window, &window.mousePosition.x, &window.mousePosition.y);
     InputManager.log(InputEvent(Window.windows[glfw_window], MouseEnterInput(enter == 1)));
+}
+
+extern (C) void scroll_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
+    InputManager.log(InputEvent(Window.windows[glfw_window], ScrollInput(Vec!(2, double)(x, y))));
+}
+
+extern (C) void file_drop_callback(GLFWwindow* glfw_window, int count, const char** paths) nothrow {
+    import std.string : fromStringz;
+
+    string[] pathsCopy; // original argument is temporary
+    foreach (i; 0 .. count)
+        pathsCopy ~= fromStringz(paths[i]).idup;
+    InputManager.log(InputEvent(Window.windows[glfw_window], FileDropInput(pathsCopy)));
 }
 
 final abstract class InputManager {
@@ -58,8 +67,9 @@ static:
         glfwSetKeyCallback(window.glfw_window, &key_callback);
         glfwSetMouseButtonCallback(window.glfw_window, &mouse_button_callback);
         glfwSetCursorPosCallback(window.glfw_window, &mouse_position_callback);
-        glfwSetScrollCallback(window.glfw_window, &scroll_callback);
         glfwSetCursorEnterCallback(window.glfw_window, &mouse_enter_callback);
+        glfwSetScrollCallback(window.glfw_window, &scroll_callback);
+        glfwSetDropCallback(window.glfw_window, &file_drop_callback);
     }
 
     private alias CallBack(T) = void delegate(Window, T);
@@ -82,19 +92,17 @@ static:
 
     void runCallbacks() {
         foreach (event; inputEvents) {
-            final switch (event.tag) {
-                static foreach (i, tag; EnumMembers!(InputEvent.Tag))
-                    case tag:
-                        foreach (callback; mixin(_callBackName!i))
-                            callback(event.window, event.input.tupleof[i]);
-                        break;
-                        }
+            static foreach (i, tag; EnumMembers!(InputEvent.Tag)) {
+                if (event.tag == tag) // TODO: explore why switch results in bug (incorrect callback).
+                    foreach (callback; mixin("InputManager.", _callBackName!i))
+                        callback(event.window, event.input.tupleof[i]);
             }
-
-            clear();
         }
 
-        void pollInput() {
-            glfwPollEvents();
-        }
+        clear();
     }
+
+    void pollInput() {
+        glfwPollEvents();
+    }
+}

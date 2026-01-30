@@ -2,7 +2,7 @@ module vertexd.world.node;
 
 import vdmath;
 import vertexd.core;
-import vertexd.util.misc : removeElement;
+import vertexd.util.misc : removeElement, tryRemove;
 import vertexd.world.components.component;
 import vertexd.world.transform;
 
@@ -137,6 +137,15 @@ class Node {
 	in (child.parent is this) {
 		removeElement(children, child);
 		child.parent = null;
+	}
+
+	public bool tryRemoveChild(Node child) {
+		if (child !is null && tryRemove(children, child)) {
+			assert(child.parent is this);
+			child.parent = null;
+			return true;
+		}
+		return false;
 	}
 
 	public void addComponent(Component component) {

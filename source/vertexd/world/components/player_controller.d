@@ -5,7 +5,7 @@ import vdmath;
 import vertexd.core.input;
 import vertexd.core.input_manager;
 import vertexd.world.components.component;
-import vertexd.core.window : Window;
+import vertexd.core.window;
 import vertexd.core.time;
 import std.math.constants : PI, PI_2;
 import std.algorithm.comparison : min, max;
@@ -17,16 +17,19 @@ class PlayerController : Component {
     Vec!(3, int) moveDirection = Vec!(3, int)(0);
     Vec!(2, double) rotation;
     bool run = false;
+    bool mouseEnabled = true;
 
     this(float speed = 1, double sensitivity = 0.005) {
         this.speed = speed;
         this.sensitivity = sensitivity;
         InputManager.register(&keyCallback);
+        InputManager.register(&mouseCallback);
         InputManager.register(&mousePositionCallback);
     }
 
     ~this() { // TODO: test whether this gets triggered properly (or whether the callbacks prevent deconstruction, making this class a Zombie)
         InputManager.deregister(&keyCallback);
+        InputManager.deregister(&mouseCallback);
         InputManager.deregister(&mousePositionCallback);
     }
 
@@ -56,14 +59,28 @@ class PlayerController : Component {
             case GLFW_KEY_LEFT_SHIFT:
                 run = input.action == KeyAction.press;
                 break;
+            case GLFW_KEY_F4:
+                if (input.modifier & Modifier.alt)
+                    window.close();
+                break;
             case GLFW_KEY_ESCAPE:
-                window.close();
+                window.setMouseMode(MouseType.NORMAL);
+                mouseEnabled = false;
                 break;
             default:
         }
     }
 
+    void mouseCallback(Window window, InputType.MouseButton input) {
+        if (input.action == MouseAction.press && input.button == MouseButton.mouseLeft) {
+            window.setMouseMode(MouseType.CAPTURED);
+            mouseEnabled = true;
+        }
+    }
+
     void mousePositionCallback(Window window, InputType.MousePosition input) {
+        if (!mouseEnabled)
+            return;
         Vec!(2, double) delta = input.delta * sensitivity * Time.deltaTime();
         rotation = Vec!(2, double)((rotation.x + delta.x) % (2.0 * PI), max(-PI_2, min(PI_2, rotation.y + delta
                 .y)));

@@ -73,8 +73,10 @@ void vdSimpleLoop(ref Window window, ref Renderer renderer, ref Node root) {
 		// Get Input
 		InputManager.pollInput();
 
-		// Update state
+		// Start new frame
 		Time.nextFrame();
+
+		// Update state
 		InputManager.runCallbacks();
 		root.runUpdates();
 

@@ -92,6 +92,10 @@ static:
     struct Scroll {
         Vec!(2, double) delta;
     }
+
+    struct FileDrop {
+        string[] paths;
+    }
 }
 
 static foreach (string member; InputTypeNames)
