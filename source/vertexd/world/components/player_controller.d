@@ -30,7 +30,8 @@ class PlayerController : Component {
         InputManager.deregister(&mousePositionCallback);
     }
 
-    void keyCallback(Window window, KeyInput input) {
+    // void keyCallback(Window window, KeyInput input) { //TODO: find bug in: undefined identifier KeyInput
+    void keyCallback(Window window, InputType.Key input) {
         if (input.action == KeyAction.repeat)
             return;
         switch (input.key) {
@@ -62,7 +63,7 @@ class PlayerController : Component {
         }
     }
 
-    void mousePositionCallback(Window window, MousePositionInput input) {
+    void mousePositionCallback(Window window, InputType.MousePosition input) {
         Vec!(2, double) delta = input.delta * sensitivity * Time.deltaTime();
         rotation = Vec!(2, double)((rotation.x + delta.x) % (2.0 * PI), max(-PI_2, min(PI_2, rotation.y + delta
                 .y)));

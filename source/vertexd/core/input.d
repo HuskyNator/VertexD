@@ -12,18 +12,20 @@ enum KeyAction : ubyte {
 }
 
 enum MouseButton : byte {
-    mouse_1 = GLFW_MOUSE_BUTTON_1,
-    mouse_2 = GLFW_MOUSE_BUTTON_2,
-    mouse_3 = GLFW_MOUSE_BUTTON_3,
-    mouse_4 = GLFW_MOUSE_BUTTON_4,
-    mouse_5 = GLFW_MOUSE_BUTTON_5,
-    mouse_6 = GLFW_MOUSE_BUTTON_6,
-    mouse_7 = GLFW_MOUSE_BUTTON_7,
-    mouse_8 = GLFW_MOUSE_BUTTON_8,
-    mouse_left = mouse_1,
-    mouse_right = mouse_2,
-    mouse_middle = mouse_3
+    mouse1 = GLFW_MOUSE_BUTTON_1,
+    mouse2 = GLFW_MOUSE_BUTTON_2,
+    mouse3 = GLFW_MOUSE_BUTTON_3,
+    mouse4 = GLFW_MOUSE_BUTTON_4,
+    mouse5 = GLFW_MOUSE_BUTTON_5,
+    mouse6 = GLFW_MOUSE_BUTTON_6,
+    mouse7 = GLFW_MOUSE_BUTTON_7,
+    mouse8 = GLFW_MOUSE_BUTTON_8,
+    mouseLeft = mouse1,
+    mouseRight = mouse2,
+    mouseMiddle = mouse3
 }
+
+private alias _MouseButton = MouseButton; // prevent local name collision
 
 enum MouseAction : ubyte {
     press = GLFW_PRESS,
@@ -39,73 +41,105 @@ enum Modifier : ubyte {
     nu = GLFW_MOD_NUM_LOCK
 }
 
-struct KeyInput {
-    int key, key_code;
-    KeyAction action;
-    Modifier modifier;
-    this(int key, int key_code, int action, int modifier) nothrow {
-        this.key = key;
-        this.key_code = key_code;
-        this.action = cast(KeyAction) action;
-        this.modifier = cast(Modifier) modifier;
+/// Sequence of InputType type names
+alias InputTypeNames = __traits(derivedMembers, InputType);
+/// Sequence of InputType types
+alias InputTypes = staticMap!(_getMember, InputTypeNames);
+private alias _getMember(string member) = __traits(getMember, InputType, member);
+
+// alias KeyInput = InputType.Key;
+// mixin("alias ", "Key", "Input=InputType.", "Key", ";");
+// // Expose InputType types
+
+//     pragma(msg, member,"Input");
+// }
+
+/// Collection of Input Types.
+final abstract class InputType {
+static:
+    struct Key {
+        int key, key_code;
+        KeyAction action;
+        Modifier modifier;
+        this(int key, int key_code, int action, int modifier) nothrow {
+            this.key = key;
+            this.key_code = key_code;
+            this.action = cast(KeyAction) action;
+            this.modifier = cast(Modifier) modifier;
+        }
+    }
+
+    struct MouseButton {
+        _MouseButton button;
+        MouseAction action;
+        Modifier modifier;
+        this(int button, int action, int modifier) nothrow {
+            this.button = cast(_MouseButton) button;
+            this.action = cast(MouseAction) action;
+            this.modifier = cast(Modifier) modifier;
+        }
+    }
+
+    struct MousePosition {
+        Vec!(2, double) position;
+        Vec!(2, double) delta;
+    }
+
+    struct MouseEnter {
+        bool enter;
+    }
+
+    struct Scroll {
+        Vec!(2, double) delta;
     }
 }
 
-struct MouseButtonInput {
-    MouseButton button;
-    MouseAction action;
-    Modifier modifier;
-    this(int button, int action, int modifier) nothrow {
-        this.button = cast(MouseButton) button;
-        this.action = cast(MouseAction) action;
-        this.modifier = cast(Modifier) modifier;
+static foreach (string member; InputTypeNames)
+    mixin("alias ", member, "Input = InputType.", member, ";");
+
+private {
+    string _firstToLower(string typeName) {
+        import std.ascii : toLower, isASCII;
+
+        char[] tag = typeName.dup;
+        assert(isASCII(tag[0]));
+        tag[0] = toLower(tag[0]);
+        return tag.idup;
+    }
+
+    string _tagsMixin() {
+        string tags;
+        static foreach (string member; InputTypeNames)
+            tags ~= _firstToLower(member) ~ ',';
+        return tags;
+    }
+
+    string _inputMixin() {
+        string input;
+        static foreach (string member; InputTypeNames)
+            input ~= "InputType." ~ member ~ ' ' ~ _firstToLower(member) ~ "Input;";
+        return input;
     }
 }
 
-struct MousePositionInput {
-    Vec!(2, double) position;
-    Vec!(2, double) delta;
-}
-
-struct ScrollInput {
-    Vec!(2, double) delta;
-    alias this = delta;
-}
-
-struct MouseEnterInput {
-    bool enter;
-    alias this = enter;
-}
-
+/// Tagged union with a reference to the matching window.
 struct InputEvent {
-    enum Tag : ubyte {
-        none,
-        key,
-        mouseButton,
-        mousePosition,
-        mouseExit,
-        scroll,
-    }
 
-    union Input {
-        void[0] _;
-        KeyInput keyInput;
-        MouseButtonInput mouseButtonInput;
-        MousePositionInput mousePositionInput;
-        MouseEnterInput mouseEnterInput;
-        ScrollInput scrollInput;
-    }
+    /// Tags for Input types, defined as the lowerCamelCase of UpperCamelCase typenames.
+    mixin("enum Tag{", _tagsMixin(), "}");
+
+    /// Union for Input types, matches `Tag` with "Input" appended to identifiers.
+    mixin("union InputData{", _inputMixin(), "}"); //TODO: Explore defining types inside InputData union instead.
 
     Window window;
-    Tag tag = Tag.none;
-    Input input;
-    alias this = input;
+    Tag tag;
+    InputData input;
 
     static foreach (i; 0 .. EnumMembers!Tag.length) {
-        this(Window window, typeof(Input.tupleof[i]) input) nothrow {
+        this(Window window, typeof(InputData.tupleof[i]) input) nothrow {
             this.window = window;
             this.tag = EnumMembers!Tag[i];
-            mixin(Input.tupleof[i].stringof, "= input;");
+            mixin("this.input.",__traits(identifier, InputData.tupleof[i]), "= input;");
         }
     }
 }

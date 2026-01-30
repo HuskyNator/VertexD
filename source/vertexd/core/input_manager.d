@@ -5,6 +5,7 @@ import vdmath;
 import vertexd.core.input;
 import vertexd.core.window;
 import vertexd.util.misc : removeElement;
+import std.traits: EnumMembers;
 
 extern (C) void key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
     InputManager.log(InputEvent(Window.windows[glfw_window], KeyInput(key, key_code, event, modifier)));
@@ -61,27 +62,30 @@ static:
         glfwSetCursorEnterCallback(window.glfw_window, &mouse_enter_callback);
     }
 
-    private alias Callback(T) = void delegate(Window, T);
-    private enum string callbackName(size_t i) = "callbacks_" ~ i.stringof;
-    static foreach (i, alias T; InputEvent.Input.tupleof) {
-        mixin(Callback!(typeof(T)).stringof, "[] ", callbackName!i, ";");
+    private alias CallBack(T) = void delegate(Window, T);
+    private string _callBackName(size_t i)() {
+        return "_callback" ~ InputTypeNames[i];
+    }
 
-        /// Register Callback with InputManager
-        void register(Callback!(typeof(T)) func) {
-            mixin(callbackName!i) ~= func;
+    static foreach (i, Type; InputTypes) {
+        mixin("CallBack!(InputTypes[i])[] ", _callBackName!i, ";");
+
+        /// Register CallBack with InputManager
+        void register(CallBack!(Type) func) {
+            mixin(_callBackName!i) ~= func;
         }
 
-        void deregister(Callback!(typeof(T)) func) {
-            mixin(callbackName!i).removeElement(func);
+        void deregister(CallBack!(Type) func) {
+            mixin(_callBackName!i).removeElement(func);
         }
     }
 
     void runCallbacks() {
         foreach (event; inputEvents) {
             final switch (event.tag) {
-                static foreach (i; 0 .. InputEvent.Input.tupleof.length)
-                    case i:
-                        foreach (callback; mixin("callbacks_", i.stringof))
+                static foreach (i, tag; EnumMembers!(InputEvent.Tag))
+                    case tag:
+                        foreach (callback; mixin(_callBackName!i))
                             callback(event.window, event.input.tupleof[i]);
                         break;
                         }
