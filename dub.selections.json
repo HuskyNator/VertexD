@@ -7,7 +7,7 @@
 		"bindbc-loader": "1.1.5",
 		"bindbc-opengl": "1.1.1",
 		"gamut": "3.2.0",
-		"intel-intrinsics": "1.13.0",
+		"intel-intrinsics": "1.14.2",
 		"miniz": "0.0.3",
 		"vdmath": "~main"
 	}

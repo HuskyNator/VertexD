@@ -26,8 +26,8 @@ struct UiConstraintSet { //TODO: reconsider growable / child size dependance
 
     /// Valid constraint sets:
     /// - StartAlign + EndAlign
-    /// - StartAlign + Size(Grow)
-    /// - StartAlign + Centered
+    /// - *Align + Size(Grow)
+    /// - *Align + Centered
     /// - StartGrow + EndAlign
     /// - StartGrow + SizeGrow
     /// - StartGrow + Centered

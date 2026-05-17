@@ -1,6 +1,7 @@
 module vertexd.core.time;
 import core.time;
 
+// TODO: move inside Window class?
 final abstract class Time {
 static:
     private ulong frame;

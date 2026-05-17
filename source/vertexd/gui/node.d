@@ -23,7 +23,7 @@ class UiNode {
     UiBounds bounds;
     UiBounds boundsInsidePadding;
     float zDepth = 0;
-    bool applyScissorTest = true;
+    // bool applyScissorTest = true;
 
     UiConstraintSet xConstraints;
     UiConstraintSet yConstraints;

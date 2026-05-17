@@ -20,11 +20,7 @@ struct UiConstraint {
         StartAlign,
         EndAlign,
         Size,
-        SizeFit, // with reference size
         Centered // with offset
-        // StartGrow, // shrink with minimum size as align
-        // EndGrow,
-        // SizeGrow,
     }
 
     Type type;
