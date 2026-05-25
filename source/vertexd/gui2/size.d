@@ -4,13 +4,13 @@ UiSize pixels(double value) {
     return UiSize(value, false);
 }
 
-UiSize percent(double value) {
+UiSize fraction(double value) {
     return UiSize(value, true);
 }
 
 struct UiSize {
     double value = 0;
-    bool relative; // % vs px
+    bool relative; // fraction vs pixel
 
     this(double value, bool relative = false) {
         this.value = value;

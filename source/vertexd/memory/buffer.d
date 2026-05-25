@@ -10,6 +10,7 @@ final class Buffer {
     /// Buffer usage flags. Can be combined combined using bitwise or (`|`).
     enum StorageFlag : uint {
         None = 0u,
+        Static = 0u, // alias
         DynamicStorage = GL_DYNAMIC_STORAGE_BIT, /// Allow client-side updating ($(LREF Buffer.upload) & glNamedBufferSubData)
         ClientStorage = GL_CLIENT_STORAGE_BIT,
         MapRead = GL_MAP_READ_BIT,

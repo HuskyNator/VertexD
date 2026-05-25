@@ -1,7 +1,7 @@
 module vertexd.gui2.grid;
 import vertexd.gui2.size;
 import vertexd.gui2.ui_element;
-import std.algorithm.mutation : removeAt = remove;
+import vertexd.util.misc : removeElement, removeAt;
 
 // TODO: add mouse interaction
 
@@ -20,10 +20,9 @@ class Grid : UiElement {
     }
 
     CellRange[] cellRanges;
+    invariant (this.cellRanges.length == this.children.length);
 
     override void updateChildBounds() { // holdup how do i deal with parent sizes??? grids are fixed!!
-        assert(this.children.length == this.cellRanges.length);
-
         this.rowEdges = new double[rows.length + 1](0);
         this.colEdges = new double[cols.length + 1](0);
         this.rowEdges[0] = this.top();
@@ -38,36 +37,29 @@ class Grid : UiElement {
 
         foreach (i, CellRange cellRange; this.cellRanges) {
             UiElement element = this.children[i];
-            double[2] yBounds = [
-                rowEdges[cellRange.rows[0]], rowEdges[cellRange.rows[1]]
-            ];
-            double[2] xBounds = [
-                colEdges[cellRange.cols[0]], colEdges[cellRange.cols[1]]
-            ];
-            element.bounds = Bounds(xBounds, yBounds);
+            double top = rowEdges[cellRange.rows[0]];
+            double bottom = rowEdges[cellRange.rows[1]];
+            double left = colEdges[cellRange.cols[0]];
+            double right = colEdges[cellRange.cols[1]];
+            element.bounds = Bounds([left, right], [top, bottom]);
         }
+
+        foreach (child; this.children)
+            child.updateChildBounds();
     }
 
-    void assign(R, C)(UiElement element, R rows, C cols)
-            if ((is(R == uint) || is(R == uint[2]))
-            && (is(C == uint) || is(C == uint[2]))) {
+    void place(R, C)(UiElement element, R rows, C cols)
+            if ((is(R == uint) || is(R == uint[2])) && (is(C == uint) || is(C == uint[2]))) {
         uint[2] _toRange(T)(T val) {
-            if (is(T == uint))
-                return [val, val + 1];
-            return val;
+            return (is(T == uint)) ? [val, val + 1] : val;
         }
 
-        Assignment assignment = Assignment(_toRange(rows), _toRange(cols));
-        this.assignments ~= assignment;
+        CellRange range = CellRange(_toRange(rows), _toRange(cols));
+        this.cellRanges ~= range;
     }
 
     void remove(UiElement element) {
-        foreach (i, Assignment a; assignments) {
-            if (a.element is element) {
-                this.assignments = this.assignments.removeAt(i);
-                return;
-            }
-        }
-        throw new Exception("Element was not part of grid: " ~ element.toString());
+        size_t index = this.children.removeElement(element);
+        this.cellRanges.removeAt(index);
     }
 }

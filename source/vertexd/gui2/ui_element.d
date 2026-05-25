@@ -3,8 +3,21 @@ import vertexd.gui2.size;
 import vdmath.mat;
 
 struct Bounds {
-    double[2] xBounds;
-    double[2] yBounds;
+    union {
+        struct {
+            double[2] xBounds;
+            double[2] yBounds;
+        }
+
+        double left, right, top, bottom;
+    }
+
+    this(double left, right, top, bottom) {
+        this.left = left;
+        this.right = right;
+        this.top = top;
+        this.bottom = bottom;
+    }
 
     double width() const {
         return xBounds[1] - xBounds[0];
@@ -17,37 +30,17 @@ struct Bounds {
 
 abstract class UiElement {
     Bounds bounds; // absolute (pixels)
+    alias this = bounds;
     float zDepth = 0;
 
     UiSize cornerRadius = pixels(0);
     Vec!4 backgroundColor = Vec!4(0, 0, 0, 0);
 
-    UiElement[] children;
+    protected UiElement[] children;
     abstract void updateChildBounds();
 
-    const final {
-        double width() {
-            return this.bounds.width();
-        }
-
-        double height() {
-            return this.bounds.height();
-        }
-
-        double left() {
-            return this.bounds.xBounds[0];
-        }
-
-        double right() {
-            return this.bounds.xBounds[1];
-        }
-
-        double top() {
-            return this.bounds.yBounds[0];
-        }
-
-        double bottom() {
-            return this.bounds.yBounds[1];
-        }
+    final public const(UiElement[]) getChildren() const {
+        return this.children;
     }
+
 }

@@ -1,7 +1,6 @@
 module vertexd.util.misc;
 
 import bindbc.opengl;
-import std.algorithm : countUntil, removeAt = remove;
 import std.conv : to;
 import std.math : abs, PI;
 import std.traits : isFloatingPoint, isScalarType;
@@ -15,18 +14,28 @@ void tryWriteln(T)(T output) nothrow {
 	}
 }
 
-void removeElement(Type)(ref Type[] list, Type element) {
-	const long i = list.countUntil(element);
-	assert(i >= 0, "Element not in list");
-	list = list.removeAt(i);
+void removeAt(Type)(ref Type[] list, size_t index) {
+	list = list.remove(index);
 }
 
-bool tryRemove(Type)(ref Type[] list, Type element) {
-	const long i = list.countUntil(element);
-	if (i < 0)
-		return false; // Element not in list
-	list = list.removeAt(i);
-	return true;
+void removeElement(Type)(ref Type[] list, Type element) {
+	for (size_t i; i < list.length; i++) {
+		if (list[i] == element) {
+			list = list.remove(i);
+			return i;
+		}
+	}
+	assert(i >= 0, "Element not in list");
+}
+
+bool tryRemoveElement(Type)(ref Type[] list, Type element) {
+	for (size_t i; i < list.length; i++) {
+		if (list[i] == element) {
+			list = list.remove(i);
+			return true;
+		}
+	}
+	return false;
 }
 
 alias Result(A, string operator, B) = typeof(mixin("A.init" ~ operator ~ "B.init"));

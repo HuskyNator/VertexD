@@ -28,14 +28,15 @@ static:
         [0, 1]
     ];
 
-    Mesh createQuad(bool corner = false) {
+    Mesh createQuad(bool corner = false, Material material = new FlatMaterial()) {
         immutable float[3][] vertices = corner ? quadVerticesCorner : quadVertices;
-        return new Mesh(vertices, quadIndices, new FlatMaterial());
+        return new Mesh(vertices, quadIndices, material);
     }
 
-    Mesh createQuad(Texture texture, bool corner = false) {
+    Mesh createQuad(Texture texture, bool corner = false, Material material = new TexturedMaterial(
+            texture)) {
         immutable float[3][] vertices = corner ? quadVerticesCorner : quadVertices;
-        Mesh mesh = new Mesh(vertices, quadIndices, new TexturedMaterial(texture));
+        Mesh mesh = new Mesh(vertices, quadIndices, material);
         mesh.vertexArray.setAttribute(quadUVs, 2, 2);
         return mesh;
     }

@@ -140,7 +140,7 @@ class Node {
 	}
 
 	public bool tryRemoveChild(Node child) {
-		if (child !is null && tryRemove(children, child)) {
+		if (child !is null && tryRemoveElement(children, child)) {
 			assert(child.parent is this);
 			child.parent = null;
 			return true;
