@@ -36,7 +36,7 @@ final class Buffer {
     void upload(T)(const T[] data, size_t offset = 0) {
         assert(offset + (data.length * T.sizeof) <= this.size);
         assert(this.flags & StorageFlag.DynamicStorage);
-        glNamedBufferSubData(buffer, offset, data.length, data.ptr);
+        glNamedBufferSubData(buffer, offset, data.length * T.sizeof, data.ptr);
     }
 
     // TODO

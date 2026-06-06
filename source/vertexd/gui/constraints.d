@@ -20,6 +20,7 @@ struct UiConstraint {
         StartAlign,
         EndAlign,
         Size,
+        SizeFit, // TODO: Remove?
         Centered // with offset
     }
 

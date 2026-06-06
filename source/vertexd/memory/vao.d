@@ -10,6 +10,8 @@ class VAO {
     static VAO current;
     uint vao;
     size_t elementCount;
+    Buffer indexBuffer;
+    Buffer[int] boundBuffers;
 
     this() {
         glCreateVertexArrays(1, &vao);
@@ -23,7 +25,12 @@ class VAO {
         if (current is this)
             return;
         glBindVertexArray(vao);
-        current = this;
+        VAO.current = this;
+    }
+
+    void unbind() {
+        glBindVertexArray(0);
+        VAO.current = null;
     }
 
     /// Binds a buffer to the vao.
@@ -32,7 +39,8 @@ class VAO {
     ///   bufferIndex = vao buffer binding point
     ///   startOffset = start offset into the buffer
     ///   stride = stride between elements in buffer
-    void bindBuffer(const Buffer buffer, const uint bufferIndex, const size_t startOffset, const int stride) {
+    void bindBuffer(Buffer buffer, const uint bufferIndex, const size_t startOffset, const int stride) {
+        this.boundBuffers[bufferIndex] = buffer;
         glVertexArrayVertexBuffer(vao, bufferIndex, buffer.buffer, startOffset, stride);
     }
 
@@ -102,7 +110,8 @@ class VAO {
     }
 
     // TODO: INTERNAL??
-    void setIndexBuffer(const Buffer indexBuffer) {
+    void setIndexBuffer(Buffer indexBuffer) {
+        this.indexBuffer = indexBuffer;
         glVertexArrayElementBuffer(vao, indexBuffer.buffer);
     }
 

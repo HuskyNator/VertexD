@@ -12,7 +12,8 @@ layout(location=5)uniform float u_aspectRatio;
 
 layout(binding=0)uniform sampler2D background;
 
-layout(location=0)in vec3 position;
+layout(location=0)in vec2 position;
+layout(location=1)in vec2 uv;
 out vec2 frag_pos;
 out vec4 gl_Position;
 

@@ -9,10 +9,15 @@ struct Bounds {
             double[2] yBounds;
         }
 
-        double left, right, top, bottom;
+        struct {
+            double left;
+            double right;
+            double top;
+            double bottom;
+        }
     }
 
-    this(double left, right, top, bottom) {
+    this(double left, double right, double top, double bottom) {
         this.left = left;
         this.right = right;
         this.top = top;
@@ -38,6 +43,14 @@ abstract class UiElement {
 
     protected UiElement[] children;
     abstract void updateChildBounds();
+
+    import vertexd.core.window;
+
+    void updateBoundsTree(Window window) {
+        this.bounds.xBounds = [0, window.pixelWidth];
+        this.bounds.yBounds = [0, window.pixelHeight];
+        this.updateChildBounds();
+    }
 
     final public const(UiElement[]) getChildren() const {
         return this.children;

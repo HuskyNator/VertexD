@@ -62,8 +62,8 @@ class Mesh : Component { // TODO: struct not class?
 
     this(const float[3][] vertex, const uint[] indices, Material material) {
         assert(indices.length % 3 == 0);
-        vertexArray = new VAO();
-        vertexArray.setAttribute(vertex, 0u, 0u, false);
+        this.vertexArray = new VAO();
+        this.vertexArray.setAttribute(vertex, 0u, 0u, false);
         setIndices(indices);
         this.material = material;
     }

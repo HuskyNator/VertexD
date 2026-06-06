@@ -38,18 +38,15 @@ final class FlatMaterial : Material {
     }
 }
 
-final class TexturedMaterial : Material {
-    version (OpenGLBindless)
-        BindlessTexture texture;
-    else
-        Texture texture;
+final class TexturedMaterial(TextureType) : Material {
+    TextureType texture;
 
     this() {
         setID();
         this.shader = ShaderProgram.texturedShaderProgram.get();
     }
 
-    this(Texture texture) {
+    this(TextureType texture) {
         this();
         this.texture = texture;
     }

@@ -7,6 +7,7 @@ import vertexd.memory.texture;
 import vertexd.mesh.material;
 import vertexd.shaders.shaderprogram;
 import vertexd.util.tracked_buffer;
+import bindbc.opengl.bind: GLuint64;
 
 import std.stdio : stderr;
 
@@ -107,7 +108,7 @@ class ObjMaterial : Material {
         static foreach (uint i; 0 .. textures.length) {
             version (OpenGLBindless) {
                 if (textures[i]!is null)
-                    texture[i].makeResident();
+                    textures[i].makeResident();
             } else {
                 if (textures[i] is null)
                     textures[i] = Texture.empty(i >= 3 ? Texture.Type.Grey : Texture.Type.RGBA);

@@ -23,10 +23,12 @@ class Grid : UiElement {
     invariant (this.cellRanges.length == this.children.length);
 
     override void updateChildBounds() { // holdup how do i deal with parent sizes??? grids are fixed!!
-        this.rowEdges = new double[rows.length + 1](0);
-        this.colEdges = new double[cols.length + 1](0);
-        this.rowEdges[0] = this.top();
-        this.colEdges[0] = this.left();
+        this.rowEdges = new double[rows.length + 1];
+        this.colEdges = new double[cols.length + 1];
+        this.rowEdges[] = 0;
+        this.colEdges[] = 0;
+        this.rowEdges[0] = this.top;
+        this.colEdges[0] = this.left;
 
         double totalWidth = this.bounds.width();
         double totalHeight = this.bounds.height();
@@ -41,7 +43,7 @@ class Grid : UiElement {
             double bottom = rowEdges[cellRange.rows[1]];
             double left = colEdges[cellRange.cols[0]];
             double right = colEdges[cellRange.cols[1]];
-            element.bounds = Bounds([left, right], [top, bottom]);
+            element.bounds = Bounds(left, right, top, bottom);
         }
 
         foreach (child; this.children)
@@ -56,6 +58,7 @@ class Grid : UiElement {
 
         CellRange range = CellRange(_toRange(rows), _toRange(cols));
         this.cellRanges ~= range;
+        this.children ~= element;
     }
 
     void remove(UiElement element) {

@@ -1,7 +1,7 @@
 module vertexd.mesh.primitive;
 
 public import vertexd.mesh;
-import vertexd.memory.texture;
+import vertexd.memory;
 
 final abstract class Primitive {
 static:
@@ -33,13 +33,16 @@ static:
         return new Mesh(vertices, quadIndices, material);
     }
 
-    Mesh createQuad(Texture texture, bool corner = false, Material material = new TexturedMaterial(
-            texture)) {
+    Mesh createQuad(TextureType)(TextureType texture, bool corner = false, Material material = null)
+            if (is(TextureType == Texture) || is(TextureType == BindlessTexture)) {
+        if (material is null)
+            material = new TexturedMaterial(texture);
         immutable float[3][] vertices = corner ? quadVerticesCorner : quadVertices;
         Mesh mesh = new Mesh(vertices, quadIndices, material);
         mesh.vertexArray.setAttribute(quadUVs, 2, 2);
         return mesh;
     }
+
 }
 
 // import bindbc.opengl;

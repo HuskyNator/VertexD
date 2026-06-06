@@ -1,11 +1,14 @@
 module vertexd.memory;
 
 public {
-    // import vertexd.memory.bindless_texture;
+    import vertexd.memory.bindless_texture;
     import vertexd.memory.buffer;
-
-    // import vertexd.memory.indexbuffer;
+    import vertexd.memory.texture;
     import vertexd.memory.sampler;
+    import vertexd.memory.vao;
 
-    // import vertexd.memory.texture;
+    version (OpenGLBindless)
+        alias DefaultTexture = BindlessTexture;
+    else
+        alias DefaultTexture = Texture;
 }

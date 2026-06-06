@@ -7,8 +7,8 @@ import std.string : toStringz;
 
 import bindbc.freetype;
 import vertexd.gui.freetype;
-import vertexd.memory.texture;
 import bindbc.opengl : GL_R8;
+import vertexd.memory;
 
 class FontException : Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null) {
@@ -109,7 +109,7 @@ class Font {
 
                     ubyte oldVal = pixels[xInd + yInd * width];
                     ubyte newVal = face.glyph.bitmap.buffer[x + y * face
-                        .glyph.bitmap.width];
+                            .glyph.bitmap.width];
                     if (newVal > oldVal) // write only max value
                         pixels[xInd + yInd * width] = newVal;
                 }
@@ -135,14 +135,15 @@ class Font {
     }
 }
 
-struct TextHandle {
+alias TextHandle = TextHandleT!(DefaultTexture);
+struct TextHandleT(TextureType) {
     dstring text;
     ubyte[] pixels;
-    Texture texture;
+    TextureType texture;
 
     this(uint width, uint height) {
         this.pixels = new ubyte[width * height];
-        this.texture = new Texture(width, height, GL_R8);
+        this.texture = new TextureType(width, height, GL_R8);
     }
 
     void setText(dstring text, Font font) {

@@ -4,6 +4,7 @@ import bindbc.opengl;
 import std.conv : to;
 import std.math : abs, PI;
 import std.traits : isFloatingPoint, isScalarType;
+import std.algorithm.mutation : remove;
 
 void tryWriteln(T)(T output) nothrow {
 	import std.stdio : writeln;
@@ -18,14 +19,14 @@ void removeAt(Type)(ref Type[] list, size_t index) {
 	list = list.remove(index);
 }
 
-void removeElement(Type)(ref Type[] list, Type element) {
+size_t removeElement(Type)(ref Type[] list, Type element) {
 	for (size_t i; i < list.length; i++) {
 		if (list[i] == element) {
 			list = list.remove(i);
 			return i;
 		}
 	}
-	assert(i >= 0, "Element not in list");
+	assert(0, "Element not in list");
 }
 
 bool tryRemoveElement(Type)(ref Type[] list, Type element) {
@@ -137,6 +138,11 @@ void add(T)(ref Set!T set, T place) {
 
 ubyte[] toBytes(T)(ref T t) {
 	return (cast(ubyte*)&t)[0 .. T.sizeof];
+}
+
+ubyte[] toBytes(T)(T t) if (__traits(isArithmetic, T)) {
+	ubyte[T.sizeof] bytes = (cast(ubyte*)&t)[0 .. T.sizeof];
+	return bytes.dup;
 }
 
 ubyte[] padding(size_t size) {

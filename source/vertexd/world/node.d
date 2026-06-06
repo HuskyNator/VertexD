@@ -2,7 +2,7 @@ module vertexd.world.node;
 
 import vdmath;
 import vertexd.core;
-import vertexd.util.misc : removeElement, tryRemove;
+import vertexd.util.misc : removeElement, tryRemoveElement;
 import vertexd.world.components.component;
 import vertexd.world.transform;
 
