@@ -27,7 +27,7 @@ extern (C) void framebuffer_size_callback(GLFWwindow* glfw_window, int width, in
 	window.lastSizePosUpdateFrame = Time.frameID();
 
 	if (!(window.resizeDraw is null))
-		window.resizeDraw();
+		window.resizeDraw(window);
 }
 
 extern (C) void window_position_callback(GLFWwindow* glfw_window, int xPos, int yPos) nothrow {
@@ -47,7 +47,7 @@ class Window {
 	mixin ID;
 	string name;
 	GLFWwindow* glfw_window;
-	void function() nothrow resizeDraw;
+	void function(Window) nothrow resizeDraw;
 
 	union {
 		struct {
@@ -148,7 +148,7 @@ class Window {
 	}
 
 	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true,
-		Hints hints = Hints(), void function() nothrow resizeDraw = null) {
+		Hints hints = Hints(), void function(Window) nothrow resizeDraw = null) {
 		setID();
 		this.name = name;
 		this.width = width;

@@ -86,3 +86,9 @@ void vdSimpleLoop(ref Window window, ref Renderer renderer, ref Node root) {
 		window.swapBuffers();
 	}
 }
+
+void vdFrameStart() {
+	InputManager.pollInput(); // blocks!
+	Time.nextFrame();
+	InputManager.runCallbacks();
+}
