@@ -18,8 +18,7 @@ class FontException : Exception {
 
 class Font {
     FT_Face face;
-    float maxAdvanceWidth; // pixels
-    float lineHeight; // pixels
+    BindlessTexture[dchar] glyphAtlas; // TODO: for non 1:1 mapping, use HarfBuzz
 
     this(string path) {
         FT_Error error = FT_New_Face(_FreeTypeLib, path.toStringz, 0, &face);
@@ -27,6 +26,25 @@ class Font {
             throw new FontException("Could not create font from path: " ~ path);
         if (!FT_IS_SCALABLE(face))
             throw new FontException("Provided font is unsupported (not scalable): " ~ path);
+    }
+
+    void addToAtlas(dchar codepoint) {
+        FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
+        if (error != 0) {
+            stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
+            return;
+        }
+        //
+    }
+
+    void generateDefaultAtlas() {
+        glyphAtlas.clear();
+
+         face.bbox.yMax - face.bbox.yMin;
+
+        for (dchar c = ' '; c <= '~'; c += 1) { // Basic Lattin Unicode block
+            addToAtlas(c);
+        }
     }
 
     ~this() {
@@ -43,96 +61,96 @@ class Font {
         this.lineHeight = getLinePixelHeight();
     }
 
-    private float getMaxAdvancePixelWidth() {
-        return (cast(float) face.size.metrics.maxAdvance) / (2 ^^ 6);
-    }
+    // private float getMaxAdvancePixelWidth() {
+    //     return (cast(float) face.size.metrics.maxAdvance) / (2 ^^ 6);
+    // }
 
-    private float getLinePixelHeight() {
-        return (cast(float) face.height) / (2 ^^ 6);
-    }
+    // private float getLinePixelHeight() {
+    //     return (cast(float) face.height) / (2 ^^ 6);
+    // }
 
-    private static int round16Fractional(uint frac) {
-        assert(frac <= uint.max - 2 ^^ 15);
-        return cast(int)((frac + 2 ^^ 15) >> 16);
-    }
+    // private static int round16Fractional(uint frac) {
+    //     assert(frac <= uint.max - 2 ^^ 15);
+    //     return cast(int)((frac + 2 ^^ 15) >> 16);
+    // }
 
-    private static int round6Fractional(uint frac) {
-        assert(frac <= uint.max - 2 ^^ 5);
-        return cast(int)((frac + 2 ^^ 5) >> 6);
-    }
+    // private static int round6Fractional(uint frac) {
+    //     assert(frac <= uint.max - 2 ^^ 5);
+    //     return cast(int)((frac + 2 ^^ 5) >> 6);
+    // }
 
-    private static uint ceil6Fractional(uint frac) { // TODO: doublecheck
-        assert(frac <= uint.max - 2 ^^ 6 - 1);
-        return (frac + 2 ^^ 6 - 1) >> 6;
-    }
+    // private static uint ceil6Fractional(uint frac) { // TODO: doublecheck
+    //     assert(frac <= uint.max - 2 ^^ 6 - 1);
+    //     return (frac + 2 ^^ 6 - 1) >> 6;
+    // }
 
-    // TODO: Add colored glyph support (FT_LOAD_COLOR)
+    // // TODO: Add colored glyph support (FT_LOAD_COLOR)
 
-    /// Params:
-    ///   text = text to render
-    ///   width = width of canvas (in units of maxGlyphWidth)
-    ///   height = height of canvas (in units of lineHeight)
-    ///   pixels = buffer to store rendered text in
-    void drawText(dstring text, uint width, uint height, ubyte[] pixels) {
-        assert(pixels !is null);
-        assert(pixels.length == width * height);
-        pixels[] = 0; // initialize
+    // /// Params:
+    // ///   text = text to render
+    // ///   width = width of canvas (in units of maxGlyphWidth)
+    // ///   height = height of canvas (in units of lineHeight)
+    // ///   pixels = buffer to store rendered text in
+    // void drawText(dstring text, uint width, uint height, ubyte[] pixels) {
+    //     assert(pixels !is null);
+    //     assert(pixels.length == width * height);
+    //     pixels[] = 0; // initialize
 
-        uint xPosStart = (face.bbox.xMin < 0) ? round16Fractional(
-            (cast(uint)-face.bbox.xMin) * face.size.metrics.xScale) : 0;
-        uint yPosStart = cast(uint)((face.bbox.yMin < 0) ? round16Fractional(
-                (cast(uint)-face.bbox.yMin) * face.size.metrics.yScale) : 0);
+    //     uint xPosStart = (face.bbox.xMin < 0) ? round16Fractional(
+    //         (cast(uint)-face.bbox.xMin) * face.size.metrics.xScale) : 0;
+    //     uint yPosStart = cast(uint)((face.bbox.yMin < 0) ? round16Fractional(
+    //             (cast(uint)-face.bbox.yMin) * face.size.metrics.yScale) : 0);
 
-        uint xPos = xPosStart; // .6 fixed point fractional pixel
-        uint yPos = yPosStart; // .6 fixed point fractional pixel
+    //     uint xPos = xPosStart; // .6 fixed point fractional pixel
+    //     uint yPos = yPosStart; // .6 fixed point fractional pixel
 
-        foreach (dchar codepoint; text) {
-            FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
-            if (error != 0) {
-                stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
-                continue;
-            }
+    //     foreach (dchar codepoint; text) {
+    //         FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
+    //         if (error != 0) {
+    //             stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
+    //             continue;
+    //         }
 
-            // Draw to pixel buffer
-            int xPosGrid = round6Fractional(xPos) + face.glyph.bitmapLeft;
-            int yPosGrid = round6Fractional(yPos) + face.glyph.bitmapTop;
-            foreach (uint x; 0 .. face.glyph.bitmap.width) {
-                foreach (uint y; 0 .. face.glyph.bitmap.rows) {
+    //         // Draw to pixel buffer
+    //         int xPosGrid = round6Fractional(xPos) + face.glyph.bitmapLeft;
+    //         int yPosGrid = round6Fractional(yPos) + face.glyph.bitmapTop;
+    //         foreach (uint x; 0 .. face.glyph.bitmap.width) {
+    //             foreach (uint y; 0 .. face.glyph.bitmap.rows) {
 
-                    long xInd = xPosGrid + x;
-                    long yInd = yPosGrid - y;
+    //                 long xInd = xPosGrid + x;
+    //                 long yInd = yPosGrid - y;
 
-                    if (xInd < 0 || xInd >= width)
-                        continue;
-                    if (yInd < 0 || yInd >= height)
-                        continue;
+    //                 if (xInd < 0 || xInd >= width)
+    //                     continue;
+    //                 if (yInd < 0 || yInd >= height)
+    //                     continue;
 
-                    ubyte oldVal = pixels[xInd + yInd * width];
-                    ubyte newVal = face.glyph.bitmap.buffer[x + y * face
-                            .glyph.bitmap.width];
-                    if (newVal > oldVal) // write only max value
-                        pixels[xInd + yInd * width] = newVal;
-                }
-            }
+    //                 ubyte oldVal = pixels[xInd + yInd * width];
+    //                 ubyte newVal = face.glyph.bitmap.buffer[x + y * face
+    //                         .glyph.bitmap.width];
+    //                 if (newVal > oldVal) // write only max value
+    //                     pixels[xInd + yInd * width] = newVal;
+    //             }
+    //         }
 
-            // Advance position
-            xPos += face.glyph.advance.x;
-            yPos += face.glyph.advance.y;
-        }
-    }
+    //         // Advance position
+    //         xPos += face.glyph.advance.x;
+    //         yPos += face.glyph.advance.y;
+    //     }
+    // }
 
-    uint calculateWidth(dstring text) {
-        uint width = 0; // .6 fixedpoint fractional pixels
-        foreach (dchar codepoint; text) {
-            FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_NO_BITMAP);
-            if (error != 0) {
-                stderr.writeln(i"Failed to load codepoint \"$(codepoint)\"");
-                continue;
-            }
-            width += face.glyph.advance.x;
-        }
-        return ceil6Fractional(width);
-    }
+    // uint calculateWidth(dstring text) {
+    //     uint width = 0; // .6 fixedpoint fractional pixels
+    //     foreach (dchar codepoint; text) {
+    //         FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_NO_BITMAP);
+    //         if (error != 0) {
+    //             stderr.writeln(i"Failed to load codepoint \"$(codepoint)\"");
+    //             continue;
+    //         }
+    //         width += face.glyph.advance.x;
+    //     }
+    //     return ceil6Fractional(width);
+    // }
 }
 
 alias TextHandle = TextHandleT!(DefaultTexture);
