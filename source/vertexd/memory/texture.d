@@ -56,11 +56,11 @@ class Texture {
 			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 
-	this(T, uint L)(int width, int height, T[L][] pixels, bool mipmaps = true) {
+	this(T, uint L)(int width, int height, T[L][] pixels, bool mipmaps = true, int stride = 0) {
 		static assert(L >= 1 && L <= 4);
 		static assert(staticIndexOf!(T, AliasSeq!(ubyte, ushort, float)) != -1);
 		assert(width > 0 && height > 0);
-		assert(pixels.length == width * height);
+		assert(pixels.length == ((stride == 0) ? width : stride) * height);
 
 		GLenum format = getDataFormat(L);
 
@@ -77,7 +77,10 @@ class Texture {
 		setID();
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
+		if (stride != 0)
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 		glTextureSubImage2D(texture, 0, 0, 0, width, height, format, pixelType, pixels.ptr);
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
 		if (mipmaps)
 			glGenerateTextureMipmap(texture);

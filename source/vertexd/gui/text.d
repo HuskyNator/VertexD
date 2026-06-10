@@ -9,6 +9,7 @@ import bindbc.freetype;
 import vertexd.gui.freetype;
 import bindbc.opengl : GL_R8;
 import vertexd.memory;
+import std.conv : text;
 
 class FontException : Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null) {
@@ -16,9 +17,20 @@ class FontException : Exception {
     }
 }
 
+struct Glyph {
+    uint ftIndex; // index in freetype
+    int advance; // 26.6 fractional pixels
+    int xOffset; // 26.6 fractional pixels
+    int yOffset; // 26.6 fractional pixels
+    BindlessTexture texture;
+}
+
 class Font {
     FT_Face face;
-    BindlessTexture[dchar] glyphAtlas; // TODO: for non 1:1 mapping, use HarfBuzz
+    Glyph[dchar] glyphAtlas; // TODO: for non 1:1 mapping, use HarfBuzz
+    // int bboxWidth;
+    // int bboxHeight;
+    int lineHeight;
 
     this(string path) {
         FT_Error error = FT_New_Face(_FreeTypeLib, path.toStringz, 0, &face);
@@ -28,22 +40,34 @@ class Font {
             throw new FontException("Provided font is unsupported (not scalable): " ~ path);
     }
 
-    void addToAtlas(dchar codepoint) {
+    Glyph loadGlyph(dchar codepoint) {
         FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
         if (error != 0) {
             stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
             return;
         }
-        //
+
+        Glyph glyph;
+        glyph.ftIndex = face.glyph.glyphIndex;
+        glyph.advance = face.glyph.advance.x;
+        glyph.xOffset = face.glyph.metrics.horiBearingX;
+        glyph.yOffset = -face.bbox.yMax - face.glyph.metrics.horiBearingY;
+        int stride = face.glyph.bitmap.pitch;
+        int bitmapSize = face.glyph.bitmap.rows * stride;
+        ubyte[1][] pixels = cast(ubyte[1][]) face.glyph.bitmap.buffer[0 .. bitmapSize];
+        glyph.texture = new BindlessTexture(face.glyph.bitmap.width, face.glyph.bitmap.rows, pixels, true, stride);
+        glyphAtlas[codepoint] = glyph;
+        return glyph;
     }
 
     void generateDefaultAtlas() {
         glyphAtlas.clear();
 
-         face.bbox.yMax - face.bbox.yMin;
+        // this.bboxWidth = (face.bbox.xMax - face.bbox.xMin + 63) / 64;
+        // this.bboxHeight = (face.bbox.yMax - face.bbox.yMin + 63) / 64;
 
         for (dchar c = ' '; c <= '~'; c += 1) { // Basic Lattin Unicode block
-            addToAtlas(c);
+            glyphAtlas[c] = loadGlyph(c);
         }
     }
 
@@ -57,8 +81,55 @@ class Font {
         if (error != 0)
             throw new FontException("Could not set font to pixel size");
 
-        this.maxAdvanceWidth = getMaxAdvancePixelWidth();
-        this.lineHeight = getLinePixelHeight();
+        // this.maxAdvanceWidth = getMaxAdvancePixelWidth();
+        // this.lineHeight = getLinePixelHeight();
+        this.lineHeight = face.size.metrics.height;
+    }
+
+    // Split text into lines.
+    uint[] layout(dstring text, int lineWidth, bool useKerning) {
+        useKerning &= FT_HAS_KERNING(face);
+        uint[] linebreakIndices = [];
+        int cursor = 0; // 26.6 fractional pixels
+        int lastSpace = 0;
+        uint lastGlyphIndex;
+        bool firstOnLine = true;
+        for (int i = 0; i < text.length; i++) {
+            dchar c = text[i];
+            if (c == '\r')
+                continue;
+            if (c == '\n') {
+                linebreakIndices ~= i;
+                cursor = 0;
+                lastSpace = 0;
+                firstOnLine = true;
+                continue;
+            }
+            Glyph glyph = glyphAtlas.require(c, loadGlyph(c));
+            int advance = glyph.advance;
+            if (!firstOnLine && useKerning) {
+                FT_Vector kerning;
+                int error = FT_GET_KERNING(face, lastGlyphIndex, glyph.ftIndex, 0, &kerning);
+                if (error != 0)
+                    throw new FontException(
+                        i"Could not load kerning of \"$(text[i-1])$(c)\"".text);
+                advance = kerning.x;
+            }
+            cursor += advance;
+            if ((cursor << 6) > lineWidth && !firstOnLine) { // break
+                uint linebreakIndex = (lastSpace > 0) ? lastSpace : i - 1;
+                linebreakIndices ~= linebreakIndex;
+                cursor = 0;
+                lastSpace = 0;
+                firstOnLine = true;
+                continue;
+            }
+            firstOnLine = false;
+            lastGlyphIndex = glyph.ftIndex;
+            if (c == ' ')
+                lastSpace = i;
+        }
+        return linebreakIndices;
     }
 
     // private float getMaxAdvancePixelWidth() {
