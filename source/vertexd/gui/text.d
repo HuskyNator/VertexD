@@ -1,15 +1,17 @@
 module vertexd.gui.text;
 
+import bindbc.freetype;
+import bindbc.opengl : GL_R8;
+import std.conv : text;
+import std.exception : enforce;
 import std.exception : enforce;
 import std.file;
 import std.stdio : File, stderr;
 import std.string : toStringz;
-
-import bindbc.freetype;
 import vertexd.gui.freetype;
-import bindbc.opengl : GL_R8;
+import std.conv : to;
+
 import vertexd.memory;
-import std.conv : text;
 
 class FontException : Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null) {
@@ -23,6 +25,10 @@ struct Glyph {
     int xOffset; // 26.6 fractional pixels
     int yOffset; // 26.6 fractional pixels
     BindlessTexture texture;
+
+    bool present() {
+        return !(texture is null);
+    }
 }
 
 class Font {
@@ -38,13 +44,14 @@ class Font {
             throw new FontException("Could not create font from path: " ~ path);
         if (!FT_IS_SCALABLE(face))
             throw new FontException("Provided font is unsupported (not scalable): " ~ path);
+        setSize(8);
     }
 
     Glyph loadGlyph(dchar codepoint) {
         FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
         if (error != 0) {
             stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
-            return;
+            return Glyph(0, 0, 0, 0, null);
         }
 
         Glyph glyph;
@@ -55,19 +62,23 @@ class Font {
         int stride = face.glyph.bitmap.pitch;
         int bitmapSize = face.glyph.bitmap.rows * stride;
         ubyte[1][] pixels = cast(ubyte[1][]) face.glyph.bitmap.buffer[0 .. bitmapSize];
-        glyph.texture = new BindlessTexture(face.glyph.bitmap.width, face.glyph.bitmap.rows, pixels, true, stride);
+        if (pixels.length != 0)
+            glyph.texture = new BindlessTexture(face.glyph.bitmap.width, face.glyph.bitmap.rows, pixels, true, stride);
         glyphAtlas[codepoint] = glyph;
         return glyph;
     }
 
-    void generateDefaultAtlas() {
+    final void generateDefaultAtlas() {
         glyphAtlas.clear();
 
         // this.bboxWidth = (face.bbox.xMax - face.bbox.xMin + 63) / 64;
         // this.bboxHeight = (face.bbox.yMax - face.bbox.yMin + 63) / 64;
 
         for (dchar c = ' '; c <= '~'; c += 1) { // Basic Lattin Unicode block
-            glyphAtlas[c] = loadGlyph(c);
+            Glyph glyph = loadGlyph(c);
+            if(!glyph.present())
+                stderr.writeln(i"Could not load glyph: '$(c)'");
+            glyphAtlas[c] = glyph;
         }
     }
 
@@ -76,7 +87,7 @@ class Font {
             FT_Done_Face(face);
     }
 
-    void setSize(uint height) { // see: https://stackoverflow.com/a/65706983
+    final void setSize(uint height) { // see: https://stackoverflow.com/a/65706983
         FT_Error error = FT_Set_Pixel_Sizes(face, 0, height);
         if (error != 0)
             throw new FontException("Could not set font to pixel size");
@@ -84,6 +95,7 @@ class Font {
         // this.maxAdvanceWidth = getMaxAdvancePixelWidth();
         // this.lineHeight = getLinePixelHeight();
         this.lineHeight = face.size.metrics.height;
+        generateDefaultAtlas();
     }
 
     // Split text into lines.
@@ -109,11 +121,11 @@ class Font {
             int advance = glyph.advance;
             if (!firstOnLine && useKerning) {
                 FT_Vector kerning;
-                int error = FT_GET_KERNING(face, lastGlyphIndex, glyph.ftIndex, 0, &kerning);
+                int error = FT_Get_Kerning(face, lastGlyphIndex, glyph.ftIndex, 0, &kerning);
                 if (error != 0)
                     throw new FontException(
                         i"Could not load kerning of \"$(text[i-1])$(c)\"".text);
-                advance = kerning.x;
+                advance += kerning.x; // maybe wrong
             }
             cursor += advance;
             if ((cursor << 6) > lineWidth && !firstOnLine) { // break
@@ -236,7 +248,7 @@ struct TextHandleT(TextureType) {
     }
 
     void setText(dstring text, Font font) {
-        font.drawText(text, texture.width, texture.height, this.pixels);
+        // font.drawText(text, texture.width, texture.height, this.pixels);
         this.text = text;
         texture.uploadData(0, 0, 0, texture.width, texture.height, cast(ubyte[1][]) this.pixels);
     }
