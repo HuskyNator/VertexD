@@ -6,4 +6,5 @@ public {
     import vertexd.gui2.size;
     import vertexd.gui2.ui_element;
     import vertexd.gui2.pane;
+    import vertexd.gui2.text;
 }

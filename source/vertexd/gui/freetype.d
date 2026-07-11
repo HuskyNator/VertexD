@@ -1,6 +1,5 @@
 module vertexd.gui.freetype;
 
-import std.stdio;
 import bindbc.freetype;
 import std.exception : enforce;
 

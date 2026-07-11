@@ -15,6 +15,7 @@ struct InstanceData {
 
 layout(binding = 0) buffer InstanceBuffer{
     ivec2 screenSize;
+    // 64 bit std430 padding
     InstanceData instances[];
 };
 
@@ -25,7 +26,8 @@ flat out int instanceID;
 
 void main(){
     InstanceData instance = instances[gl_InstanceID];
-    gl_Position = 2 * vec4(instance.topLeft + pos.xy * instance.size, instance.zDepth, 1) - 1;
+    vec2 screenPos = 2 * vec2(instance.topLeft + pos.xy * instance.size) - 1;
+    gl_Position = vec4(screenPos, instance.zDepth, 1);
     relativePosition = pos.xy;
     instanceID = gl_InstanceID;
 }
