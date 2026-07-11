@@ -47,7 +47,7 @@ class Window {
 	mixin ID;
 	string name;
 	GLFWwindow* glfw_window;
-	void function(Window) nothrow resizeDraw;
+	void delegate(Window) nothrow resizeDraw;
 
 	union {
 		struct {
@@ -148,7 +148,7 @@ class Window {
 	}
 
 	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true,
-		Hints hints = Hints(), void function(Window) nothrow resizeDraw = null) {
+		Hints hints = Hints(), void delegate(Window) nothrow resizeDraw = null) {
 		setID();
 		this.name = name;
 		this.width = width;
