@@ -45,7 +45,9 @@ final class Buffer {
     //     glGetNamedBufferSubData(this.buffer, offset, downloadSize, ret.ptr);
     // }
 
-    void download(ref ubyte[] downloadBuffer, size_t offset = 0, size_t downloadSize = this.size) {
+    void download(ref ubyte[] downloadBuffer, size_t offset = 0, size_t downloadSize = 0) {
+        if (downloadSize == 0)
+            downloadSize = this.size;
         // if(downloadBuffer.length)
         // TODO
         glGetNamedBufferSubData(this.buffer, offset, downloadSize, downloadBuffer.ptr);
@@ -56,5 +58,9 @@ final class Buffer {
 
     ~this() {
         glDeleteBuffers(1, &buffer);
+    }
+
+    void clear() {
+        glClearNamedBufferData(buffer, GL_R8, GL_RED_INTEGER, GL_UNSIGNED_BYTE, null);
     }
 }

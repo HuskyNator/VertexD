@@ -211,6 +211,123 @@ class ShaderProgram {
 			"Shader " ~ shaderProgram.to!string ~ " could not find uniform " ~ name ~ ":\n___" ~ getInfoLog());
 	}
 
+	string getVariableInfo() {
+		import std.array : Appender;
+		import std.algorithm.comparison : max;
+		import std.algorithm.sorting : sort;
+		import vertexd.gl : GL;
+
+		Appender!string info = Appender!string(">> Shader Variable Information\n");
+		assert(shaderProgram != 0);
+
+		// Names
+		GLint maxUniformNameLength, maxUboNameLength, maxSsboNameLength, maxSsboVariableNameLength;
+		glGetProgramInterfaceiv(shaderProgram, GL_UNIFORM, GL_MAX_NAME_LENGTH, &maxUniformNameLength);
+		glGetProgramInterfaceiv(shaderProgram, GL_UNIFORM_BLOCK, GL_MAX_NAME_LENGTH, &maxUboNameLength);
+		glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &maxSsboNameLength);
+		glGetProgramInterfaceiv(shaderProgram, GL_BUFFER_VARIABLE, GL_MAX_NAME_LENGTH, &maxSsboVariableNameLength);
+		GLint maxNameLength = max(maxUniformNameLength, maxUboNameLength, maxSsboNameLength, maxSsboVariableNameLength);
+		char[] nameScratchBuffer = new char[maxNameLength];
+
+		void putName(GLenum typeEnum, GLint index) {
+			GLint nameLength;
+			glGetProgramResourceName(shaderProgram, typeEnum, index, maxNameLength, &nameLength, nameScratchBuffer
+					.ptr);
+			info.put(nameScratchBuffer[0 .. nameLength]);
+		}
+
+		// Properties
+		immutable GLenum[5] properties = [GL_BLOCK_INDEX, GL_TYPE, GL_OFFSET, GL_ARRAY_STRIDE, GL_TOP_LEVEL_ARRAY_STRIDE];
+		alias Property = GLint[properties.length + 1]; // postfix index
+
+		void getProperties(GLenum typeEnum, GLint index, Property* propertyDestination) {
+			glGetProgramResourceiv(shaderProgram, typeEnum, index, properties.length, properties.ptr, properties
+					.length, null, propertyDestination.ptr);
+			(*propertyDestination)[$ - 1] = index;
+		}
+
+		void putVariable(GLenum typeEnum, Property propertyValues) {
+			info.put(GL.glslTypeToString(propertyValues[1]));
+			info.put(' ');
+			putName(typeEnum, propertyValues[$ - 1]);
+			if (propertyValues[2] > 0) {
+				info.put(" (offset = ");
+				info.put(propertyValues[2].to!string);
+				info.put(')');
+			}
+			if(propertyValues[3] > 0) {
+				info.put(" (stride = ");
+				info.put(propertyValues[3].to!string);
+				info.put(')');
+			}
+			if(propertyValues[4] > 0) {
+				info.put(" (top-level stride = ");
+				info.put(propertyValues[4].to!string);
+				info.put(')');
+			}
+			info.put('\n');
+		}
+
+		GLint uniformCount, uboCount, ssboCount;
+		glGetProgramInterfaceiv(shaderProgram, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformCount);
+		glGetProgramInterfaceiv(shaderProgram, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uboCount);
+		glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &ssboCount);
+
+		if (uniformCount > 0) {
+			// info.put("> Uniforms Variables\n");
+			Property propertyValues;
+			foreach (index; 0 .. uniformCount) {
+				getProperties(GL_UNIFORM, index, &propertyValues);
+				if (propertyValues[0] != -1) { // skip ubo variables
+					putVariable(GL_UNIFORM, propertyValues);
+				}
+			}
+		}
+
+		GLint maxUboMemberCount, maxSsboMemberCount;
+		glGetProgramInterfaceiv(shaderProgram, GL_UNIFORM_BLOCK, GL_MAX_NUM_ACTIVE_VARIABLES, &maxUboMemberCount);
+		glGetProgramInterfaceiv(shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_MAX_NUM_ACTIVE_VARIABLES, &maxSsboMemberCount);
+		GLint maxBufferMemberCount = max(maxUboMemberCount, maxSsboMemberCount);
+		GLint[] memberIndices = new GLint[maxBufferMemberCount];
+
+		immutable GLenum[1] bufferProperties = [GL_ACTIVE_VARIABLES];
+		Property[] bufferPropertyValues = new Property[maxBufferMemberCount];
+
+		void putBuffer(GLenum bufferTypeEnum, GLenum variableTypeEnum, GLint bufferIndex) {
+			putName(bufferTypeEnum, bufferIndex);
+			info.put('\n');
+
+			GLint bufferMemberCount;
+			glGetProgramResourceiv(shaderProgram, bufferTypeEnum, bufferIndex, bufferProperties.length, bufferProperties
+					.ptr, cast(int) memberIndices.length, &bufferMemberCount, memberIndices.ptr);
+
+			foreach (i, memberIndex; memberIndices[0 .. bufferMemberCount])
+				getProperties(variableTypeEnum, memberIndex, &bufferPropertyValues[i]);
+			bufferPropertyValues[0 .. bufferMemberCount].sort!((a, b) => a[2] < b[2])(); // sort by  offset
+			foreach (propertyValue; bufferPropertyValues[0 .. bufferMemberCount]) {
+				info.put('\t');
+				putVariable(variableTypeEnum, propertyValue);
+			}
+		}
+
+		if (uboCount > 0) {
+			// info.put("> Uniform Buffer Objects (UBO's)\n");
+			foreach (uboIndex; 0 .. uboCount) {
+				info.put("UBO ");
+				putBuffer(GL_UNIFORM_BLOCK, GL_UNIFORM, uboIndex);
+			}
+		}
+		if (ssboCount > 0) {
+			// info.put("> Shader Storage Buffer Objects (SSBO's)\n");
+			foreach (ssboIndex; 0 .. ssboCount) {
+				info.put("SSBO ");
+				putBuffer(GL_SHADER_STORAGE_BLOCK, GL_BUFFER_VARIABLE, ssboIndex);
+			}
+		}
+
+		return info[];
+	}
+
 	// static immutable string gltfVertShader = import("shaders/standard.vert");
 	// static immutable string gltfFragShader = import("shaders/standard.frag");
 	// static ShaderProgram gltfShaderProgram_ = null;
