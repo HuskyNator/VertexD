@@ -45,15 +45,25 @@ class Texture {
 		return [GL_RED, GL_RG, GL_RGB, GL_RGBA][L - 1];
 	}
 
-	this(int width, int height, GLenum internalFormat, bool mipmapLevels = 1) {
+	this(int width, int height, GLenum internalFormat, bool mipmaps = true) {
+		this(width, height, internalFormat, mipmaps ? maxMipmapLevels(width, height) : 1);
+	}
+
+	this(int width, int height, GLenum internalFormat, int mipmapLevels = 1) {
 		setID();
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
 		this.width = width;
 		this.height = height;
 
-		if (mipmapLevels == 1)
+		if (mipmapLevels > 1)
+			updateMipMap();
+		else
 			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+
+	static int maxMipmapLevels(int width, int height) {
+		return cast(int) floor(log2(cast(double) max(width, height))) + 1;
 	}
 
 	this(T, uint L)(int width, int height, T[L][] pixels, bool mipmaps = true, int stride = 0) {
@@ -71,31 +81,35 @@ class Texture {
 
 		int mipmapLevels = 1;
 		if (mipmaps)
-			mipmapLevels = cast(int) floor(log2(cast(double) max(width, height))) + 1;
+			mipmapLevels = maxMipmapLevels(width, height);
 
 		// Create Texture
 		setID();
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
-		if (stride != 0)
-			glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
+
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 		glTextureSubImage2D(texture, 0, 0, 0, width, height, format, pixelType, pixels.ptr);
-		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
 		if (mipmaps)
-			glGenerateTextureMipmap(texture);
+			updateMipMap();
 		else
 			glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+
+	final void updateMipMap() {
+		glGenerateTextureMipmap(texture);
 	}
 
 	void generateMipmaps() {
 		glGenerateTextureMipmap(texture);
 	}
 
-	void uploadData(T, uint L)(int level, int xOffset, int yOffset, uint width, uint height, T[L][] data) {
+	void uploadData(T, uint L)(int level, int xOffset, int yOffset, uint width, uint height, T[L][] data, int stride = 0) {
 		GLenum format = getDataFormat(L);
 		GLenum pixelType = GL.getType!T;
 		setUnpackAlignment(T.sizeof);
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 		glTextureSubImage2D(texture, level, xOffset, yOffset, width, height, format, pixelType, data
 				.ptr);
 	}
@@ -235,6 +249,7 @@ class Texture {
 		setID();
 		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 		glTextureStorage2D(texture, mipmapLevels, internalFormat, width, height);
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		glTextureSubImage2D(texture, 0, 0, 0, width, height, format, pixelType, pixels.ptr);
 
 		if (mipmaps)
