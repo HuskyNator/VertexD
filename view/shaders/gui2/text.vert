@@ -5,6 +5,7 @@ layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 
 struct InstanceData {
+    vec4 textColor;
     ivec2 topLeft;
     ivec2 maxBounds;
     uint64_t textureHandle;
@@ -15,10 +16,6 @@ layout(binding = 0) buffer InstanceBuffer{
     ivec2 screenSize;
     // 32 bit std430 padding?
     InstanceData instances[];
-};
-
-layout(binding = 1) buffer DebugBuffer{
-    vec2 calculatedPositions[];
 };
 
 layout(location = 0) in vec2 pos;
@@ -34,31 +31,12 @@ void main(){
         return;
     }
     instanceID = gl_InstanceID;
-    // vec2 vertexPos = vec2(pos.x, 1-pos.y);
     vec2 vertexPos = pos;
-    uvPosition = vertexPos;
+    uvPosition = vec2(vertexPos.x, 1-vertexPos.y);
 
     sampler2D glyph = sampler2D(instance.textureHandle);
     ivec2 size = textureSize(glyph, 0);
     screenPos = instance.topLeft + vertexPos*size;
     vec2 clipSpacePos = (2*screenPos)/screenSize - 1;
     gl_Position = vec4(clipSpacePos, instance.zDepth, 1);
-
-    // // // relativePosition = pos;
-    // if(gl_VertexID == 0 && gl_InstanceID == 0) {
-    //     calculatedPositions[0] = gl_Position.xy;
-    //     calculatedPositions[1] = gl_Position.zw;}
-    // if(gl_VertexID == 1 && gl_InstanceID == 0) {
-    //     calculatedPositions[2] = gl_Position.xy;
-    //     calculatedPositions[3] = gl_Position.zw;}
-    // if(gl_VertexID == 2 && gl_InstanceID == 0) {
-    //     calculatedPositions[4] = gl_Position.xy;
-    //     calculatedPositions[5] = gl_Position.zw;}
-    //     // calculatedPositions[0] = pos;
-    // //     calculatedPositions[1] = size;
-    // //     calculatedPositions[2] = instance.topLeft;
-    // //     calculatedPositions[3] = newPos;
-    // //     calculatedPositions[4] = screenSize;
-    // //     calculatedPositions[5] = clipSpacePos;
-    // // }
 }

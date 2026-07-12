@@ -5,6 +5,7 @@ layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 
 struct InstanceData {
+    vec4 textColor;
     ivec2 topLeft;
     ivec2 maxBounds;
     uint64_t textureHandle;
@@ -13,7 +14,7 @@ struct InstanceData {
 
 layout(binding = 0) buffer InstanceBuffer{
     ivec2 screenSize;
-    // 32 bit std430 padding?
+    // 8 bytes padding
     InstanceData instances[];
 };
 
@@ -31,8 +32,13 @@ void main() {
         discard;
 
     sampler2D glyph = sampler2D(instance.textureHandle);
-    float pixelColor = texture(glyph, vec2(uvPosition.x, 1-uvPosition.y)).x;
-    if(pixelColor == 0)
+
+    ivec2 textureSize = textureSize(glyph, 0);
+    float pixelValue = texelFetch(glyph, ivec2(uvPosition * textureSize), 0).x;
+
+    // float pixelIntensity = texture(glyph, vec2(uvPosition.x, 1-uvPosition.y)).x;
+    if(pixelValue == 0)
         discard;
-    color = vec4(vec3(pixelColor), 1);
+    // color = pixelIntensity * vec4(instance.textColorxy, instance.textColorzw);
+    color = vec4(instance.textColor.xyz, pixelValue * instance.textColor.w);
 }

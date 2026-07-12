@@ -65,6 +65,7 @@ class GuiRenderer {
     }
 
     struct GlyphInstanceData { // std340
+        Vec!4 color;
         Vec!(2, int) bottomLeft;
         Vec!(2, int) maxBound;
         ulong textureHandle;
@@ -134,7 +135,7 @@ class GuiRenderer {
 
                 Vec!(2, int) screenPlacement =
                     Vec!(2, int)(layout[i].x, window.pixelSize.y - layout[i].y);
-                GlyphInstanceData glyphData = GlyphInstanceData(screenPlacement, maxBounds, textureHandle, element
+                GlyphInstanceData glyphData = GlyphInstanceData(text.color, screenPlacement, maxBounds, textureHandle, element
                         .zDepth + automaticDepth);
                 automaticDepth -= automaticDepthDelta;
                 glyphInstanceData ~= toBytes(glyphData);
@@ -165,7 +166,7 @@ class GuiRenderer {
         this.glyphInstanceCount = 0;
 
         glyphInstanceData ~= toBytes(window.pixelSize);
-        // glyphInstanceData ~= toBytes(cast(int) 0); // std430 padding
+        glyphInstanceData ~= padding(8); // std430 padding
 
         // Queue all elements
         float automaticStartDepth = 0;

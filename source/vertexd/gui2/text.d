@@ -9,6 +9,7 @@ class TextBox : UiElement {
     dstring text;
     Font font;
     bool useKerning;
+    Vec!4 color;
     Vec!(2, int) offset;
     Vec!(2, int) scroll;
     bool scrollable;
@@ -18,9 +19,11 @@ class TextBox : UiElement {
     // TODO : text direction
     // TODO: wrapping types
 
-    this(dstring text, Font font, bool scrollable = true, bool useKerning = true, Vec!(2, int) offset = Vec!(2, int)(8, 0)) {
+    this(dstring text, Font font, Vec!4 color = Vec!4(1), bool scrollable = true, bool useKerning = true, Vec!(2, int) offset = Vec!(
+            2, int)(8, 0)) {
         this.text = text;
         this.font = font;
+        this.color = color;
         this.scrollable = scrollable;
         this.useKerning = useKerning;
         this.layout = [];
