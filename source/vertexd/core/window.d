@@ -9,6 +9,7 @@ import std.exception : enforce;
 import std.stdio : write, writeln;
 import vertexd.core;
 import vertexd.world;
+import vertexd.gui2.ui_element;
 
 // TODO: SEE IF CALLBACKS GET CALLED WHEN GLFW SETS SIZE (INSTEAD OF USER)
 
@@ -48,6 +49,7 @@ class Window {
 	string name;
 	GLFWwindow* glfw_window;
 	void delegate(Window) nothrow resizeDraw;
+	UiElement root;
 
 	union {
 		struct {
@@ -74,16 +76,6 @@ class Window {
 	Vec!(2, int) windowPosition;
 	Vec!(2, double) mousePosition;
 	ulong lastSizePosUpdateFrame = 0;
-
-	static bool testShouldClose() {
-		Window[] closeArr;
-		foreach (glfw_window, window; Window.windows)
-			if (window.shouldClose())
-				closeArr ~= window;
-		foreach (window; closeArr)
-			destroy(window);
-		return Window.windows.length == 0;
-	}
 
 	struct Hints {
 		bool resizable = true; // resizable by user, ignored for fullscreen or undecorated
@@ -198,6 +190,11 @@ class Window {
 		glfwGetFramebufferSize(glfw_window, &pixelWidth, &pixelHeight);
 	}
 
+	void updateBoundsTree() {
+		if (root !is null)
+			root.updateBoundsTree(this);
+	}
+
 	~this() {
 		Window.windows.remove(glfw_window);
 		glfwDestroyWindow(glfw_window);
@@ -210,6 +207,16 @@ class Window {
 
 	bool shouldClose() {
 		return glfwWindowShouldClose(glfw_window) >= 1;
+	}
+
+	static bool testShouldClose() {
+		Window[] closeArr;
+		foreach (glfw_window, window; Window.windows)
+			if (window.shouldClose())
+				closeArr ~= window;
+		foreach (window; closeArr)
+			destroy(window);
+		return Window.windows.length == 0;
 	}
 
 	void swapBuffers() {

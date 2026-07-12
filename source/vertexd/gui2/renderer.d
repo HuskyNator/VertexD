@@ -71,7 +71,7 @@ class GuiRenderer {
         float zDepth;
     }
 
-    private void queueUiElement(const UiElement element, Window window, float automaticDepth) {
+    private void queueUiElement(UiElement element, Window window, float automaticDepth) {
         // Ensure children are queued afterward
         scope (success) {
             foreach (child; element.getChildren())
@@ -141,6 +141,11 @@ class GuiRenderer {
                 glyphInstanceCount += 1;
             }
         }
+    }
+
+    void render(Window window) {
+        if (window.root !is null)
+            render(window, window.root);
     }
 
     void render(Window window, UiElement root) {

@@ -1,6 +1,7 @@
 module vertexd.gui2.ui_element;
 import vertexd.gui2.size;
 import vdmath.mat;
+import vertexd.core.input;
 
 struct Bounds {
     union {
@@ -35,6 +36,11 @@ struct Bounds {
     Vec!2 size() const {
         return Vec!2(width(), height());
     }
+
+    bool contains(Vec!(2, double) point) const {
+        return point.x >= this.left && point.x < this.right
+            && point.y >= this.top && point.y < this.bottom;
+    }
 }
 
 abstract class UiElement {
@@ -48,6 +54,11 @@ abstract class UiElement {
     protected UiElement[] children;
     abstract void updateChildBounds();
 
+    // callbacks
+    void delegate(UiElement, bool enter) mouseEnterExitCallback;
+    void delegate(UiElement, InputType.MouseButton) clickCallback;
+    bool mouseInside = false;
+
     import vertexd.core.window;
 
     void updateBoundsTree(Window window) {
@@ -56,8 +67,7 @@ abstract class UiElement {
         this.updateChildBounds();
     }
 
-    final public const(UiElement[]) getChildren() const {
+    final public UiElement[] getChildren() {
         return this.children;
     }
-
 }

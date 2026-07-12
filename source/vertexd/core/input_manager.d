@@ -6,13 +6,16 @@ import vertexd.core.input;
 import vertexd.core.window;
 import vertexd.util.misc : removeElement;
 import std.traits : EnumMembers;
+import vertexd.gui2.ui_element;
 
 extern (C) void key_callback(GLFWwindow* glfw_window, int key, int key_code, int event, int modifier) nothrow {
     InputManager.log(InputEvent(Window.windows[glfw_window], KeyInput(key, key_code, event, modifier)));
 }
 
 extern (C) void mouse_button_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
-    InputManager.log(InputEvent(Window.windows[glfw_window], MouseButtonInput(button, event, modifier)));
+    MouseButtonInput input = MouseButtonInput(button, event, modifier);
+    InputManager.log(InputEvent(Window.windows[glfw_window], input));
+    InputManager.logMouseInput(input);
 }
 
 extern (C) void mouse_position_callback(GLFWwindow* glfw_window, double x, double y) nothrow {
@@ -48,6 +51,7 @@ extern (C) void file_drop_callback(GLFWwindow* glfw_window, int count, const cha
 final abstract class InputManager {
 static:
     private InputEvent[] inputEvents;
+    private MouseButtonInput[] mouseInputEvents;
     private Vec!(2, double) mousePosition; // global on virtual screen
 
     void updateMousePosition(Window window, Vec!(2, double) mousePosition) nothrow {
@@ -58,8 +62,13 @@ static:
         this.inputEvents ~= event;
     }
 
+    void logMouseInput(MouseButtonInput input) nothrow {
+        this.mouseInputEvents ~= input;
+    }
+
     void clear() {
         this.inputEvents.length = 0;
+        this.mouseInputEvents.length = 0;
     }
 
     /// Register Window with InputManager
@@ -98,6 +107,62 @@ static:
                         callback(event.window, event.input.tupleof[i]);
             }
         }
+
+        struct EnterExitItem {
+            void delegate(UiElement, bool) callback;
+            UiElement element;
+            bool enter;
+        }
+
+        struct ClickItem {
+            void delegate(UiElement, InputType.MouseButton) callback;
+            UiElement element;
+        }
+
+        EnterExitItem[] enterExitQueue = [];
+        ClickItem[] clickQueue = [];
+
+        foreach (window; Window.windows) {
+            Vec!(2, double) mousePosition = window.mousePosition;
+            UiElement root = window.root;
+            if (root is null)
+                continue;
+
+            void queueElementCallbacks(UiElement element) {
+                bool isInside = element.bounds.contains(mousePosition);
+                bool wasInside = element.mouseInside;
+
+                if (isInside) {
+                    if (!wasInside) { // enter
+                        element.mouseInside = true;
+                        if (element.mouseEnterExitCallback !is null)
+                            enterExitQueue ~= EnterExitItem(element.mouseEnterExitCallback, element, true);
+                    }
+                    if (element.clickCallback !is null)
+                        clickQueue ~= ClickItem(element.clickCallback, element);
+                } else {
+                    if (wasInside) { // exit
+                        element.mouseInside = false;
+                        if (element.mouseEnterExitCallback !is null)
+                            enterExitQueue ~= EnterExitItem(element.mouseEnterExitCallback, element, false);
+                    }
+                    if (!wasInside)
+                        return;
+                }
+
+                foreach (child; element.getChildren())
+                    queueElementCallbacks(child);
+            }
+
+            queueElementCallbacks(root);
+        }
+
+        foreach (EnterExitItem item; enterExitQueue)
+            item.callback(item.element, item.enter);
+
+        foreach (ClickItem item; clickQueue)
+            foreach (input; mouseInputEvents)
+                item.callback(item.element, input);
 
         clear();
     }
