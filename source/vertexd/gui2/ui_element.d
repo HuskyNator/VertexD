@@ -31,6 +31,10 @@ struct Bounds {
     double height() const {
         return yBounds[1] - yBounds[0];
     }
+
+    Vec!2 size() const {
+        return Vec!2(width(), height());
+    }
 }
 
 abstract class UiElement {

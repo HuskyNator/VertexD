@@ -5,7 +5,7 @@ layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 
 struct InstanceData {
-    vec2 topLeft;
+    vec2 bottomLeft;
     vec2 size;
     vec4 color;
     float cornerRadius;

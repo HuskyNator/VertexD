@@ -170,9 +170,9 @@ class Font {
             if (isWhite(c))
                 lastSpace = i;
         }
-        foreach (ref p; placements) {
+
+        foreach (ref p; placements)
             p = (p >> 6) + offset;
-        }
         return placements;
     }
 

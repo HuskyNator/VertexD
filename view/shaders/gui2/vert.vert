@@ -5,7 +5,7 @@ layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 
 struct InstanceData {
-    vec2 topLeft;
+    vec2 bottomLeft;
     vec2 size;
     vec4 color;
     float cornerRadius;
@@ -26,7 +26,7 @@ flat out int instanceID;
 
 void main(){
     InstanceData instance = instances[gl_InstanceID];
-    vec2 screenPos = 2 * vec2(instance.topLeft + pos.xy * instance.size) - 1;
+    vec2 screenPos = 2 * vec2(instance.bottomLeft + pos.xy * instance.size) - 1;
     gl_Position = vec4(screenPos, instance.zDepth, 1);
     relativePosition = pos.xy;
     instanceID = gl_InstanceID;

@@ -5,7 +5,8 @@ layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 
 struct InstanceData {
-    ivec2 bottomLeft;
+    ivec2 topLeft;
+    ivec2 maxBounds;
     uint64_t textureHandle;
     float zDepth;
 };
@@ -22,7 +23,8 @@ layout(binding = 1) buffer DebugBuffer{
 
 layout(location = 0) in vec2 pos;
 
-out vec2 relativePosition;
+out vec2 uvPosition;
+out vec2 screenPos;
 flat out int instanceID;
 
 void main(){
@@ -32,11 +34,13 @@ void main(){
         return;
     }
     instanceID = gl_InstanceID;
-    relativePosition = pos;
+    // vec2 vertexPos = vec2(pos.x, 1-pos.y);
+    vec2 vertexPos = pos;
+    uvPosition = vertexPos;
 
     sampler2D glyph = sampler2D(instance.textureHandle);
     ivec2 size = textureSize(glyph, 0);
-    vec2 screenPos = instance.bottomLeft + pos * size;
+    screenPos = instance.topLeft + vertexPos*size;
     vec2 clipSpacePos = (2*screenPos)/screenSize - 1;
     gl_Position = vec4(clipSpacePos, instance.zDepth, 1);
 
