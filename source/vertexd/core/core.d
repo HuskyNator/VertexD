@@ -33,7 +33,7 @@ version (Windows) {
 	}
 }
 
-bool vdInit(bool showConsole = false) {
+bool vdInit(bool showConsole = true) {
 	version (Windows) {
 		if (showConsole) {
 			console = GetConsoleWindow();

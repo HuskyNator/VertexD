@@ -35,6 +35,7 @@ class Pane : UiElement {
         }
 
         foreach (child; this.children)
-            child.updateChildBounds();
+            if(child.enabled)
+                child.updateChildBounds();
     }
 }

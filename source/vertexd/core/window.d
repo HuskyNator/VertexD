@@ -73,6 +73,10 @@ class Window {
 		return (cast(float) pixelWidth) / pixelHeight;
 	}
 
+	Bounds bounds() {
+		return Bounds(0, width, 0, height);
+	}
+
 	Vec!(2, int) windowPosition;
 	Vec!(2, double) mousePosition;
 	ulong lastSizePosUpdateFrame = 0;
@@ -110,33 +114,33 @@ class Window {
 		static enum int dontCare = GLFW_DONT_CARE;
 
 		static enum int[] glfwMapping = [
-			GLFW_RESIZABLE,
-			GLFW_VISIBLE,
-			GLFW_DECORATED,
-			GLFW_FOCUSED,
-			GLFW_AUTO_ICONIFY,
-			GLFW_FLOATING,
-			GLFW_MAXIMIZED,
-			GLFW_CENTER_CURSOR,
-			GLFW_TRANSPARENT_FRAMEBUFFER,
-			GLFW_FOCUS_ON_SHOW,
-			GLFW_SCALE_TO_MONITOR,
-			GLFW_SCALE_FRAMEBUFFER,
-			GLFW_MOUSE_PASSTHROUGH,
-			GLFW_POSITION_X,
-			GLFW_POSITION_Y,
-			GLFW_RED_BITS,
-			GLFW_GREEN_BITS,
-			GLFW_BLUE_BITS,
-			GLFW_ALPHA_BITS,
-			GLFW_DEPTH_BITS,
-			GLFW_STENCIL_BITS,
-			GLFW_SAMPLES,
-			GLFW_REFRESH_RATE,
-			GLFW_STEREO,
-			GLFW_SRGB_CAPABLE,
-			GLFW_DOUBLEBUFFER
-		];
+				GLFW_RESIZABLE,
+				GLFW_VISIBLE,
+				GLFW_DECORATED,
+				GLFW_FOCUSED,
+				GLFW_AUTO_ICONIFY,
+				GLFW_FLOATING,
+				GLFW_MAXIMIZED,
+				GLFW_CENTER_CURSOR,
+				GLFW_TRANSPARENT_FRAMEBUFFER,
+				GLFW_FOCUS_ON_SHOW,
+				GLFW_SCALE_TO_MONITOR,
+				GLFW_SCALE_FRAMEBUFFER,
+				GLFW_MOUSE_PASSTHROUGH,
+				GLFW_POSITION_X,
+				GLFW_POSITION_Y,
+				GLFW_RED_BITS,
+				GLFW_GREEN_BITS,
+				GLFW_BLUE_BITS,
+				GLFW_ALPHA_BITS,
+				GLFW_DEPTH_BITS,
+				GLFW_STENCIL_BITS,
+				GLFW_SAMPLES,
+				GLFW_REFRESH_RATE,
+				GLFW_STEREO,
+				GLFW_SRGB_CAPABLE,
+				GLFW_DOUBLEBUFFER
+			];
 	}
 
 	this(string name = "VertexD", int width = 960, int height = 540, bool vsynch = true,

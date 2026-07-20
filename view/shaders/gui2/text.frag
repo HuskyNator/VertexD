@@ -1,6 +1,7 @@
 #version 460
 #extension GL_ARB_bindless_texture:require
 #extension GL_ARB_gpu_shader_int64:require
+#extension GL_NV_gpu_shader5:require
 layout(std140, row_major) uniform;
 layout(std430, row_major) buffer;
 

@@ -41,12 +41,19 @@ struct Bounds {
         return point.x >= this.left && point.x < this.right
             && point.y >= this.top && point.y < this.bottom;
     }
+
+    bool contains(Bounds bounds) const {
+        bool xOverlap = bounds.left < right && bounds.right > left;
+        bool yOverlap = bounds.top < bottom && bounds.bottom > top;
+        return xOverlap && yOverlap;
+    }
 }
 
 abstract class UiElement {
     Bounds bounds; // absolute (pixels)
     alias this = bounds;
     float zDepth = 0;
+    bool enabled = true;
 
     UiSize cornerRadius = pixels(0);
     Vec!4 backgroundColor = Vec!4(0, 0, 0, 0);

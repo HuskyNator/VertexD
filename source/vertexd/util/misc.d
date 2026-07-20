@@ -6,7 +6,16 @@ import std.math : abs, PI;
 import std.traits : isFloatingPoint, isScalarType;
 import std.algorithm.mutation : remove;
 
-void tryWriteln(T)(T output) nothrow {
+void tryWrite(T...)(T output) nothrow {
+	import std.stdio : write;
+
+	try {
+		write(output);
+	} catch (Exception e) {
+	}
+}
+
+void tryWriteln(T...)(T output) nothrow {
 	import std.stdio : writeln;
 
 	try {

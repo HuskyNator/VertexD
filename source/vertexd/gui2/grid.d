@@ -22,7 +22,7 @@ class Grid : UiElement {
     CellRange[] cellRanges;
     invariant (this.cellRanges.length == this.children.length);
 
-    override void updateChildBounds() { // holdup how do i deal with parent sizes??? grids are fixed!!
+    override void updateChildBounds() {
         this.rowEdges = new double[rows.length + 1];
         this.colEdges = new double[cols.length + 1];
         this.rowEdges[] = 0;
@@ -33,7 +33,7 @@ class Grid : UiElement {
         double totalWidth = this.bounds.width();
         double totalHeight = this.bounds.height();
         foreach (i, UiSize size; this.rows)
-            this.rowEdges[i + 1] += size.getAbsolute(totalHeight);
+            this.rowEdges[i + 1] += size.getAbsolute(totalHeight); // shouldnt this sum all?
         foreach (i, UiSize size; this.cols)
             this.colEdges[i + 1] += size.getAbsolute(totalWidth);
 
@@ -46,8 +46,10 @@ class Grid : UiElement {
             element.bounds = Bounds(left, right, top, bottom);
         }
 
-        foreach (child; this.children)
-            child.updateChildBounds();
+        foreach (child; this.children) {
+            if (child.enabled)
+                child.updateChildBounds();
+        }
     }
 
     void place(R, C)(UiElement element, R rows, C cols)

@@ -73,10 +73,17 @@ class GuiRenderer {
     }
 
     private void queueUiElement(UiElement element, Window window, float automaticDepth) {
+        if (!element.enabled)
+            return;
+        Bounds windowBounds = window.bounds();
+        if (!windowBounds.contains(element.bounds))
+            return;
+
         // Ensure children are queued afterward
         scope (success) {
             foreach (child; element.getChildren())
-                queueUiElement(child, window, automaticDepth);
+                if (child.enabled)
+                    queueUiElement(child, window, automaticDepth);
         }
 
         Vec!(2, int) windowSize = window.pixelSize;
