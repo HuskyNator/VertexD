@@ -112,7 +112,7 @@ class Font {
     ///   offset = offset to add to layout placements
     ///   lineHeight = height of lines in 26.6 fractional pixels
     /// Returns: bottom-left pixel positions of text glyphs.
-    Vec!(2, int)[] layout(dstring text, int lineWidth, Vec!(2, int) offset, bool useKerning, int lineHeight = 0) {
+    Vec!(2, int)[] layout(dchar[] text, int lineWidth, Vec!(2, int) offset, bool useKerning, int lineHeight = 0) {
         useKerning &= FT_HAS_KERNING(face);
         if (lineHeight == 0)
             lineHeight = this.lineHeight;

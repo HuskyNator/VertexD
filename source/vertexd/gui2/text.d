@@ -6,7 +6,7 @@ import vertexd.gui.font;
 import vertexd.gui2;
 
 class TextBox : UiElement {
-    dstring text;
+    dchar[] text;
     Font font;
     bool useKerning;
     Vec!4 color;
@@ -21,7 +21,7 @@ class TextBox : UiElement {
 
     this(dstring text, Font font, Vec!4 color = Vec!4(1), bool scrollable = true, bool useKerning = true, Vec!(2, int) offset = Vec!(
             2, int)(8, 0)) {
-        this.text = text;
+        this.text = text.dup;
         this.font = font;
         this.color = color;
         this.scrollable = scrollable;

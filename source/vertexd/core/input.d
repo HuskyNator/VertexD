@@ -69,6 +69,10 @@ static:
         }
     }
 
+    struct Character {
+        dchar character;
+    }
+
     struct MouseButton {
         _MouseButton button;
         MouseAction action;

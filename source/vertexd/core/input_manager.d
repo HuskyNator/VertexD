@@ -12,6 +12,10 @@ extern (C) void key_callback(GLFWwindow* glfw_window, int key, int key_code, int
     InputManager.log(InputEvent(Window.windows[glfw_window], KeyInput(key, key_code, event, modifier)));
 }
 
+extern (C) void char_callback(GLFWwindow* glfw_window, uint character) nothrow {
+    InputManager.log(InputEvent(Window.windows[glfw_window], CharacterInput(cast(dchar) character)));
+}
+
 extern (C) void mouse_button_callback(GLFWwindow* glfw_window, int button, int event, int modifier) nothrow {
     MouseButtonInput input = MouseButtonInput(button, event, modifier);
     InputManager.log(InputEvent(Window.windows[glfw_window], input));
@@ -74,6 +78,7 @@ static:
     /// Register Window with InputManager
     void register(Window window) {
         glfwSetKeyCallback(window.glfw_window, &key_callback);
+        glfwSetCharCallback(window.glfw_window, &char_callback);
         glfwSetMouseButtonCallback(window.glfw_window, &mouse_button_callback);
         glfwSetCursorPosCallback(window.glfw_window, &mouse_position_callback);
         glfwSetCursorEnterCallback(window.glfw_window, &mouse_enter_callback);
@@ -81,6 +86,7 @@ static:
         glfwSetDropCallback(window.glfw_window, &file_drop_callback);
     }
 
+    // TODO: move callbacks to window, like UiElement.root?
     private alias CallBack(T) = void delegate(Window, T);
     private string _callBackName(size_t i)() {
         return "_callback" ~ InputTypeNames[i];
@@ -100,6 +106,7 @@ static:
     }
 
     void runCallbacks() {
+        // Run standard callbacks.
         foreach (event; inputEvents) {
             static foreach (i, tag; EnumMembers!(InputEvent.Tag)) {
                 if (event.tag == tag) // TODO: explore why switch results in bug (incorrect callback).
@@ -108,6 +115,7 @@ static:
             }
         }
 
+        // Run UIElement callbacks.
         struct EnterExitItem {
             void delegate(UiElement, bool) callback;
             UiElement element;
