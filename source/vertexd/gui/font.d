@@ -117,7 +117,7 @@ class Font {
         if (lineHeight == 0)
             lineHeight = this.lineHeight;
 
-        Vec!(2, int)[] placements = new Vec!(2, int)[text.length];
+        Vec!(2, int)[] placements = new Vec!(2, int)[text.length + 1];
         int[] cursorRecord = new int[text.length];
         int cursor = 0; // 26.6 fractional pixels
         int line = 0;
@@ -170,6 +170,7 @@ class Font {
             if (isWhite(c))
                 lastSpace = i;
         }
+        placements[$ - 1] = Vec!(2, int)(cursor, (line + 1) * lineHeight); // end of text.
 
         foreach (ref p; placements)
             p = (p >> 6) + offset;
@@ -245,7 +246,7 @@ class Font {
 
                     ubyte oldVal = pixels[xInd + yInd * width];
                     ubyte newVal = face.glyph.bitmap.buffer[x + y * face
-                            .glyph.bitmap.width];
+                        .glyph.bitmap.width];
                     if (newVal > oldVal) // write only max value
                         pixels[xInd + yInd * width] = newVal;
                 }

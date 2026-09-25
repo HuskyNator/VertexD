@@ -69,6 +69,10 @@ class Window {
 		Vec!(2, int) pixelSize;
 	}
 
+	Vec!2 toPixelsRatio() {
+		return cast((Vec!2) pixelSize) / size;
+	}
+
 	float aspectRatio() const {
 		return (cast(float) pixelWidth) / pixelHeight;
 	}
