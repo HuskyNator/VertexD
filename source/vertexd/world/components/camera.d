@@ -19,7 +19,7 @@ class Camera : Component {
     mixin ID;
     TrackedBuffer!Data trackedBuffer;
 
-    this() {
+    private this() {
         setID();
         trackedBuffer.initBuffer();
     }
