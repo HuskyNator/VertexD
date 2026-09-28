@@ -7,7 +7,7 @@ import vdmath.misc : padding;
 import vertexd.core.window;
 import vertexd.gui.font;
 import vertexd.gui2.image;
-import vertexd.gui2.text;
+import vertexd.gui2.textbox;
 import vertexd.gui2.ui_element;
 import vertexd.memory.bindless_texture;
 import vertexd.memory.buffer;
@@ -42,7 +42,7 @@ class GuiRenderer {
 
     Buffer debugBuffer;
 
-    this(float automaticDepthDelta = 0) {
+    this(float automaticDepthDelta = 0.01) {
         this.quad = Primitive.createQuad(true, null);
         this.uiElementInstanceDataBuffer = new Buffer(UiElementInstanceData.sizeof * 16, Buffer
                 .StorageFlag.DynamicStorage);

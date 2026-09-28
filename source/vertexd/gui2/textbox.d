@@ -1,4 +1,4 @@
-module vertexd.gui2.text;
+module vertexd.gui2.textbox;
 
 import std.math.rounding : floor;
 import vdmath;
