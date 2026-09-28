@@ -2,16 +2,19 @@ module vertexd.gui.font;
 
 import bindbc.freetype;
 import bindbc.opengl : GL_R8;
+
 import std.conv : text, to;
 import std.exception : enforce;
 import std.file;
-import std.stdio : File, stderr;
+import std.stdio;
 import std.string : toStringz;
 import std.typecons : Nullable;
+import std.uni : isWhite;
+
 import vdmath;
 import vertexd.gui.freetype;
 import vertexd.memory;
-import std.uni : isWhite;
+import vertexd.util.misc : removeElement;
 
 class FontException : Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null) {
@@ -26,24 +29,38 @@ struct Glyph {
     int yOffset; /// 26.6 fractional pixels
     BindlessTexture texture;
 
-    bool exists() {
-        return texture !is null;
+    bool isReal() {
+        return ftIndex != 0;
+    }
+
+    bool isPlaceholder() {
+        return !isNull() && ftIndex == 0;
+    }
+
+    bool isNull() {
+        return this == null_();
+    }
+
+    static Glyph null_() {
+        pragma(inline, true);
+        return Glyph(0, 0, 0, 0, null);
     }
 }
 
 class Font {
+    static Font[] loadedFonts;
+
     FT_Face face;
     Glyph[dchar] glyphAtlas; // TODO: for non 1:1 mapping, use HarfBuzz
     // int bboxWidth;
     // int bboxHeight;
     int lineHeight; // 26.6 fractional pixels
+    immutable bool isLatinFont;
 
-    this(string path) {
-        import std.stdio;
+    this(string path, bool isLatinFont = true) {
+        this.isLatinFont = isLatinFont;
 
-        path.writeln;
-        std.file.exists(path).writeln;
-        FT_Error error = FT_New_Face(_FreeTypeLib, path.toStringz, 0, &face);
+        FT_Error error = FT_New_Face(_FreeTypeLib, path.toStringz, 0, &this.face);
         if (error != 0)
             throw new FontException(
                 "Font error(" ~ error.to!string ~ "). Could not create font from path: " ~ path);
@@ -52,13 +69,26 @@ class Font {
                 "Font error(" ~ error.to!string ~ "). Provided font is unsupported (not scalable): " ~ path);
 
         setSize(16); // sets default size & generates atlas
+        Font.loadedFonts ~= this;
+    }
+
+    ~this() {
+        removeElement(Font.loadedFonts, this);
+        if (_FreeTypeLib !is null) // library still valid
+            FT_Done_Face(face);
+    }
+
+    private Glyph loadPlaceholder() {
+        if (Glyph* glyph = '�' in glyphAtlas)
+            return *glyph;
+        return loadNewGlyph('�');
     }
 
     private Glyph loadNewGlyph(dchar codepoint) {
         FT_Error error = FT_Load_Char(face, codepoint, FT_LOAD_RENDER);
         if (error != 0) {
             stderr.writeln(i"Failed to load & render codepoint \"$(codepoint)\"");
-            return Glyph(0, 0, 0, 0, null);
+            return Glyph.null_();
         }
 
         Glyph glyph;
@@ -77,7 +107,7 @@ class Font {
         return glyph;
     }
 
-    void generateDefaultAtlas() {
+    void generateDefaultLatinAtlas() {
         glyphAtlas.clear();
 
         // this.bboxWidth = (face.bbox.xMax - face.bbox.xMin + 63) / 64;
@@ -88,22 +118,34 @@ class Font {
         }
     }
 
-    ~this() {
-        if (_FreeTypeLib !is null) // library still valid
-            FT_Done_Face(face);
-    }
-
     final public void setSize(uint height) { // see: https://stackoverflow.com/a/65706983
         FT_Error error = FT_Set_Pixel_Sizes(face, 0, height);
         if (error != 0)
             throw new FontException("Could not set font to pixel size");
 
         this.lineHeight = face.size.metrics.height;
-        generateDefaultAtlas();
+        if (this.isLatinFont)
+            generateDefaultLatinAtlas();
     }
 
-    Glyph loadGlyph(dchar codepoint) {
-        return glyphAtlas.require(codepoint, loadNewGlyph(codepoint));
+    Glyph loadGlyph(dchar codepoint, bool searchFallbackFonts = true) {
+        Glyph* glyphPointer = codepoint in glyphAtlas;
+        Glyph glyph = glyphPointer is null ? loadNewGlyph(codepoint) : *glyphPointer;
+
+        if (glyph.isReal() || !searchFallbackFonts)
+            return glyph;
+
+        foreach (Font fallbackFont; Font.loadedFonts) {
+            if (fallbackFont is this)
+                continue;
+            Glyph fallbackGlyph = fallbackFont.loadGlyph(codepoint, false);
+            if (fallbackGlyph.isReal())
+                return fallbackGlyph;
+        }
+
+        if (!glyph.isNull())
+            return glyph;
+        return loadPlaceholder();
     }
 
     /// Split text into lines.
@@ -113,7 +155,7 @@ class Font {
     ///   lineHeight = height of lines in 26.6 fractional pixels
     /// Returns: bottom-left pixel positions of text glyphs.
     Vec!(2, int)[] layout(dchar[] text, int lineWidth, Vec!(2, int) offset, bool useKerning, int lineHeight = 0) {
-        useKerning &= FT_HAS_KERNING(face);
+        useKerning &= FT_HAS_KERNING(this.face);
         if (lineHeight == 0)
             lineHeight = this.lineHeight;
 
@@ -142,7 +184,7 @@ class Font {
             int advance = glyph.advance;
             if (!firstOnLine && useKerning) {
                 FT_Vector kerning;
-                int error = FT_Get_Kerning(face, lastGlyphIndex, glyph.ftIndex, 0, &kerning);
+                int error = FT_Get_Kerning(this.face, lastGlyphIndex, glyph.ftIndex, 0, &kerning);
                 if (error != 0)
                     throw new FontException(
                         i"Could not load kerning of \"$(text[i - 1])$(c)\"".text);
@@ -245,7 +287,7 @@ class Font {
 
                     ubyte oldVal = pixels[xInd + yInd * width];
                     ubyte newVal = face.glyph.bitmap.buffer[x + y * face
-                            .glyph.bitmap.width];
+                        .glyph.bitmap.width];
                     if (newVal > oldVal) // write only max value
                         pixels[xInd + yInd * width] = newVal;
                 }
