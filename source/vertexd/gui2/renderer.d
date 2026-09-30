@@ -56,20 +56,22 @@ class GuiRenderer {
 
     struct UiElementInstanceData { // std340
         // all sizes/coordinates normalized
-        Vec!(2, float) bottomLeft;
-        Vec!(2, float) size;
-        Vec!(4, float) backgroundColor;
-        float cornerRadius;
-        float zDepth;
-        ulong textureHandle;
+        align(8) Vec!(2, float) bottomLeft;
+        align(8) Vec!(2, float) size;
+        align(16) Vec!(4, float) backgroundColor;
+        align(16) Vec!(4, float) borderColor;
+        align(4) float borderWidth;
+        align(4) float cornerRadius;
+        align(4) float zDepth;
+        align(8) ulong textureHandle;
     }
 
     struct GlyphInstanceData { // std340
-        Vec!4 color;
-        Vec!(2, int) bottomLeft;
-        Vec!(2, int) maxBound;
-        ulong textureHandle;
-        float zDepth;
+        align(16) Vec!4 color;
+        align(8) Vec!(2, int) bottomLeft;
+        align(8) Vec!(2, int) maxBound;
+        align(8) ulong textureHandle;
+        align(4) float zDepth;
     }
 
     private void queueUiElement(UiElement element, Window window, float automaticDepth) {
@@ -108,14 +110,27 @@ class GuiRenderer {
             if (cornerRadius > minWindowSize / 2.0)
                 cornerRadius = minWindowSize / 2.0;
 
+            float borderWidth = element.borderWidth.getAbsolute(minSize);
+            if (borderWidth > minWindowSize / 2.0)
+                borderWidth = minWindowSize / 2.0;
+
             // Create instance data
             UiElementInstanceData UiElementInstance = UiElementInstanceData(
-        bottomLeft: Vec!2(element.bounds.left, windowSize.y - element.bounds.bottom) / windowSize,
-        size: glElementSize,
-        backgroundColor: element.backgroundColor,
-        cornerRadius: cornerRadius,
-        zDepth: element.zDepth + automaticDepth,
-        textureHandle: uiElementTextureHandle
+        bottomLeft : Vec!2(element.bounds.left, windowSize.y - element.bounds.bottom) / windowSize,
+        size:
+                glElementSize,
+        backgroundColor:
+                element.backgroundColor,
+        borderColor:
+                element.borderColor,
+        cornerRadius:
+                cornerRadius,
+        borderWidth:
+                borderWidth,
+        zDepth:
+                element.zDepth + automaticDepth,
+        textureHandle:
+                uiElementTextureHandle
             );
 
             // Add to data array

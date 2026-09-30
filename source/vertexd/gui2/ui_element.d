@@ -55,8 +55,10 @@ abstract class UiElement {
     float zDepth = 0;
     bool enabled = true;
 
+    Vec!4 backgroundColor = Vec!4(0);
+    Vec!4 borderColor = Vec!4(0);
+    UiSize borderWidth = pixels(0);
     UiSize cornerRadius = pixels(0);
-    Vec!4 backgroundColor = Vec!4(0, 0, 0, 0);
 
     protected UiElement[] children;
     abstract void updateChildBounds();

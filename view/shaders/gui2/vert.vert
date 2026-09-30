@@ -8,6 +8,8 @@ struct InstanceData {
     vec2 bottomLeft;
     vec2 size;
     vec4 color;
+    vec4 borderColor;
+    float borderWidth;
     float cornerRadius;
     float zDepth;
     uint64_t textureHandle;
@@ -15,7 +17,6 @@ struct InstanceData {
 
 layout(binding = 0) buffer InstanceBuffer{
     ivec2 screenSize;
-    // 64 bit std430 padding
     InstanceData instances[];
 };
 
